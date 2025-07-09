@@ -40,6 +40,7 @@ import { Link } from 'react-router-dom';
 import ReactApexChart from 'react-apexcharts';
 import { BoardSelector } from '../Clients/components/BoardSelector';
 import { useCalendarStore } from '../../store/calendarStore';
+import { useAuthStore } from '../../store/authStore';
 
 // Registrar locale ptBR para o DatePicker
 registerLocale('pt-BR', ptBR);
@@ -59,6 +60,7 @@ const ErrorDisplay = ({ message }: { message: string }) => (
 );
 
 export function Dashboard() {
+  const { logout } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -825,7 +827,20 @@ export function Dashboard() {
     </svg>
   </div>
   <h1 className="text-2xl font-bold text-purple-600">Dashboards</h1>
+  
+  {/* Botão de Logout Forçado */}
+  {/* <button
+    onClick={() => {
+      localStorage.clear();
+      window.location.href = '/login';
+    }}
+    className="ml-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+  >
+    Logout Forçado
+  </button> */}
 </div>
+
+
 
 
             <div className="mt-4 md:mt-0 flex items-center gap-3">
