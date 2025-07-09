@@ -1,17 +1,19 @@
 import React, { useState, useRef } from 'react';
-import { User, Camera, Trash2, QrCode, X } from 'lucide-react';
-import { useUser } from '../../hooks/useUser';
+import { User, Camera, Trash2, QrCode, X, LogOut } from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useNavigate } from 'react-router-dom';
 
 export function Profile() {
-  const { name, photo, plan, setUserData } = useUser();
+  const { user, logout, updateUser } = useAuthStore();
   const { webhookAgent } = useSettingsStore();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: name,
-    photo: photo,
+    name: user?.name || '',
+    photo: user?.avatarUrl || '',
   });
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,7 +23,7 @@ export function Profile() {
       reader.onloadend = () => {
         const base64String = reader.result as string;
         setFormData(prev => ({ ...prev, photo: base64String }));
-        setUserData({ name: formData.name, photo: base64String, plan });
+        updateUser({ avatarUrl: base64String });
       };
       reader.readAsDataURL(file);
     }
@@ -29,13 +31,18 @@ export function Profile() {
 
   const handleRemovePhoto = () => {
     setFormData(prev => ({ ...prev, photo: '' }));
-    setUserData({ name: formData.name, photo: '', plan });
+    updateUser({ avatarUrl: '' });
   };
 
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newName = event.target.value;
     setFormData(prev => ({ ...prev, name: newName }));
-    setUserData({ name: newName, photo: formData.photo, plan });
+    updateUser({ name: newName });
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   const handleGenerateQRCode = async () => {
@@ -56,7 +63,7 @@ export function Profile() {
         body: JSON.stringify({
           name: formData.name,
           photo: formData.photo,
-          plan: plan
+          plan: user?.plan || 'Plano Básico'
         })
       });
 
@@ -165,7 +172,7 @@ export function Profile() {
                     Plano Atual
                   </label>
                   <div className="px-4 py-2 rounded-lg bg-[#7f00ff]/10 text-[#7f00ff] font-medium">
-                    {plan}
+                    {user?.plan || 'Plano Básico'}
                   </div>
                 </div>
 
@@ -176,6 +183,14 @@ export function Profile() {
                 >
                   <QrCode className="w-5 h-5" />
                   {isGeneratingQR ? 'Gerando QR Code...' : 'Gerar QR Code'}
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Sair
                 </button>
               </div>
             </>
