@@ -41,13 +41,11 @@ const cache = {
     if (boardId) {
       // Limpar cache apenas para o board específico
       delete cache.boardDetails[boardId];
-      console.log(`[Cache] Limpando cache do board ${boardId}`);
     } else {
       // Limpar todo o cache quando uma operação global é realizada
       cache.boards.data = null;
       cache.boards.timestamp = 0;
       cache.boardDetails = {};
-      console.log(`[Cache] Limpando cache de todos os boards`);
     }
   },
   clearListCache: (boardId: string) => {
@@ -55,19 +53,16 @@ const cache = {
     delete cache.lists[boardId];
     // Limpar também o board relacionado
     delete cache.boardDetails[boardId];
-    console.log(`[Cache] Limpando cache de listas do board ${boardId}`);
   },
   clearCardCache: (listId: string) => {
     // Limpar cards quando houver modificações
     delete cache.cards[listId];
-    console.log(`[Cache] Limpando cache de cards da lista ${listId}`);
     
     // Tentar encontrar e limpar o board relacionado
     for (const boardId in cache.boardDetails) {
       const boardData = cache.boardDetails[boardId].data;
       if (boardData?.lists?.some(list => list.id === listId)) {
         delete cache.boardDetails[boardId];
-        console.log(`[Cache] Limpando cache do board ${boardId} relacionado à lista ${listId}`);
         break;
       }
     }
@@ -83,11 +78,8 @@ export const kanbanService = {
     try {
       // Verificar se há cache válido
       if (cache.boards.data && cache.isCacheValid(cache.boards.timestamp)) {
-        console.log('[KanbanService] Usando cache para obter boards');
         return cache.boards.data;
       }
-      
-      console.log('[KanbanService] Buscando boards do servidor');
       const user = await getCurrentUser();
       if (!user) throw new Error("Usuário não autenticado");
       
@@ -122,11 +114,8 @@ export const kanbanService = {
         cache.boardDetails[boardId] && 
         cache.isCacheValid(cache.boardDetails[boardId].timestamp)
       ) {
-        console.log(`[KanbanService] Usando cache para obter detalhes do board ${boardId}`);
         return cache.boardDetails[boardId].data;
       }
-      
-      console.log(`[KanbanService] Buscando detalhes do board ${boardId} do servidor`);
       const user = await getCurrentUser();
       if (!user) throw new Error("Usuário não autenticado");
       
@@ -168,7 +157,6 @@ export const kanbanService = {
   
   createBoard: async (title: string, description?: string): Promise<Board> => {
     try {
-      console.log(`[KanbanService] Criando board "${title}"`);
       const user = await getCurrentUser();
       if (!user) throw new Error("Usuário não autenticado");
       
@@ -201,7 +189,6 @@ export const kanbanService = {
   
   updateBoard: async (id: string, updates: Partial<Board>): Promise<Board> => {
     try {
-      console.log(`[KanbanService] Atualizando board ${id}`);
       const user = await getCurrentUser();
       if (!user) throw new Error("Usuário não autenticado");
       
@@ -235,7 +222,6 @@ export const kanbanService = {
   
   deleteBoard: async (id: string): Promise<void> => {
     try {
-      console.log(`[KanbanService] Excluindo board ${id}`);
       const user = await getCurrentUser();
       if (!user) throw new Error("Usuário não autenticado");
       

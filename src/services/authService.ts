@@ -12,9 +12,6 @@ export const authService = {
         body: JSON.stringify(data),
       });
 
-      console.log('Status da resposta:', response.status);
-      console.log('Headers da resposta:', response.headers);
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('Erro na resposta:', errorData);
@@ -22,7 +19,6 @@ export const authService = {
       }
 
       const responseData = await response.json();
-      console.log('Dados recebidos:', responseData);
       
       localStorage.setItem('auth_token', responseData.token);
       
@@ -65,18 +61,11 @@ export const authService = {
         };
       }
 
-      console.log('Fazendo registro na API:', `${API_CONFIG.authBaseUrl}${API_CONFIG.auth.register}`);
-      console.log('Dados enviados:', data);
-      console.log('Headers:', headers);
-      
       const response = await fetch(`${API_CONFIG.authBaseUrl}${API_CONFIG.auth.register}`, {
         method: 'POST',
         headers,
         body: requestBody,
       });
-
-      console.log('Status da resposta:', response.status);
-      console.log('Headers da resposta:', response.headers);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -85,7 +74,6 @@ export const authService = {
       }
 
       const responseData = await response.json();
-      console.log('Dados recebidos:', responseData);
       
       // Salvar token no localStorage
       localStorage.setItem('auth_token', responseData.token);
@@ -114,7 +102,6 @@ export const authService = {
 
   // Função para limpar dados corrompidos
   clearCorruptedData(): void {
-    console.log('Limpando dados de autenticação corrompidos...');
     this.logout();
   },
 

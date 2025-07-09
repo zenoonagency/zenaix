@@ -190,34 +190,19 @@ export const useFinancialStore = create<FinancialState>()(
           end = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999));
         }
 
-        // Depuração para verificar as datas
-        console.log('Período selecionado:', {
-          selectedDate: selectedDate.toISOString(),
-          start: start.toISOString(),
-          end: end.toISOString(),
-          year,
-          month
-        });
+        // Período selecionado para filtro
 
         return state.transactions.filter((transaction) => {
           const transactionDate = new Date(transaction.date);
           
-          // Depuração para verificar as datas das transações
-          console.log('Transação:', {
-            date: transaction.date,
-            parsed: transactionDate.toISOString(),
-            year: transactionDate.getUTCFullYear(),
-            month: transactionDate.getUTCMonth(),
-            description: transaction.description
-          });
+          // Verificar datas das transações
           
           // Comparar ano e mês para filtro mensal, ou apenas ano para filtro anual
           if (state.viewMode === 'month') {
             const match = transactionDate.getUTCFullYear() === year && 
                          transactionDate.getUTCMonth() === month;
             
-            // Depuração para verificar a correspondência
-            console.log('Match?', match, transaction.description);
+            // Verificar correspondência da transação
             
             return match;
           } else {

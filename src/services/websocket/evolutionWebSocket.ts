@@ -21,14 +21,12 @@ export class EvolutionWebSocket extends EventEmitter {
       this.ws = new WebSocket(this.url);
 
       this.ws.onopen = () => {
-        console.log('Connected to Evolution WebSocket');
         this.reconnectAttempts = 0;
         this.startPingInterval();
         this.emit('connected');
       };
 
       this.ws.onclose = () => {
-        console.log('Evolution WebSocket connection closed');
         this.clearPingInterval();
         this.handleReconnect();
         this.emit('disconnected');

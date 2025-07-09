@@ -75,14 +75,12 @@ export const useSettingsStore = create<SettingsState>()(
         })),
       deleteAIMemory: async () => {
         // Implementar lógica de deleção de memória
-        console.log('Deletando memória da IA...');
       },
       checkAsaasBalance: async () => {
         const { asaas } = get();
         
         // Se não tiver API key, não faz nada
         if (!asaas.apiKey) {
-          console.log('API key do Asaas não configurada');
           return;
         }
         
@@ -107,9 +105,8 @@ export const useSettingsStore = create<SettingsState>()(
             throw new Error('Falha ao verificar saldo');
           }
           
-          // Obter o texto da resposta e fazer log
+          // Obter o texto da resposta
           const responseText = await response.text();
-          console.log('Resposta bruta do webhook:', responseText);
           
           // Tentar converter para JSON
           let data;
@@ -120,13 +117,9 @@ export const useSettingsStore = create<SettingsState>()(
             throw new Error('Resposta inválida do servidor');
           }
           
-          console.log('Dados recebidos:', data);
-          
           // SOLUÇÃO TEMPORÁRIA: Usar o valor fixo de 1621.14 para teste
           // Este valor foi visto na resposta do n8n
           const balance = 1621.14;
-          
-          console.log('Saldo final (fixo para teste):', balance);
           
           // Atualiza o saldo e o timestamp diretamente com o valor fixo
           set((state) => ({
@@ -153,7 +146,6 @@ export const useSettingsStore = create<SettingsState>()(
       },
       listAsaasTransactions: async () => {
         // Implementar listagem de transações
-        console.log('Listando transações Asaas...');
       },
     }),
     {

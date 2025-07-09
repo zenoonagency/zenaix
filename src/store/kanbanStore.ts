@@ -70,7 +70,6 @@ export const useKanbanStore = create<KanbanState & {
           if (get().isLoading) return;
           
           set({ isLoading: true, error: null });
-          console.log("[KanbanStore] Throttled fetch iniciado");
           
           const boards = await kanbanService.getBoards();
           set({ 
@@ -87,7 +86,6 @@ export const useKanbanStore = create<KanbanState & {
         try {
           if (!id || get().isLoading) return;
           
-          console.log(`[KanbanStore] Debounced fetch do board ${id}`);
           const boardDetails = await kanbanService.getBoardDetails(id);
           
           set((state) => ({
@@ -113,7 +111,6 @@ export const useKanbanStore = create<KanbanState & {
             if (get().isLoading) return;
             
             set({ isLoading: true, error: null });
-            console.log("[KanbanStore] Fetch boards iniciado");
             
             const boards = await kanbanService.getBoards();
             set({ 
@@ -133,7 +130,6 @@ export const useKanbanStore = create<KanbanState & {
             if (!id || get().isLoading) return {} as ExtendedBoard;
             
             set({ isLoading: true, error: null });
-            console.log(`[KanbanStore] Fetch detalhes do board ${id}`);
             
             const boardDetails = await kanbanService.getBoardDetails(id);
             
@@ -169,7 +165,6 @@ export const useKanbanStore = create<KanbanState & {
         // Adicionar novo quadro
         addBoard: async (title, description) => {
           try {
-            console.log(`[KanbanStore] Criando quadro "${title}"`);
             const newBoard = await kanbanService.createBoard(title, description);
             
             // Usar o mapper para garantir consistência
@@ -189,7 +184,6 @@ export const useKanbanStore = create<KanbanState & {
         // Atualizar quadro
         updateBoard: async (id, updates) => {
           try {
-            console.log(`[KanbanStore] Atualizando quadro ${id}`);
             const updatedBoard = await kanbanService.updateBoard(id, updates);
             
             // Otimização: atualizar apenas os campos necessários
@@ -211,7 +205,6 @@ export const useKanbanStore = create<KanbanState & {
         // Excluir quadro
         deleteBoard: async (id) => {
           try {
-            console.log(`[KanbanStore] Excluindo quadro ${id}`);
             await kanbanService.deleteBoard(id);
             
             set((state) => ({
@@ -229,7 +222,6 @@ export const useKanbanStore = create<KanbanState & {
         // Adicionar lista
         addList: async (boardId, title) => {
           try {
-            console.log(`[KanbanStore] Adicionando lista "${title}" ao quadro ${boardId}`);
             // Obter o número de listas existentes para definir a posição
             const board = get().boards.find(b => b.id === boardId);
             const position = board?.lists?.length || 0;
@@ -267,7 +259,6 @@ export const useKanbanStore = create<KanbanState & {
         // Atualizar lista
         updateList: async (id, updates) => {
           try {
-            console.log(`[KanbanStore] Atualizando lista ${id}`);
             const updatedList = await kanbanService.updateList(id, updates);
             
             set((state) => ({
@@ -306,7 +297,6 @@ export const useKanbanStore = create<KanbanState & {
         // Excluir lista
         deleteList: async (id) => {
           try {
-            console.log(`[KanbanStore] Excluindo lista ${id}`);
             await kanbanService.deleteList(id);
             
             set((state) => ({
@@ -336,7 +326,6 @@ export const useKanbanStore = create<KanbanState & {
         // Adicionar cartão
         addCard: async (listId, title, description) => {
           try {
-            console.log(`[KanbanStore] Adicionando cartão "${title}" à lista ${listId}`);
             // Obter o número de cartões existentes para definir a posição
             let listPosition = 0;
             let foundBoard = null;
@@ -396,7 +385,6 @@ export const useKanbanStore = create<KanbanState & {
         // Atualizar cartão
         updateCard: async (id, updates) => {
           try {
-            console.log(`[KanbanStore] Atualizando cartão ${id}`);
             const updatedCard = await kanbanService.updateCard(id, updates);
             
             // Atualização otimizada do estado
@@ -456,7 +444,6 @@ export const useKanbanStore = create<KanbanState & {
         // Excluir cartão
         deleteCard: async (id) => {
           try {
-            console.log(`[KanbanStore] Excluindo cartão ${id}`);
             await kanbanService.deleteCard(id);
             
             // Atualização otimizada do estado
@@ -495,7 +482,6 @@ export const useKanbanStore = create<KanbanState & {
         // Mover cartão
         moveCard: async (cardId, toListId, newPosition) => {
           try {
-            console.log(`[KanbanStore] Movendo cartão ${cardId} para lista ${toListId}`);
             const movedCard = await kanbanService.moveCard(cardId, toListId, newPosition);
             
             // Esta operação é mais complexa no estado local

@@ -10,22 +10,18 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       login: (user: User, token: string) => {
-        console.log('AuthStore - Login:', { user, token });
         set({
           isAuthenticated: true,
           user,
           token,
         });
-        console.log('AuthStore - Estado após login:', get());
       },
       logout: () => {
-        console.log('AuthStore - Logout');
         set({
           isAuthenticated: false,
           user: null,
           token: null,
         });
-        console.log('AuthStore - Estado após logout:', get());
       },
       updateUser: (userData: Partial<User>) => {
         const currentUser = get().user;
@@ -44,7 +40,7 @@ export const useAuthStore = create<AuthState>()(
         token: state.token,
       }),
       onRehydrateStorage: () => (state) => {
-        console.log('AuthStore - Rehydrated state:', state);
+        // State rehydrated
       },
     }
   )

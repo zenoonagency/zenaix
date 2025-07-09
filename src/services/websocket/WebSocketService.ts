@@ -31,15 +31,11 @@ export class WebSocketService extends EventEmitter {
   }
 
   private log(...args: any[]) {
-    if (this.debug) {
-      console.log('[WebSocket]', ...args);
-    }
+    // Log disabled for production
   }
 
   private error(...args: any[]) {
-    if (this.debug) {
-      console.error('[WebSocket]', ...args);
-    }
+    // Error log disabled for production
   }
 
   connect() {
