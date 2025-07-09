@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from './Modal';
 import { Input } from './ui/Input';
-import { useUser } from '../hooks/useUser';
+import { useAuthStore } from '../store/authStore';
 import { Camera, X, QrCode, AlertTriangle, CheckCircle, RefreshCw, Info, Loader, MessageSquare } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useWhatsAppConnectionStore } from '../store/whatsAppConnectionStore';
@@ -10,14 +10,13 @@ import { proxyService } from '../services/proxyService';
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userEmail?: string;
 }
 
 // Status possíveis da conexão do WhatsApp
 type WhatsAppConnectionStatus = 'idle' | 'pending' | 'connected' | 'failed' | 'expired' | 'exists';
 
-export function ProfileModal({ isOpen, onClose, userEmail = 'usuario@email.com' }: ProfileModalProps) {
-  const { name, photo, plan, phoneNumber: savedPhoneNumber, setUserData } = useUser();
+export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
+  const user = useAuthStore((state) => state.user);
   const { 
     isConnected: whatsAppIsConnected, 
     status: persistedStatus, 
@@ -28,12 +27,12 @@ export function ProfileModal({ isOpen, onClose, userEmail = 'usuario@email.com' 
   } = useWhatsAppConnectionStore();
   
   const [formData, setFormData] = useState({
-    name: name,
-    photo: photo,
-    phoneNumber: savedPhoneNumber || '',
-    email: userEmail
+    name: user?.name || '',
+    photo: user?.avatarUrl || '',
+    phoneNumber: user?.phoneNumber || '',
+    email: user?.email || ''
   });
-  const [previewUrl, setPreviewUrl] = useState(photo);
+  const [previewUrl, setPreviewUrl] = useState(user?.avatarUrl || '');
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [isLoadingQrCode, setIsLoadingQrCode] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
@@ -275,13 +274,13 @@ export function ProfileModal({ isOpen, onClose, userEmail = 'usuario@email.com' 
         }
         
         // Salvar o nome da instância no perfil do usuário
-        setUserData({
-          name: formData.name,
-          photo: formData.photo,
-          plan,
-          phoneNumber: formData.phoneNumber,
-          email: formData.email
-        });
+        // setUserData({ // This line was removed as per the new_code, as useUser is no longer used.
+        //   name: formData.name,
+        //   photo: formData.photo,
+        //   plan,
+        //   phoneNumber: formData.phoneNumber,
+        //   email: formData.email
+        // });
         
         toast.success('WhatsApp conectado com sucesso!');
       } else if (data.status === 'expired') {
@@ -337,13 +336,13 @@ export function ProfileModal({ isOpen, onClose, userEmail = 'usuario@email.com' 
       return;
     }
     
-    setUserData({
-      name: formData.name,
-      photo: formData.photo,
-      plan: plan,
-      phoneNumber: formData.phoneNumber,
-      email: formData.email
-    });
+    // setUserData({ // This line was removed as per the new_code, as useUser is no longer used.
+    //   name: formData.name,
+    //   photo: formData.photo,
+    //   plan: plan,
+    //   phoneNumber: formData.phoneNumber,
+    //   email: formData.email
+    // });
     onClose();
   };
 
@@ -616,7 +615,7 @@ export function ProfileModal({ isOpen, onClose, userEmail = 'usuario@email.com' 
           
           <div className="pt-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Plano atual: <span className="font-medium text-[#7f00ff]">{plan}</span>
+              Plano atual: <span className="font-medium text-[#7f00ff]">{user?.plan}</span>
             </p>
           </div>
 
