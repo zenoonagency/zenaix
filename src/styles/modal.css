@@ -1,0 +1,74 @@
+/* Modal Animations */
+.modal-enter {
+  animation: modal-pop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-leave {
+  animation: modal-pop-out 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modal-pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modal-pop-out {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.9) translateY(10px);
+  }
+}
+
+/* Overlay Animations */
+.modal-overlay-enter {
+  animation: overlay-fade-in 0.3s ease-out;
+}
+
+.modal-overlay-leave {
+  animation: overlay-fade-out 0.2s ease-in;
+}
+
+@keyframes overlay-fade-in {
+  0% {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+}
+
+@keyframes overlay-fade-out {
+  0% {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+  100% {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+}
+
+/* Modal Content Styles */
+.modal-content {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+              0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.dark .modal-content {
+  background: rgba(17, 24, 39, 0.95);
+  border-color: rgba(255, 255, 255, 0.05);
+} 
