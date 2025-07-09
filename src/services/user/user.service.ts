@@ -1,11 +1,11 @@
 import { RegisterData, User } from '../../types/auth';
-import { API_CONFIG } from '../config/api.config';
 import { APIError } from '../errors/api.errors';
+import { API_CONFIG } from '../../config/api.config';
 
 export const userService = {
   async register(data: RegisterData): Promise<{ user: User; message: string }> {
     try {
-      const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.register}`, {
+      const response = await fetch(`${API_CONFIG.authBaseUrl}${API_CONFIG.auth.register}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -19,14 +19,15 @@ export const userService = {
       });
 
       if (!response.ok) {
-        throw new APIError('Falha ao registrar usuário. Por favor, tente novamente.');
+        const errorData = await response.json().catch(() => ({}));
+        throw new APIError(errorData.message || 'Falha ao registrar usuário. Por favor, tente novamente.');
       }
 
       const responseData = await response.json();
 
       return {
         user: {
-          id: responseData.userId || '1',
+          id: responseData.userId || responseData.user?.id || '1',
           name: data.name,
           email: data.email,
         },
