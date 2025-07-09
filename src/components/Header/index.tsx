@@ -1,13 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, BrainCircuit, Sun, Moon, User, ChevronDown } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../hooks/useTheme';
-import { useUser } from '../../hooks/useUser';
+import { useAuthStore } from '../../store/authStore';
+import { authService } from '../../services/authService';
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();
-  const { name, photo, plan } = useUser();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
+
+  // Debug temporário
+  console.log('Header - Dados do usuário:', user);
+  console.log('Header - isAuthenticated:', useAuthStore.getState().isAuthenticated);
+  console.log('Header - token:', useAuthStore.getState().token);
+
+  // Monitorar mudanças no store
+  useEffect(() => {
+    console.log('Header - useEffect - user mudou:', user);
+    console.log('Header - useEffect - isAuthenticated mudou:', useAuthStore.getState().isAuthenticated);
+  }, [user]);
+
+  const handleLogout = () => {
+    try {
+      console.log('Iniciando logout...');
+      
+      // Limpar dados do localStorage
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth-status');
+      
+      // Limpar dados do store
+      logout();
+      
+      // Fechar dropdown
+      setIsDropdownOpen(false);
+      
+      // Forçar recarregamento da página para limpar tudo
+      window.location.href = '/login';
+      
+      console.log('Logout realizado com sucesso');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      // Forçar logout mesmo com erro
+      localStorage.clear();
+      window.location.href = '/login';
+    }
+  };
 
   return (
     <header className="px-4 py-2 flex items-center justify-between relative bg-transparent">
@@ -32,16 +72,24 @@ export function Header() {
           {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </button>
 
+        {/* Botão de Logout Temporário */}
+        <button
+          onClick={handleLogout}
+          className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+        >
+          Sair
+        </button>
+
         <div className="relative">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="flex items-center gap-3 px-3 py-1.5 text-sm font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-800 rounded-lg transition-colors"
           >
             <div className="flex items-center gap-3">
-              {photo ? (
+              {user?.avatarUrl ? (
                 <img
-                  src={photo}
-                  alt={name}
+                  src={user.avatarUrl}
+                  alt={user.name}
                   className="w-8 h-8 rounded-full object-cover border-2 border-[#7f00ff]"
                 />
               ) : (
@@ -50,8 +98,8 @@ export function Header() {
                 </div>
               )}
               <div className="flex flex-col items-start">
-                <span className="text-sm font-medium">{name}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">{plan}</span>
+                <span className="text-sm font-medium">{user?.name || 'Usuário'}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{user?.plan || 'Plano Básico'}</span>
               </div>
             </div>
             <ChevronDown className="w-4 h-4 ml-2" />
@@ -60,13 +108,13 @@ export function Header() {
           {isDropdownOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-800 rounded-lg shadow-lg py-1 z-50">
               <Link
-                to="/perfil"
+                to="/dashboard/profile"
                 className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700"
               >
                 Perfil
               </Link>
               <button
-                onClick={() => {/* Lógica de logout */}}
+                onClick={handleLogout}
                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700"
               >
                 Sair
