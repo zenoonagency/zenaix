@@ -5,7 +5,7 @@ export interface Contact {
   tagIds?: string[];
 }
 
-export type MessageType = 'text' | 'image' | 'video' | 'audio';
+export type MessageType = 'text' | 'image' | 'video' | 'audio' | 'document';
 
 export interface MessageContent {
   type: MessageType;
@@ -18,7 +18,7 @@ export interface MessageBatch {
   context: string;
   messages: MessageContent[];
   contacts: Contact[];
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' ;
   progress: number;
   sentCount: number;
   failedCount: number;
