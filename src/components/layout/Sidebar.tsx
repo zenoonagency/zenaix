@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { TagList } from '../tags/TagList';
 import { useThemeStore } from '../../store/themeStore';
-import { useUser } from '../../hooks/useUser';
+import { useAuthStore } from '../../store/authStore';
 import * as Icons from 'lucide-react';
 import { ProfileModal } from '../../components/ProfileModal';
 
@@ -646,12 +646,13 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [showTags, setShowTags] = useState(false);
   const { theme } = useThemeStore();
-  const { name, photo, plan } = useUser();
+  const user = useAuthStore((state) => state.user);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const logout = useAuthStore((state) => state.logout);
 
   const logoUrl = theme === 'dark' 
     ? (collapsed ? 'https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT-SMALL.png' : 'https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT.png')
@@ -727,10 +728,10 @@ h-[calc(100%-2.5rem)]
                     rounded-lg
                   `}
                 >
-                  {photo ? (
+                  {user?.avatarUrl ? (
                     <img
-                      src={photo}
-                      alt={name}
+                      src={user.avatarUrl}
+                      alt={user.name}
                       className={`${collapsed ? 'w-10 h-10' : 'w-9 h-9 mr-3'} rounded-full object-cover border-2 border-[#7f00ff]`}
                     />
                   ) : (
@@ -740,8 +741,8 @@ h-[calc(100%-2.5rem)]
                   )}
                   {!collapsed && (
                     <div className="flex flex-col items-start">
-                      <span className="text-base font-medium">{name}</span>
-                      <span className="text-sm text-purple-600 dark:text-purple-400 font-medium">{plan}</span>
+                      <span className="text-base font-medium">{user?.name || 'Usuário'}</span>
+                      <span className="text-sm text-purple-600 dark:text-purple-400 font-medium">{user?.plan || 'Plano Básico'}</span>
                     </div>
                   )}
                 </button>
@@ -834,7 +835,7 @@ h-[calc(100%-2.5rem)]
       <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
-        userEmail={`${name.toLowerCase().replace(/\s+/g, '.')}@zenoon.com`}
+        userEmail={`${user?.email.toLowerCase().replace(/\s+/g, '.')}@zenoon.com`}
       />
       <ChatModal 
         isOpen={isChatModalOpen} 
@@ -844,10 +845,16 @@ h-[calc(100%-2.5rem)]
         isOpen={isProfileMenuOpen}
         onClose={() => setIsProfileMenuOpen(false)}
         onEditProfile={() => setIsProfileModalOpen(true)}
-        onLogout={() => navigate('/auth')}
-        name={name}
-        photo={photo}
-        plan={plan}
+        onLogout={() => {
+          logout();
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('token');
+          localStorage.removeItem('auth-status');
+          window.location.href = '/login';
+        }}
+        name={user?.name || 'Usuário'}
+        photo={user?.avatarUrl || null}
+        plan={user?.plan || 'Plano Básico'}
       />
     </>
   );
