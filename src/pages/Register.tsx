@@ -12,6 +12,8 @@ import { useThemeStore } from '../store/themeStore';
 import { ParticlesEffect } from '../components/effects/ParticlesEffect';
 import { authService } from '../services/authService';
 import { RegisterData } from '../types/auth';
+import { LANGUAGE_OPTIONS } from '../contexts/LocalizationContext';
+import { TIMEZONE_OPTIONS } from '../utils/timezones';
 
 export function Register() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -301,20 +303,40 @@ export function Register() {
                   <p className="text-xs text-gray-500 mt-1">Máximo 300KB</p>
                 </div>
 
-                <Input
-                  type="text"
-                  value={formData.language}
-                  onChange={(e) => handleInputChange('language', e.target.value)}
-                  label="Idioma"
-                  placeholder="pt-BR"
-                />
-                <Input
-                  type="text"
-                  value={formData.timezone}
-                  onChange={(e) => handleInputChange('timezone', e.target.value)}
-                  label="Fuso horário"
-                  placeholder="America/Sao_Paulo"
-                />
+                {/* Combo box de Fuso Horário */}
+                <div>
+                  <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Fuso Horário
+                  </label>
+                  <select
+                    id="timezone"
+                    name="timezone"
+                    value={formData.timezone}
+                    onChange={e => handleInputChange('timezone', e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
+                  >
+                    {TIMEZONE_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                {/* Combo box de Linguagem */}
+                <div>
+                  <label htmlFor="language" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Idioma
+                  </label>
+                  <select
+                    id="language"
+                    name="language"
+                    value={formData.language}
+                    onChange={e => handleInputChange('language', e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
+                  >
+                    {LANGUAGE_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

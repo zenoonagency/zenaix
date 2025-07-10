@@ -1,13 +1,14 @@
-/**
- * Utilitários para manipulação de fusos horários
- */
 
-// Lista de fusos horários comuns no Brasil
-export const brazilianTimezones = [
-  { value: 'America/Sao_Paulo', label: 'Brasília (GMT-3)' },
+// Lista de fusos horários globais (incluindo os mais usados no sistema)
+export const TIMEZONE_OPTIONS = [
+  { value: 'America/Sao_Paulo', label: 'São Paulo (GMT-3)' },
   { value: 'America/Manaus', label: 'Manaus (GMT-4)' },
   { value: 'America/Rio_Branco', label: 'Rio Branco (GMT-5)' },
-  { value: 'America/Noronha', label: 'Fernando de Noronha (GMT-2)' }
+  { value: 'America/Noronha', label: 'Fernando de Noronha (GMT-2)' },
+  { value: 'Europe/Lisbon', label: 'Lisboa (GMT+1)' },
+  { value: 'America/New_York', label: 'Nova York (GMT-4)' },
+  { value: 'Europe/London', label: 'Londres (GMT+0)' },
+  { value: 'Asia/Tokyo', label: 'Tóquio (GMT+9)' },
 ];
 
 // Função para converter uma data para o fuso horário local

@@ -6,6 +6,9 @@ import { Camera, X, QrCode, AlertTriangle, CheckCircle, RefreshCw, Info, Loader,
 import { toast } from 'react-hot-toast';
 import { useWhatsAppConnectionStore } from '../store/whatsAppConnectionStore';
 import { proxyService } from '../services/proxyService';
+import { userService } from '../services/user/user.service';
+import { LANGUAGE_OPTIONS } from '../contexts/LocalizationContext';
+import { TIMEZONE_OPTIONS } from '../utils/timezones';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -27,14 +30,16 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   } = useWhatsAppConnectionStore();
   
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    photo: user?.avatarUrl || '',
-    phoneNumber: user?.phoneNumber || '',
-    email: user?.email || ''
+    name: '',
+    photo: '',
+    phoneNumber: '',
+    email: ''
   });
-  const [previewUrl, setPreviewUrl] = useState(user?.avatarUrl || '');
+  const [previewUrl, setPreviewUrl] = useState('');
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [isLoadingQrCode, setIsLoadingQrCode] = useState(false);
+  const [isLoadingAvatar, setIsLoadingAvatar] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<WhatsAppConnectionStatus>(persistedStatus || 'idle');
   const [connectionId, setConnectionId] = useState<string | null>(null);
@@ -45,6 +50,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [connectionState, setConnectionState] = useState<'ativo' | 'inativo' | 'conectando' | null>(null);
   // Adicionar ref para acompanhar o estado atual
   const connectionStateRef = useRef<'ativo' | 'inativo' | 'conectando' | null>(connectionState);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   // Atualizar o ref quando o estado muda
   useEffect(() => {
@@ -57,6 +63,19 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       setConnectionStatus('connected');
     }
   }, [whatsAppIsConnected, persistedStatus]);
+
+  // Sincronizar dados do formulário quando o modal for aberto ou quando o usuário mudar
+  useEffect(() => {
+    if (isOpen && user) {
+      setFormData({
+        name: user.name || '',
+        photo: user.avatarUrl || '',
+        phoneNumber: user.phoneNumber || '',
+        email: user.email || ''
+      });
+      setPreviewUrl(user.avatarUrl || '');
+    }
+  }, [isOpen, user]);
 
   // Iniciar polling para verificar se a instância está ativa quando o modal estiver aberto
   useEffect(() => {
@@ -84,7 +103,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     // Limpar qualquer intervalo existente
     stopConnectionPolling();
     
-    console.log('Iniciando polling para verificar se a instância está ativa...');
+
     
     // Executar a verificação imediatamente
     verifyConnection();
@@ -100,7 +119,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
-      console.log('Polling de verificação parado');
+
     }
   };
 
@@ -117,12 +136,11 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setIsWaitingForStatus(true);
     
     try {
-      console.log('Estado atual da conexão (ref):', connectionStateRef.current);
-      console.log('Verificando conexão com o webhook...');
+
       
       // Usar o novo método simplificado do proxyService com email
       const result = await proxyService.checkWhatsAppStatus(formData.email);
-      console.log('Resultado da verificação de status:', result);
+
       
       // Verificar e atualizar o estado com base na resposta
       const status = result.resposta?.toLowerCase()?.trim();
@@ -309,25 +327,96 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     }
   };
 
-  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setPreviewUrl(base64String);
-        setFormData(prev => ({ ...prev, photo: base64String }));
-      };
-      reader.readAsDataURL(file);
+      // Validar tamanho do arquivo (max 300KB)
+      if (file.size > 300 * 1024) {
+        setImageError('O arquivo deve ter no máximo 300KB');
+        toast.error('O arquivo deve ter no máximo 300KB', { duration: 5000 });
+        return;
+      } else {
+        setImageError(null);
+      }
+
+      // Validar tipo do arquivo
+      if (!file.type.startsWith('image/')) {
+        setImageError('Por favor, selecione apenas arquivos de imagem');
+        toast.error('Por favor, selecione apenas arquivos de imagem');
+        return;
+      } else {
+        setImageError(null);
+      }
+
+      setIsLoadingAvatar(true);
+      try {
+        // Mostrar preview imediatamente
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          setPreviewUrl(base64String);
+          setFormData(prev => ({ ...prev, photo: base64String }));
+        };
+        reader.readAsDataURL(file);
+
+        // Fazer upload para a API
+        const updatedUser = await userService.updateAvatar(file);
+        console.log('Avatar atualizado:', updatedUser);
+        
+        // Atualizar o estado global com os novos dados
+        useAuthStore.getState().updateUser(updatedUser);
+        
+        // Forçar atualização do localStorage
+        const currentAuth = JSON.parse(localStorage.getItem('auth-status') || '{}');
+        if (currentAuth.state) {
+          currentAuth.state.user = { ...currentAuth.state.user, ...updatedUser };
+          localStorage.setItem('auth-status', JSON.stringify(currentAuth));
+        }
+        
+        // Atualizar também o estado local para garantir consistência
+        if (updatedUser.avatarUrl) {
+          setPreviewUrl(updatedUser.avatarUrl);
+          setFormData(prev => ({ ...prev, photo: updatedUser.avatarUrl }));
+        }
+        
+        toast.success('Avatar atualizado com sucesso!');
+      } catch (error) {
+        console.error('Erro ao atualizar avatar:', error);
+        toast.error('Erro ao atualizar avatar. Tente novamente.');
+        
+        // Reverter preview em caso de erro
+        setPreviewUrl(user?.avatarUrl || '');
+        setFormData(prev => ({ ...prev, photo: user?.avatarUrl || '' }));
+      } finally {
+        setIsLoadingAvatar(false);
+      }
     }
   };
 
-  const handleRemovePhoto = () => {
-    setPreviewUrl('');
-    setFormData(prev => ({ ...prev, photo: '' }));
+  const handleRemovePhoto = async () => {
+    setIsLoadingAvatar(true);
+    try {
+      await userService.removeAvatar();
+      
+      // Atualizar o estado local
+      setPreviewUrl('');
+      setFormData(prev => ({ ...prev, photo: '' }));
+      
+      // Atualizar o estado global removendo o avatar
+      if (user) {
+        useAuthStore.getState().updateUser({ ...user, avatarUrl: '' });
+      }
+      
+      toast.success('Avatar removido com sucesso!');
+    } catch (error) {
+      console.error('Erro ao remover avatar:', error);
+      toast.error('Erro ao remover avatar. Tente novamente.');
+    } finally {
+      setIsLoadingAvatar(false);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validação apenas do nome, já que o email é obtido automaticamente
@@ -335,15 +424,41 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       toast.error('O nome é obrigatório');
       return;
     }
-    
-    // setUserData({ // This line was removed as per the new_code, as useUser is no longer used.
-    //   name: formData.name,
-    //   photo: formData.photo,
-    //   plan: plan,
-    //   phoneNumber: formData.phoneNumber,
-    //   email: formData.email
-    // });
-    onClose();
+
+    if (!user?.id) {
+      toast.error('Usuário não identificado');
+      return;
+    }
+
+    setIsLoadingProfile(true);
+    try {
+      // Atualizar dados do usuário
+      const updatedUser = await userService.updateUser(user.id, {
+        name: formData.name.trim(),
+        language: 'pt-BR', // Valor padrão
+        timezone: 'America/Sao_Paulo' // Valor padrão
+      });
+      
+      console.log('Perfil atualizado:', updatedUser);
+
+      // Atualizar o estado global com os novos dados
+      useAuthStore.getState().updateUser(updatedUser);
+
+      // Forçar atualização do localStorage
+      const currentAuth = JSON.parse(localStorage.getItem('auth-status') || '{}');
+      if (currentAuth.state) {
+        currentAuth.state.user = { ...currentAuth.state.user, ...updatedUser };
+        localStorage.setItem('auth-status', JSON.stringify(currentAuth));
+      }
+
+      toast.success('Perfil atualizado com sucesso!');
+      onClose();
+    } catch (error) {
+      console.error('Erro ao atualizar perfil:', error);
+      toast.error('Erro ao atualizar perfil. Tente novamente.');
+    } finally {
+      setIsLoadingProfile(false);
+    }
   };
 
   const handleShowInstructions = () => {
@@ -567,27 +682,49 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               <button
                 type="button"
                 onClick={handleRemovePhoto}
-                className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600"
+                disabled={isLoadingAvatar}
+                className={`absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 ${
+                  isLoadingAvatar ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                <X size={14} />
+                {isLoadingAvatar ? (
+                  <Loader size={14} className="animate-spin" />
+                ) : (
+                  <X size={14} />
+                )}
               </button>
             )}
           </div>
           <div>
             <label
               htmlFor="photo-upload"
-              className="cursor-pointer inline-flex items-center px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90"
+              className={`cursor-pointer inline-flex items-center px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 ${
+                isLoadingAvatar ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              <Camera size={16} className="mr-2" />
-              Alterar foto
+              {isLoadingAvatar ? (
+                <>
+                  <Loader size={16} className="mr-2 animate-spin" />
+                  Atualizando...
+                </>
+              ) : (
+                <>
+                  <Camera size={16} className="mr-2" />
+                  Alterar foto
+                </>
+              )}
               <input
                 id="photo-upload"
                 type="file"
                 accept="image/*"
                 onChange={handlePhotoChange}
+                disabled={isLoadingAvatar}
                 className="hidden"
               />
             </label>
+            {imageError && (
+              <div className="text-red-600 text-sm mt-1">{imageError}</div>
+            )}
           </div>
         </div>
 
@@ -851,9 +988,19 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90"
+            disabled={isLoadingProfile}
+            className={`px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 flex items-center ${
+              isLoadingProfile ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            Salvar alterações
+            {isLoadingProfile ? (
+              <>
+                <Loader className="w-4 h-4 mr-2 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              'Salvar alterações'
+            )}
           </button>
         </div>
       </form>

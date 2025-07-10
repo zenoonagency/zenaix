@@ -6,6 +6,8 @@ export interface User {
   lastName?: string | null;
   role: string;
   organizationId?: string | null;
+  language: string
+  timezone: string
   createdAt: string;
   updatedAt: string;
   avatarUrl?: string;

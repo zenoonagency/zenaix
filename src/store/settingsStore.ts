@@ -151,16 +151,36 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-storage',
       version: 1,
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      storage: typeof window !== 'undefined'
+        ? {
+            getItem: (name) => {
+              const value = window.localStorage.getItem(name);
+              return value ? JSON.parse(value) : null;
+            },
+            setItem: (name, value) => {
+              window.localStorage.setItem(name, JSON.stringify(value));
+            },
+            removeItem: (name) => {
+              window.localStorage.removeItem(name);
+            },
+          }
+        : undefined,
+      // Persistir apenas os dados, nunca funções
       partialize: (state) => ({
         ai: state.ai,
-        asaas: {
-          apiKey: state.asaas.apiKey,
-          balance: state.asaas.balance,
-          transactions: state.asaas.transactions,
-          lastUpdated: state.asaas.lastUpdated,
-        },
+        asaas: state.asaas,
         openai: state.openai,
+      }),
+      // Ao restaurar, garantir que as funções do estado atual sejam mantidas
+      merge: (persistedState: any, currentState: any) => ({
+        ...currentState,
+        ...persistedState,
+        updateAI: currentState.updateAI,
+        updateAsaas: currentState.updateAsaas,
+        updateOpenAI: currentState.updateOpenAI,
+        deleteAIMemory: currentState.deleteAIMemory,
+        checkAsaasBalance: currentState.checkAsaasBalance,
+        listAsaasTransactions: currentState.listAsaasTransactions,
       }),
     }
   )

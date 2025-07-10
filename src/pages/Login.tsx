@@ -37,7 +37,6 @@ export function Login({ onLoginSuccess }: LoginProps) {
       const response = await authService.login({ email, password });
       
       // Salvar dados no store
-      console.log('Login - Dados recebidos da API:', response.data);
       login(response.data, response.token);
       
       showToast('Login realizado com sucesso!', 'success');

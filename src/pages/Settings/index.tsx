@@ -4,6 +4,7 @@ import { Input } from '../../components/ui/Input';
 import { useSettingsStore } from '../../store/settingsStore';
 import { toast } from 'react-toastify';
 import { PerformanceTab } from './PerformanceTab';
+import { ProfileTab } from './ProfileTab';
 
 export function Settings() {
   const { 
@@ -11,7 +12,7 @@ export function Settings() {
     updateAI, updateAsaas, updateOpenAI,
   } = useSettingsStore();
   
-  const [activeTab, setActiveTab] = useState<'general' | 'performance'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'performance' | 'profile'>('general');
 
   const handleSave = () => {
     toast.success('Configurações salvas com sucesso!');
@@ -37,6 +38,16 @@ export function Settings() {
             onClick={() => setActiveTab('general')}
           >
             Configurações Gerais
+          </button>
+          <button
+            className={`px-4 py-2 text-sm font-medium ${
+              activeTab === 'profile' 
+                ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400' 
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+            onClick={() => setActiveTab('profile')}
+          >
+            Perfil
           </button>
           <button
             className={`px-4 py-2 text-sm font-medium ${
@@ -303,6 +314,10 @@ export function Settings() {
               </button>
             </div>
           </div>
+        </div>
+      ) : activeTab === 'profile' ? (
+        <div className="px-8 pb-8">
+          <ProfileTab />
         </div>
       ) : (
         /* Aba de Diagnóstico de Desempenho */

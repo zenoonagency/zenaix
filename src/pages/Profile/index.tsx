@@ -6,8 +6,8 @@ import { useNavigate } from 'react-router-dom';
 
 export function Profile() {
   const { user, logout, updateUser } = useAuthStore();
-  const { webhookAgent } = useSettingsStore();
   const navigate = useNavigate();
+  const { webhookAgent } = useSettingsStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
