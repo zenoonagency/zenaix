@@ -1,20 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Bot, 
-  Trello, 
-  DollarSign, 
-  FileText, 
-  Users, 
-  MessageSquare, 
-  MessageCircle, 
-  Calendar, 
+import React, { useState, useRef, useEffect } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import {
+  Bot,
+  Trello,
+  DollarSign,
+  FileText,
+  Users,
+  MessageSquare,
+  MessageCircle,
+  Calendar,
   ChevronLeft,
-  ChevronRight, 
+  ChevronRight,
   Tag,
   UserPlus,
   LayoutDashboard,
-  CreditCard,          
+  CreditCard,
   Bookmark,
   Globe,
   User,
@@ -22,13 +22,14 @@ import {
   LogOut,
   X,
   Send,
-  Webhook
-} from 'lucide-react';
-import { TagList } from '../tags/TagList';
-import { useThemeStore } from '../../store/themeStore';
-import { useAuthStore } from '../../store/authStore';
-import * as Icons from 'lucide-react';
-import { ProfileModal } from '../../components/ProfileModal';
+  Webhook,
+} from "lucide-react";
+import { TagList } from "../tags/TagList";
+import { useThemeStore } from "../../store/themeStore";
+import { useAuthStore } from "../../store/authStore";
+import { planService } from "../../services/plan/plan.service";
+import * as Icons from "lucide-react";
+import { ProfileModal } from "../../components/ProfileModal";
 
 interface SidebarLinkProps {
   to: string;
@@ -45,7 +46,11 @@ interface SidebarSectionProps {
   children: React.ReactNode;
 }
 
-const SidebarSection = ({ title, collapsed, children }: SidebarSectionProps) => {
+const SidebarSection = ({
+  title,
+  collapsed,
+  children,
+}: SidebarSectionProps) => {
   return (
     <div className="mb-4">
       {!collapsed && (
@@ -64,19 +69,32 @@ const NewTag = () => (
   </span>
 );
 
-const SidebarLink = ({ to, icon, label, collapsed, exact = false, isNew = false }: SidebarLinkProps) => {
+const SidebarLink = ({
+  to,
+  icon,
+  label,
+  collapsed,
+  exact = false,
+  isNew = false,
+}: SidebarLinkProps) => {
   const location = useLocation();
-  const isActive = exact ? location.pathname === to : location.pathname.startsWith(to);
+  const isActive = exact
+    ? location.pathname === to
+    : location.pathname.startsWith(to);
 
   return (
     <NavLink
       to={to}
-      className={`flex items-center ${collapsed ? 'justify-center py-4' : ''} px-4 py-3 text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-600 transition-colors duration-200 text-[18px] ${
-        isActive ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border-r-4 border-primary-500 shadow-sm' : ''
+      className={`flex items-center ${
+        collapsed ? "justify-center py-4" : ""
+      } px-4 py-3 text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-600 transition-colors duration-200 text-[18px] ${
+        isActive
+          ? "bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border-r-4 border-primary-500 shadow-sm"
+          : ""
       }`}
       title={collapsed ? label : undefined}
     >
-      <span className={collapsed ? 'text-[22px]' : 'mr-3'}>{icon}</span>
+      <span className={collapsed ? "text-[22px]" : "mr-3"}>{icon}</span>
       {!collapsed && (
         <div className="flex items-center whitespace-nowrap overflow-hidden text-ellipsis">
           <span>{label}</span>
@@ -88,7 +106,7 @@ const SidebarLink = ({ to, icon, label, collapsed, exact = false, isNew = false 
 };
 
 // Componente para o chat modal
-import { useState as useModalState } from 'react';
+import { useState as useModalState } from "react";
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -111,116 +129,128 @@ function ChatModal({ isOpen, onClose }: ChatModalProps) {
       }
 
       function sendMessage() {
-        const chatInput = document.getElementById('chat-input') as HTMLInputElement;
-        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById(
+          "chat-input"
+        ) as HTMLInputElement;
+        const chatMessages = document.getElementById("chat-messages");
 
-        if (chatInput && chatMessages && chatInput.value.trim() !== '') {
+        if (chatInput && chatMessages && chatInput.value.trim() !== "") {
           const message = chatInput.value;
-          const userMessageWrapper = document.createElement('div');
-          userMessageWrapper.classList.add('user-message-wrapper');
-          const userMessage = document.createElement('div');
-          userMessage.classList.add('user-message');
+          const userMessageWrapper = document.createElement("div");
+          userMessageWrapper.classList.add("user-message-wrapper");
+          const userMessage = document.createElement("div");
+          userMessage.classList.add("user-message");
           userMessage.innerHTML = message;
           userMessageWrapper.appendChild(userMessage);
           chatMessages.appendChild(userMessageWrapper);
-          chatInput.value = '';
+          chatInput.value = "";
           chatMessages.scrollTop = chatMessages.scrollHeight;
 
-          const typingIndicator = document.createElement('div');
-          typingIndicator.classList.add('typing-indicator');
-          typingIndicator.innerHTML = 'IA está digitando<span class="dot-flashing"></span><span class="dot-flashing"></span><span class="dot-flashing"></span>';
+          const typingIndicator = document.createElement("div");
+          typingIndicator.classList.add("typing-indicator");
+          typingIndicator.innerHTML =
+            'IA está digitando<span class="dot-flashing"></span><span class="dot-flashing"></span><span class="dot-flashing"></span>';
           chatMessages.appendChild(typingIndicator);
           chatMessages.scrollTop = chatMessages.scrollHeight;
 
-          fetch('https://fluxos-n8n.mgmxhs.easypanel.host/webhook/c0bf5d3e-e3a4-4d66-aec6-6edcc9c6a666/chat', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              message: message,
-            }),
-          })
-          .then(response => response.json())
-          .then(data => {
-            const agentResponse = data.output || "Resposta não encontrada";
-            const typingDelay = Math.min(Math.max(agentResponse.length * 50, 500), 3000);
+          fetch(
+            "https://fluxos-n8n.mgmxhs.easypanel.host/webhook/c0bf5d3e-e3a4-4d66-aec6-6edcc9c6a666/chat",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                message: message,
+              }),
+            }
+          )
+            .then((response) => response.json())
+            .then((data) => {
+              const agentResponse = data.output || "Resposta não encontrada";
+              const typingDelay = Math.min(
+                Math.max(agentResponse.length * 50, 500),
+                3000
+              );
 
-            setTimeout(() => {
+              setTimeout(() => {
+                typingIndicator.remove();
+
+                const aiWrapper = document.createElement("div");
+                aiWrapper.classList.add("ai-response-wrapper");
+
+                const aiImage = document.createElement("img");
+                aiImage.src =
+                  "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT-SMALL.png";
+                aiImage.alt = "IA";
+                aiImage.classList.add("ai-profile-pic");
+
+                const aiResponse = document.createElement("div");
+                aiResponse.classList.add("ai-response");
+                aiWrapper.appendChild(aiImage);
+                aiWrapper.appendChild(aiResponse);
+
+                chatMessages.appendChild(aiWrapper);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                typeWriter(aiResponse, agentResponse, 30);
+              }, typingDelay);
+            })
+            .catch((error) => {
+              console.error("Erro ao enviar mensagem:", error);
               typingIndicator.remove();
-
-              const aiWrapper = document.createElement('div');
-              aiWrapper.classList.add('ai-response-wrapper');
-
-              const aiImage = document.createElement('img');
-              aiImage.src = "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT-SMALL.png";
-              aiImage.alt = "IA";
-              aiImage.classList.add('ai-profile-pic');
-
-              const aiResponse = document.createElement('div');
-              aiResponse.classList.add('ai-response');
-              aiWrapper.appendChild(aiImage);
-              aiWrapper.appendChild(aiResponse);
-
-              chatMessages.appendChild(aiWrapper);
-              chatMessages.scrollTop = chatMessages.scrollHeight;
-
-              typeWriter(aiResponse, agentResponse, 30);
-            }, typingDelay);
-          })
-          .catch(error => {
-            console.error('Erro ao enviar mensagem:', error);
-            typingIndicator.remove();
-            chatMessages.innerHTML += '<p><strong>Erro:</strong> Não foi possível obter uma resposta.</p>';
-          });
+              chatMessages.innerHTML +=
+                "<p><strong>Erro:</strong> Não foi possível obter uma resposta.</p>";
+            });
         }
       }
 
       // Limpar mensagens anteriores se houver
-      const chatMessages = document.getElementById('chat-messages');
+      const chatMessages = document.getElementById("chat-messages");
       if (chatMessages) {
-        chatMessages.innerHTML = '';
+        chatMessages.innerHTML = "";
       }
 
-      const chatInput = document.getElementById('chat-input');
-      const sendBtn = document.getElementById('send-btn');
+      const chatInput = document.getElementById("chat-input");
+      const sendBtn = document.getElementById("send-btn");
 
       // Remover event listeners antigos se existirem
       const newChatInput = chatInput?.cloneNode(true);
       const newSendBtn = sendBtn?.cloneNode(true);
-      
+
       if (chatInput && chatInput.parentNode && newChatInput) {
         chatInput.parentNode.replaceChild(newChatInput, chatInput);
       }
-      
+
       if (sendBtn && sendBtn.parentNode && newSendBtn) {
         sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
       }
 
       // Obter referências atualizadas
-      const updatedChatInput = document.getElementById('chat-input');
-      const updatedSendBtn = document.getElementById('send-btn');
-      const updatedChatMessages = document.getElementById('chat-messages');
+      const updatedChatInput = document.getElementById("chat-input");
+      const updatedSendBtn = document.getElementById("send-btn");
+      const updatedChatMessages = document.getElementById("chat-messages");
 
       if (updatedChatInput && updatedSendBtn && updatedChatMessages) {
-        updatedChatInput.addEventListener('keydown', function(event) {
-          if (event.key === 'Enter') {
+        updatedChatInput.addEventListener("keydown", function (event) {
+          if (event.key === "Enter") {
             sendMessage();
           }
         });
 
-        updatedSendBtn.addEventListener('click', sendMessage);
+        updatedSendBtn.addEventListener("click", sendMessage);
 
-        const aiWrapper = document.createElement('div');
-        aiWrapper.classList.add('ai-response-wrapper');
+        const aiWrapper = document.createElement("div");
+        aiWrapper.classList.add("ai-response-wrapper");
 
-        const aiImage = document.createElement('img');
-        aiImage.src = "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT-SMALL.png";
+        const aiImage = document.createElement("img");
+        aiImage.src =
+          "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT-SMALL.png";
         aiImage.alt = "IA";
-        aiImage.classList.add('ai-profile-pic');
+        aiImage.classList.add("ai-profile-pic");
 
-        const aiResponse = document.createElement('div');
-        aiResponse.classList.add('ai-response');
+        const aiResponse = document.createElement("div");
+        aiResponse.classList.add("ai-response");
         aiResponse.innerText = "Olá, converse comigo";
 
         aiWrapper.appendChild(aiImage);
@@ -228,24 +258,24 @@ function ChatModal({ isOpen, onClose }: ChatModalProps) {
 
         updatedChatMessages.appendChild(aiWrapper);
         updatedChatMessages.scrollTop = updatedChatMessages.scrollHeight;
-        
+
         // Focar o input automaticamente
         updatedChatInput.focus();
       }
     }
-    
+
     // Cleanup function quando o componente é desmontado ou isOpen muda
     return () => {
-      const chatInput = document.getElementById('chat-input');
-      const sendBtn = document.getElementById('send-btn');
-      
+      const chatInput = document.getElementById("chat-input");
+      const sendBtn = document.getElementById("send-btn");
+
       if (chatInput) {
         const newChatInput = chatInput.cloneNode(true);
         if (chatInput.parentNode) {
           chatInput.parentNode.replaceChild(newChatInput, chatInput);
         }
       }
-      
+
       if (sendBtn) {
         const newSendBtn = sendBtn.cloneNode(true);
         if (sendBtn.parentNode) {
@@ -254,7 +284,7 @@ function ChatModal({ isOpen, onClose }: ChatModalProps) {
       }
     };
   }, [isOpen]);
-  
+
   if (!isOpen) return null;
 
   return (
@@ -270,7 +300,11 @@ function ChatModal({ isOpen, onClose }: ChatModalProps) {
           <div id="chat-box">
             <div id="chat-messages"></div>
             <div id="input-container">
-              <input type="text" id="chat-input" placeholder="Concerse com a IA" />
+              <input
+                type="text"
+                id="chat-input"
+                placeholder="Concerse com a IA"
+              />
               <div className="input-actions">
                 <button id="send-btn">
                   <Send size={18} />
@@ -541,34 +575,39 @@ interface ProfileMenuModalProps {
   plan: string;
 }
 
-function ProfileMenuModal({ 
-  isOpen, 
-  onClose, 
-  onEditProfile, 
+function ProfileMenuModal({
+  isOpen,
+  onClose,
+  onEditProfile,
   onLogout,
   name,
   photo,
-  plan
+  plan,
 }: ProfileMenuModalProps) {
   const navigate = useNavigate();
-  
+
   if (!isOpen) return null;
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={onClose}></div>
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+        onClick={onClose}
+      ></div>
       <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-dark-800 rounded-xl shadow-2xl z-50 w-80 overflow-hidden">
         {/* Cabeçalho do modal */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-dark-700 flex justify-between items-center">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Menu do Usuário</h3>
-          <button 
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+            Menu do Usuário
+          </h3>
+          <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           >
             <X size={20} />
           </button>
         </div>
-        
+
         {/* Informações do usuário */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-dark-700">
           <div className="flex items-center">
@@ -584,12 +623,14 @@ function ProfileMenuModal({
               </div>
             )}
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">{name}</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {name}
+              </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">{plan}</p>
             </div>
           </div>
         </div>
-        
+
         {/* Lista de opções */}
         <div className="p-2">
           <button
@@ -602,10 +643,10 @@ function ProfileMenuModal({
             <User className="w-5 h-5 mr-3 text-[#7f00ff]" />
             Editar Perfil
           </button>
-          
+
           <button
             onClick={() => {
-              navigate('/dashboard/plans');
+              navigate("/dashboard/plans");
               onClose();
             }}
             className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center"
@@ -613,10 +654,10 @@ function ProfileMenuModal({
             <CreditCard className="w-5 h-5 mr-3 text-[#7f00ff]" />
             Upgrade do plano
           </button>
-          
+
           <button
             onClick={() => {
-              navigate('/dashboard/settings');
+              navigate("/dashboard/settings");
               onClose();
             }}
             className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center"
@@ -624,7 +665,7 @@ function ProfileMenuModal({
             <Settings className="w-5 h-5 mr-3 text-[#7f00ff]" />
             Configurações
           </button>
-          
+
           <button
             onClick={() => {
               onLogout();
@@ -647,21 +688,49 @@ export function Sidebar() {
   const [showTags, setShowTags] = useState(false);
   const { theme } = useThemeStore();
   const user = useAuthStore((state) => state.user);
+  const organization = useAuthStore((state) => state.organization);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [planName, setPlanName] = useState("Plano Básico");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const logout = useAuthStore((state) => state.logout);
 
-  const logoUrl = theme === 'dark' 
-    ? (collapsed ? 'https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT-SMALL.png' : 'https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT.png')
-    : (collapsed ? 'https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-DARK-SMALL.png' : 'https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-DARK.png');
+  useEffect(() => {
+    async function fetchPlanName() {
+      if (organization?.planId) {
+        try {
+          const plan = await planService.findById("", organization.planId); // token não é obrigatório para GET público
+          setPlanName(plan.name);
+        } catch {
+          setPlanName("Plano Personalizado");
+        }
+      } else {
+        setPlanName("Plano Básico");
+      }
+    }
+    fetchPlanName();
+  }, [organization?.planId]);
+
+  const logoUrl =
+    theme === "dark"
+      ? collapsed
+        ? "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT-SMALL.png"
+        : "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT.png"
+      : collapsed
+      ? "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-DARK-SMALL.png"
+      : "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-DARK.png";
 
   return (
     <>
-      <aside className={`
-        ${collapsed ? 'w-20 min-w-[5rem] rounded-[50px]' : 'w-[360px] min-w-[360px]'}
+      <aside
+        className={`
+        ${
+          collapsed
+            ? "w-20 min-w-[5rem] rounded-[50px]"
+            : "w-[360px] min-w-[360px]"
+        }
         bg-white dark:bg-dark-80
         text-gray-800 dark:text-gray-100
         flex flex-col
@@ -674,22 +743,29 @@ export function Sidebar() {
         rounded-[20px]
 h-[calc(100%-2.5rem)]
         transition-all duration-300
-        ${isProfileModalOpen ? 'relative z-40' : ''}
-      `}>
-        <div className={`
+        ${isProfileModalOpen ? "relative z-40" : ""}
+      `}
+      >
+        <div
+          className={`
           flex 
-          ${collapsed ? 'flex-col items-center mt-6' : 'items-center justify-between'} 
+          ${
+            collapsed
+              ? "flex-col items-center mt-6"
+              : "items-center justify-between"
+          } 
           h-21
           border-b border-gray-100 dark:border-dark-700 
           px-4
-        `}>
-          <img 
+        `}
+        >
+          <img
             src={logoUrl}
-            alt="Logo" 
+            alt="Logo"
             className={`
-              ${collapsed ? 'h-10 w-auto' : 'h-6 w-auto max-w-[180px]'} 
+              ${collapsed ? "h-10 w-auto" : "h-6 w-auto max-w-[180px]"} 
               mb-5 
-              ${collapsed ? '' : 'mt-4'}
+              ${collapsed ? "" : "mt-4"}
               object-contain
               border-none
             `}
@@ -701,7 +777,7 @@ h-[calc(100%-2.5rem)]
               rounded-lg 
               hover:bg-gray-100 dark:hover:bg-dark-700 
               text-gray-600 dark:text-gray-400 
-              ${collapsed ? 'mb-5' : ''}
+              ${collapsed ? "mb-5" : ""}
               transition-colors
             `}
           >
@@ -710,16 +786,16 @@ h-[calc(100%-2.5rem)]
         </div>
 
         <div className="flex flex-col flex-1 justify-between overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-          <nav className={`${collapsed ? 'mt-2' : 'mt-6'} flex-1`}>
+          <nav className={`${collapsed ? "mt-2" : "mt-6"} flex-1`}>
             {/* Perfil e Pergunte à IA - Novos botões */}
-            <div className={`${collapsed ? 'space-y-3' : 'space-y-1'} mb-4`}>
+            <div className={`${collapsed ? "space-y-3" : "space-y-1"} mb-4`}>
               {/* Botão de Perfil com Menu Modal */}
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setIsProfileMenuOpen(true)}
                   className={`
                     flex items-center 
-                    ${collapsed ? 'justify-center py-3' : 'px-4 py-3'} 
+                    ${collapsed ? "justify-center py-3" : "px-4 py-3"} 
                     w-full
                     text-gray-700 dark:text-gray-400 
                     bg-purple-50 dark:bg-purple-900/10
@@ -731,18 +807,32 @@ h-[calc(100%-2.5rem)]
                   {user?.avatarUrl ? (
                     <img
                       src={user.avatarUrl}
-                      alt={user.name}
-                      className={`${collapsed ? 'w-10 h-10' : 'w-9 h-9 mr-3'} rounded-full object-cover border-2 border-[#7f00ff]`}
+                      alt={user.name || "Usuário"}
+                      className={`${
+                        collapsed ? "w-10 h-10" : "w-9 h-9 mr-3"
+                      } rounded-full object-cover border-2 border-[#7f00ff]`}
                     />
                   ) : (
-                    <div className={`${collapsed ? 'w-10 h-10' : 'w-9 h-9 mr-3'} rounded-full bg-[#7f00ff]/10 flex items-center justify-center`}>
-                      <User className={`${collapsed ? 'w-5 h-5' : 'w-5 h-5'} text-[#7f00ff]`} />
+                    <div
+                      className={`${
+                        collapsed ? "w-10 h-10" : "w-9 h-9 mr-3"
+                      } rounded-full bg-[#7f00ff]/10 flex items-center justify-center`}
+                    >
+                      <User
+                        className={`${
+                          collapsed ? "w-5 h-5" : "w-5 h-5"
+                        } text-[#7f00ff]`}
+                      />
                     </div>
                   )}
                   {!collapsed && (
                     <div className="flex flex-col items-start">
-                      <span className="text-base font-medium">{user?.name || 'Usuário'}</span>
-                      <span className="text-sm text-purple-600 dark:text-purple-400 font-medium">{user?.plan || 'Plano Básico'}</span>
+                      <span className="text-base font-medium">
+                        {user?.name || "Usuário"}
+                      </span>
+                      <span className="text-sm text-purple-600 dark:text-purple-400 font-medium">
+                        {planName}
+                      </span>
                     </div>
                   )}
                 </button>
@@ -753,7 +843,7 @@ h-[calc(100%-2.5rem)]
                 onClick={() => setIsChatModalOpen(true)}
                 className={`
                   flex items-center 
-                  ${collapsed ? 'justify-center py-3' : 'px-4 py-3'} 
+                  ${collapsed ? "justify-center py-3" : "px-4 py-3"} 
                   w-full
                   text-gray-700 dark:text-gray-400 
                   bg-purple-50 dark:bg-purple-900/10
@@ -762,43 +852,99 @@ h-[calc(100%-2.5rem)]
                   rounded-lg
                 `}
               >
-                <img 
-                  src="https://zenaix.com.br/wp-content/uploads/2025/03/pergunte-a-IA.webp" 
-                  alt="IA" 
-                  className={`${collapsed ? 'w-6 h-6' : 'w-6 h-6 mr-3'}`}
+                <img
+                  src="https://zenaix.com.br/wp-content/uploads/2025/03/pergunte-a-IA.webp"
+                  alt="IA"
+                  className={`${collapsed ? "w-6 h-6" : "w-6 h-6 mr-3"}`}
                 />
-                {!collapsed && <span className="text-base font-medium">Pergunte à IA</span>}
+                {!collapsed && (
+                  <span className="text-base font-medium">Pergunte à IA</span>
+                )}
               </button>
             </div>
 
             {/* Geral */}
             <SidebarSection title="Geral" collapsed={collapsed}>
-              <SidebarLink to="/dashboard" icon={<LayoutDashboard size={22} />} label="Dashboard" collapsed={collapsed} exact />
-              <SidebarLink to="/dashboard/calendar" icon={<Calendar size={22} />} label="Calendário" collapsed={collapsed} isNew />
+              <SidebarLink
+                to="/dashboard"
+                icon={<LayoutDashboard size={22} />}
+                label="Dashboard"
+                collapsed={collapsed}
+                exact
+              />
+              <SidebarLink
+                to="/dashboard/calendar"
+                icon={<Calendar size={22} />}
+                label="Calendário"
+                collapsed={collapsed}
+                isNew
+              />
             </SidebarSection>
 
             {/* Comunicação */}
             <SidebarSection title="Comunicação" collapsed={collapsed}>
-              <SidebarLink to="/dashboard/conversations" icon={<MessageCircle size={22} />} label="Conversas" collapsed={collapsed} />
-              <SidebarLink to="/dashboard/messaging" icon={<MessageSquare size={22} />} label="Disparo" collapsed={collapsed} />
+              <SidebarLink
+                to="/dashboard/conversations"
+                icon={<MessageCircle size={22} />}
+                label="Conversas"
+                collapsed={collapsed}
+              />
+              <SidebarLink
+                to="/dashboard/messaging"
+                icon={<MessageSquare size={22} />}
+                label="Disparo"
+                collapsed={collapsed}
+              />
             </SidebarSection>
 
             {/* Gestão */}
             <SidebarSection title="Gestão" collapsed={collapsed}>
-              <SidebarLink to="/dashboard/clients" icon={<Trello size={22} />} label="Gestão de funil" collapsed={collapsed} isNew />
-              <SidebarLink to="/dashboard/team" icon={<Users size={22} />} label="Equipe" collapsed={collapsed} />
+              <SidebarLink
+                to="/dashboard/clients"
+                icon={<Trello size={22} />}
+                label="Gestão de funil"
+                collapsed={collapsed}
+                isNew
+              />
+              <SidebarLink
+                to="/dashboard/team"
+                icon={<Users size={22} />}
+                label="Equipe"
+                collapsed={collapsed}
+              />
             </SidebarSection>
 
             {/* Financeiro */}
             <SidebarSection title="Financeiro" collapsed={collapsed}>
-              <SidebarLink to="/dashboard/financial" icon={<DollarSign size={22} />} label="Financeiro" collapsed={collapsed} />
-              <SidebarLink to="/dashboard/contracts" icon={<FileText size={22} />} label="Contratos" collapsed={collapsed} />
+              <SidebarLink
+                to="/dashboard/financial"
+                icon={<DollarSign size={22} />}
+                label="Financeiro"
+                collapsed={collapsed}
+              />
+              <SidebarLink
+                to="/dashboard/contracts"
+                icon={<FileText size={22} />}
+                label="Contratos"
+                collapsed={collapsed}
+              />
             </SidebarSection>
 
             {/* Avançado */}
             <SidebarSection title="Avançado" collapsed={collapsed}>
-              <SidebarLink to="/dashboard/embed-pages" icon={<Globe size={22} />} label="Páginas Embed" collapsed={collapsed} isNew />
-              <SidebarLink to="/dashboard/webhook-tester" icon={<MessageSquare size={22} />} label="Testador de Webhook" collapsed={collapsed} />
+              <SidebarLink
+                to="/dashboard/embed-pages"
+                icon={<Globe size={22} />}
+                label="Páginas Embed"
+                collapsed={collapsed}
+                isNew
+              />
+              <SidebarLink
+                to="/dashboard/webhook-tester"
+                icon={<MessageSquare size={22} />}
+                label="Testador de Webhook"
+                collapsed={collapsed}
+              />
             </SidebarSection>
           </nav>
 
@@ -811,11 +957,13 @@ h-[calc(100%-2.5rem)]
                     className="flex items-center w-full text-left text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-[16px]"
                   >
                     <Bookmark size={22} className="mr-3" />
-                    <span className="whitespace-nowrap overflow-hidden text-ellipsis">Marcadores</span>
+                    <span className="whitespace-nowrap overflow-hidden text-ellipsis">
+                      Marcadores
+                    </span>
                     <ChevronRight
                       size={22}
                       className={`ml-auto transform transition-transform ${
-                        showTags ? 'rotate-90' : ''
+                        showTags ? "rotate-90" : ""
                       }`}
                     />
                   </button>
@@ -835,11 +983,13 @@ h-[calc(100%-2.5rem)]
       <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
-        userEmail={`${user?.email.toLowerCase().replace(/\s+/g, '.')}@zenoon.com`}
+        userEmail={`${user?.email
+          .toLowerCase()
+          .replace(/\s+/g, ".")}@zenoon.com`}
       />
-      <ChatModal 
-        isOpen={isChatModalOpen} 
-        onClose={() => setIsChatModalOpen(false)} 
+      <ChatModal
+        isOpen={isChatModalOpen}
+        onClose={() => setIsChatModalOpen(false)}
       />
       <ProfileMenuModal
         isOpen={isProfileMenuOpen}
@@ -847,14 +997,14 @@ h-[calc(100%-2.5rem)]
         onEditProfile={() => setIsProfileModalOpen(true)}
         onLogout={() => {
           logout();
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('token');
-          localStorage.removeItem('auth-status');
-          window.location.href = '/login';
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("token");
+          localStorage.removeItem("auth-status");
+          window.location.href = "/login";
         }}
-        name={user?.name || 'Usuário'}
+        name={user?.name || "Usuário"}
         photo={user?.avatarUrl || null}
-        plan={user?.plan || 'Plano Básico'}
+        plan={planName}
       />
     </>
   );

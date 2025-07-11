@@ -1,28 +1,55 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import {
+  User,
+  AuthState as UseAuthState,
+  AuthSuccessPayload,
+} from "../types/auth";
+import { userService } from "../services/user/user.service";
+import { OrganizationOutput } from "../types/organization";
 
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { User, AuthState } from '../types/auth';
+export interface AuthState {
+  isAuthenticated: boolean;
+  user: User | null;
+  token: string | null;
+  organization: OrganizationOutput | null;
+  login: (
+    user: User,
+    token: string,
+    organization: OrganizationOutput | null
+  ) => void;
+  logout: () => void;
+  updateUser: (user: Partial<User>) => void;
+  setOrganization: (organization: OrganizationOutput) => void;
+}
 
-export const useAuthStore = create<AuthState>()(
+export const useAuthStore = create<UseAuthState>()(
   persist(
     (set, get) => ({
       isAuthenticated: false,
       user: null,
       token: null,
-      login: (user: User, token: string) => {
+      organization: null,
+
+      login: (payload: AuthSuccessPayload) => {
+        console.log("Login payload:", payload);
         set({
           isAuthenticated: true,
-          user,
-          token,
+          user: payload.user,
+          token: payload.token,
+          organization: payload.organization,
         });
       },
+
       logout: () => {
         set({
           isAuthenticated: false,
           user: null,
           token: null,
+          organization: null, // Limpa a organização no logout
         });
       },
+
       updateUser: (userData: Partial<User>) => {
         const currentUser = get().user;
         if (currentUser) {
@@ -31,16 +58,35 @@ export const useAuthStore = create<AuthState>()(
           });
         }
       },
+
+      setOrganization: (organizationData: OrganizationOutput) => {
+        set({ organization: organizationData });
+      },
+
+      fetchAndSyncUser: async () => {
+        try {
+          const { user, organization } = await userService.getMe();
+          set({ user, organization, isAuthenticated: true });
+        } catch (error) {
+          console.error(
+            "Falha ao sincronizar dados do utilizador, a fazer logout:",
+            error
+          );
+          get().logout();
+        }
+      },
     }),
     {
-      name: 'auth-status',
-      partialize: (state) => ({
-        isAuthenticated: state.isAuthenticated,
-        user: state.user,
-        token: state.token,
-      }),
+      name: "auth-status",
+
       onRehydrateStorage: () => (state) => {
-        // State rehydrated
+        if (state) {
+          const { isAuthenticated, user, token } = state;
+          if (isAuthenticated && (!user || !token)) {
+            console.warn("Auth state corrupted. Clearing state.");
+            state.logout();
+          }
+        }
       },
     }
   )

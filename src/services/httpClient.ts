@@ -1,4 +1,4 @@
-import { API_CONFIG } from './config';
+import { WEBHOOK_API_CONFIG } from '../config/webhook.config';
 
 interface RequestOptions extends RequestInit {
   payload?: unknown;
@@ -59,15 +59,15 @@ export async function makeRequest(
   endpoint: string,
   options: RequestOptions = {}
 ) {
-  const { payload, timeout: customTimeout = API_CONFIG.requestTimeout, ...requestOptions } = options;
-  const url = `${API_CONFIG.baseUrl}${endpoint}`;
+  const { payload, timeout: customTimeout = WEBHOOK_API_CONFIG.requestTimeout, ...requestOptions } = options;
+  const url = `${WEBHOOK_API_CONFIG.baseUrl}${endpoint}`;
 
   const fetchOptions: RequestInit = {
     ...requestOptions,
     mode: 'cors',
     credentials: 'omit',
     headers: {
-      ...API_CONFIG.headers.json,
+      ...WEBHOOK_API_CONFIG.headers.json,
       ...requestOptions.headers,
     },
   };
@@ -76,7 +76,7 @@ export async function makeRequest(
     if (payload instanceof FormData) {
       delete fetchOptions.headers['Content-Type'];
       fetchOptions.headers = {
-        ...API_CONFIG.headers.formData,
+        ...WEBHOOK_API_CONFIG.headers.formData,
         ...requestOptions.headers,
       };
       fetchOptions.body = payload;

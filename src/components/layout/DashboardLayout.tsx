@@ -1,8 +1,9 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
-import { Notification } from '../Notification';
-import { HelpButton } from '../HelpButton';
+import React from "react";
+import { Outlet } from "react-router-dom";
+import { Sidebar } from "./Sidebar";
+import { Notification } from "../Notification";
+import { HelpButton } from "../HelpButton";
+import { PlanModalGlobal } from "../PlanModalGlobal";
 
 export function DashboardLayout() {
   return (
@@ -19,6 +20,7 @@ export function DashboardLayout() {
       </div>
       <HelpButton />
       <Notification />
+      <PlanModalGlobal />
     </div>
   );
 }

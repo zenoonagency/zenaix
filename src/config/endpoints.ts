@@ -1,3 +1,5 @@
+import { API_CONFIG } from "./api.config";
+
 export const ENDPOINTS = {
   SETTINGS: {
     ASAAS: 'https://fluxos-n8n.mgmxhs.easypanel.host/webhook/asaas',

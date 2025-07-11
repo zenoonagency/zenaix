@@ -1,3 +1,5 @@
+import { OrganizationOutput } from "./organization";
+
 export interface User {
   id: string;
   email: string;
@@ -6,8 +8,8 @@ export interface User {
   lastName?: string | null;
   role: string;
   organizationId?: string | null;
-  language: string
-  timezone: string
+  language: string;
+  timezone: string;
   createdAt: string;
   updatedAt: string;
   avatarUrl?: string;
@@ -30,18 +32,26 @@ export interface LoginData {
   password: string;
 }
 
-export interface AuthResponse {
-  message: string;
-  data: User;
+export interface AuthSuccessPayload {
+  user: User;
+  organization: OrganizationOutput | null;
   token: string;
-  status: number;
 }
 
 export interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
   token: string | null;
-  login: (user: User, token: string) => void;
+  organization: OrganizationOutput | null;
+
+  login: (payload: AuthSuccessPayload) => void;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
-} 
+  setOrganization: (organization: OrganizationOutput) => void;
+  fetchAndSyncUser: () => Promise<void>;
+}
+
+export interface MePayload {
+  user: User;
+  organization: OrganizationOutput | null;
+}

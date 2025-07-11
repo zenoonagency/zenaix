@@ -1,25 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import DatePicker, { registerLocale } from 'react-datepicker';
-import { ptBR } from 'date-fns/locale';
-import { X } from 'lucide-react';
-import { CalendarEvent } from '../store/calendarStore';
-import 'react-datepicker/dist/react-datepicker.css';
+import React, { useState, useEffect } from "react";
+import DatePicker, { registerLocale } from "react-datepicker";
+import { ptBR } from "date-fns/locale";
+import { X } from "lucide-react";
+import { CalendarEvent } from "../store/calendarStore";
+import "react-datepicker/dist/react-datepicker.css";
 
-registerLocale('pt-BR', ptBR);
+registerLocale("pt-BR", ptBR);
 
 interface EventModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (event: Omit<CalendarEvent, 'id'>) => Promise<void>;
+  onSubmit: (event: Omit<CalendarEvent, "id">) => Promise<void>;
   selectedDates?: {
     start: Date;
     end: Date;
   };
 }
 
-export function EventModal({ isOpen, onClose, onSubmit, selectedDates }: EventModalProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+export function EventModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  selectedDates,
+}: EventModalProps) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
 
@@ -36,10 +41,11 @@ export function EventModal({ isOpen, onClose, onSubmit, selectedDates }: EventMo
       title,
       description,
       start: startDate,
+      responsible: "",
       end: endDate,
     });
-    setTitle('');
-    setDescription('');
+    setTitle("");
+    setDescription("");
     setStartDate(new Date());
     setEndDate(new Date());
   };
@@ -61,7 +67,10 @@ export function EventModal({ isOpen, onClose, onSubmit, selectedDates }: EventMo
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-1">
+            <label
+              htmlFor="title"
+              className="block text-sm font-medium text-gray-300 mb-1"
+            >
               Título
             </label>
             <input
@@ -75,7 +84,10 @@ export function EventModal({ isOpen, onClose, onSubmit, selectedDates }: EventMo
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-gray-300 mb-1"
+            >
               Descrição
             </label>
             <textarea
@@ -141,4 +153,4 @@ export function EventModal({ isOpen, onClose, onSubmit, selectedDates }: EventMo
       </div>
     </div>
   );
-} 
+}
