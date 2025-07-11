@@ -19,6 +19,7 @@ import { proxyService } from "../services/proxyService";
 import { userService } from "../services/user/user.service";
 import { LANGUAGE_OPTIONS } from "../contexts/LocalizationContext";
 import { TIMEZONE_OPTIONS } from "../utils/timezones";
+import { planService } from "../services/plan/plan.service";
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -44,6 +45,18 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     disconnect: disconnectWhatsApp,
     setConnectionStatus: setPersistedConnectionStatus,
   } = useWhatsAppConnectionStore();
+
+  // Padrão: acessar organização e plano via user
+  const organization = user?.organization;
+  const plan = organization?.plan;
+  const token = useAuthStore((state) => state.token);
+  // Remover o useEffect que buscava o plano
+  // const [planName, setPlanName] = useState<string>("");
+  // useEffect(() => { ... });
+
+  // Novo: pegar o nome do plano diretamente
+  // Remover exibição do plano do ProfileModal
+  // const planName = organization?.plan?.name || "Plano Básico";
 
   const [formData, setFormData] = useState({
     name: "",
@@ -387,11 +400,11 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         reader.readAsDataURL(file);
 
         // Fazer upload para a API
-        const updatedUser = await userService.updateAvatar(file);
-        console.log("Avatar atualizado:", updatedUser);
-
-        // Atualizar o estado global com os novos dados
-        useAuthStore.getState().updateUser(updatedUser);
+        if (!token) throw new Error("Token não encontrado");
+        const updatedUser = await userService.updateAvatar(token, file);
+        useAuthStore
+          .getState()
+          .updateUser({ avatarUrl: updatedUser.avatarUrl });
 
         // Forçar atualização do localStorage
         const currentAuth = JSON.parse(
@@ -428,13 +441,14 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const handleRemovePhoto = async () => {
     setIsLoadingAvatar(true);
     try {
-      await userService.removeAvatar();
+      if (!token) throw new Error("Token não encontrado");
+      await userService.removeAvatar(token);
 
       setPreviewUrl("");
       setFormData((prev) => ({ ...prev, photo: "" }));
 
       if (user) {
-        useAuthStore.getState().updateUser({ ...user, avatarUrl: "" });
+        useAuthStore.getState().updateUser({ avatarUrl: "" });
       }
 
       toast.success("Avatar removido com sucesso!");
@@ -460,15 +474,26 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       return;
     }
 
+    if (!token) {
+      toast.error("Token não encontrado");
+      return;
+    }
+
     setIsLoadingProfile(true);
     try {
-      const updatedUser = await userService.updateUser(user.id, {
+      const updatedUser = await userService.updateUser(token, user.id, {
         name: formData.name.trim(),
         language: "pt-BR", // Valor padrão
         timezone: "America/Sao_Paulo", // Valor padrão
       });
 
-      useAuthStore.getState().updateUser(updatedUser);
+      useAuthStore
+        .getState()
+        .updateUser({
+          name: updatedUser.name,
+          language: updatedUser.language,
+          timezone: updatedUser.timezone,
+        });
 
       const currentAuth = JSON.parse(
         localStorage.getItem("auth-status") || "{}"
@@ -699,6 +724,38 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Editar Perfil">
+      {/* Bloco de informações do plano */}
+      {organization && (
+        <div className="mb-6 p-4 rounded-lg bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-[#7f00ff] text-lg">
+              {organization.plan?.name || "Plano Básico"}
+            </span>
+            <span
+              className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+                organization.subscriptionStatus === "ACTIVE"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
+              }`}
+            >
+              {organization.subscriptionStatus === "ACTIVE"
+                ? "Ativo"
+                : "Inativo"}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-4 mt-2 text-sm">
+            <span>
+              Boards extras: <b>{organization.extraBoards}</b>
+            </span>
+            <span>
+              Membros extras: <b>{organization.extraTeamMembers}</b>
+            </span>
+            <span>
+              Triggers extras: <b>{organization.extraTriggers}</b>
+            </span>
+          </div>
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex flex-col items-center space-y-4">
           <div className="relative">

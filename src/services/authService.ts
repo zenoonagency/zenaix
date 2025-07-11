@@ -10,9 +10,7 @@ export const authService = {
         `${API_CONFIG.baseUrl}${API_CONFIG.auth.login}`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
         }
       );
@@ -23,11 +21,10 @@ export const authService = {
         throw new APIError(responseData.message || "Email ou senha inválidos.");
       }
 
-      // Monta o payload corretamente pegando o token da raiz
       return {
         user: responseData.data,
         token: responseData.token,
-        organization: null, // buscar depois se necessário
+        organization: responseData.data.organization || null,
       };
     } catch (error) {
       console.error("Login Error:", error);
@@ -65,8 +62,7 @@ export const authService = {
         }
       );
 
-      const responseData: ApiResponse<AuthSuccessPayload> =
-        await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
         throw new APIError(
@@ -74,7 +70,11 @@ export const authService = {
         );
       }
 
-      return responseData.data;
+      return {
+        user: responseData.data,
+        token: responseData.token,
+        organization: responseData.data.organization || null,
+      };
     } catch (error) {
       console.error("Register Error:", error);
       if (error instanceof APIError) throw error;

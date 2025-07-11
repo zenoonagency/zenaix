@@ -1,3 +1,5 @@
+import { PlanOutput } from "./plan";
+
 export interface InputCreateOrgAndSubscribeDTO {
   name: string;
   document: string;
@@ -21,6 +23,7 @@ export interface OrganizationOutput {
   document: string;
   masterUserId: string;
   planId: string;
+  plan?: PlanOutput;
   subscriptionStatus: string;
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;

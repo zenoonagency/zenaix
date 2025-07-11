@@ -1,30 +1,29 @@
-import { AuthSuccessPayload, MePayload, RegisterData, User } from "../../types/auth";
+import {
+  AuthSuccessPayload,
+  MePayload,
+  RegisterData,
+  User,
+} from "../../types/auth";
 import { APIError } from "../errors/api.errors";
 import { API_CONFIG } from "../../config/api.config";
 import { ApiResponse } from "../../types/api.types";
 
-const getAuthHeaders = (): HeadersInit => {
-  const token = localStorage.getItem("auth_token");
+const getAuthHeaders = (
+  token: string,
+  contentType = "application/json"
+): HeadersInit => {
   if (!token) {
     throw new APIError(
-      "Token de autenticação não encontrado. Por favor, faça login novamente."
+      "Token de autenticação é obrigatório para esta operação."
     );
   }
-  return {
-    "Content-Type": "application/json",
+  const headers: HeadersInit = {
     Authorization: `Bearer ${token}`,
   };
-};
-
-const getFormDataAuthHeaders = (): HeadersInit => {
-  const token =
-    localStorage.getItem("auth_token") || localStorage.getItem("token");
-  if (!token) {
-    throw new APIError("Token de autenticação não encontrado.");
+  if (contentType) {
+    headers["Content-Type"] = contentType;
   }
-  return {
-    Authorization: `Bearer ${token}`,
-  };
+  return headers;
 };
 
 export const userService = {
@@ -56,13 +55,17 @@ export const userService = {
     }
   },
 
-  async updateUser(userId: string, updates: Partial<User>): Promise<User> {
+  async updateUser(
+    token: string,
+    userId: string,
+    updates: Partial<User>
+  ): Promise<User> {
     try {
       const response = await fetch(
         `${API_CONFIG.baseUrl}${API_CONFIG.users.update(userId)}`,
         {
           method: "PUT",
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders(token),
           body: JSON.stringify(updates),
         }
       );
@@ -85,7 +88,7 @@ export const userService = {
     }
   },
 
-  async updateAvatar(avatarFile: File): Promise<User> {
+  async updateAvatar(token: string, avatarFile: File): Promise<User> {
     try {
       const formData = new FormData();
       formData.append("avatar", avatarFile);
@@ -94,18 +97,35 @@ export const userService = {
         `${API_CONFIG.baseUrl}${API_CONFIG.users.me_avatar}`,
         {
           method: "PATCH",
-          headers: getFormDataAuthHeaders(),
+          headers: {
+            Authorization: `Bearer ${token}`,
+            // NÃO envie Content-Type aqui!
+          },
           body: formData,
         }
       );
 
+      const contentType = response.headers.get("content-type");
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new APIError(errorData?.message || "Falha ao atualizar avatar.");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json().catch(() => null);
+          throw new APIError(
+            errorData?.message || "Falha ao atualizar avatar."
+          );
+        } else {
+          const errorText = await response.text();
+          throw new APIError(errorText || "Falha ao atualizar avatar.");
+        }
       }
 
-      const responseData: ApiResponse<User> = await response.json();
-      return responseData.data;
+      if (contentType && contentType.includes("application/json")) {
+        const responseData: ApiResponse<User> = await response.json();
+        return responseData.data;
+      } else {
+        throw new APIError(
+          "Resposta inesperada do servidor ao atualizar avatar."
+        );
+      }
     } catch (error) {
       console.error("Update Avatar Error:", error);
       if (error instanceof APIError) throw error;
@@ -113,13 +133,13 @@ export const userService = {
     }
   },
 
-  async removeAvatar(): Promise<void> {
+  async removeAvatar(token: string): Promise<void> {
     try {
       const response = await fetch(
         `${API_CONFIG.baseUrl}${API_CONFIG.users.me_avatar}`,
         {
           method: "DELETE",
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders(token),
         }
       );
 
@@ -134,13 +154,13 @@ export const userService = {
     }
   },
 
-  async deleteAccount(password: string): Promise<void> {
+  async deleteAccount(token: string, password: string): Promise<void> {
     try {
       const response = await fetch(
         `${API_CONFIG.baseUrl}${API_CONFIG.users.me}`,
         {
           method: "DELETE",
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders(token),
           body: JSON.stringify({ password }),
         }
       );
@@ -156,13 +176,14 @@ export const userService = {
     }
   },
 
-  async getMe(): Promise<MePayload> {
+  // ATENÇÃO: O backend deve garantir que o objeto user retornado já inclui organization e plan embutidos!
+  async getMe(token: string): Promise<MePayload> {
     try {
       const response = await fetch(
         `${API_CONFIG.baseUrl}${API_CONFIG.users.me}`,
         {
           method: "GET",
-          headers: getAuthHeaders(), 
+          headers: getAuthHeaders(token),
         }
       );
 

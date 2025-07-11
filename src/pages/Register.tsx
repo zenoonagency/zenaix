@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Loader2,
@@ -15,14 +15,13 @@ import { Input } from "../components/ui/Input";
 import { useAuthStore } from "../store/authStore";
 import { useToast } from "../hooks/useToast";
 import { useNotification } from "../hooks/useNotification";
-import { getErrorMessage } from "../utils/error.handler";
-import { NotificationSingle } from "../components/Notification";
-import { useThemeStore } from "../store/themeStore";
-import { ParticlesEffect } from "../components/effects/ParticlesEffect";
 import { authService } from "../services/authService";
 import { RegisterData } from "../types/auth";
 import { LANGUAGE_OPTIONS } from "../contexts/LocalizationContext";
 import { TIMEZONE_OPTIONS } from "../utils/timezones";
+import { useThemeStore } from "../store/themeStore";
+import { ParticlesEffect } from "../components/effects/ParticlesEffect";
+import { NotificationSingle } from "../components/Notification";
 
 export function Register() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -54,7 +53,7 @@ export function Register() {
 
   const handleInputChange = (
     field: keyof RegisterData,
-    value: string | File
+    value: string | File | undefined
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -63,7 +62,6 @@ export function Register() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 300 * 1024) {
-        // 300KB
         showToast("Avatar deve ter no máximo 300KB", "error");
         return;
       }
@@ -118,10 +116,9 @@ export function Register() {
     try {
       const response = await authService.register(formData);
 
-      login(response.user, response.token);
+      login(response);
 
       showToast("Cadastro realizado com sucesso!", "success");
-
       navigate("/dashboard");
     } catch (error) {
       const message =
@@ -146,7 +143,6 @@ export function Register() {
   const toggleShowConfirmPassword = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
       {notification && (

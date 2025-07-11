@@ -1,43 +1,24 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import {
-  User,
-  AuthState as UseAuthState,
-  AuthSuccessPayload,
-} from "../types/auth";
+import { User, AuthState, AuthSuccessPayload } from "../types/auth";
 import { userService } from "../services/user/user.service";
 import { OrganizationOutput } from "../types/organization";
 
-export interface AuthState {
-  isAuthenticated: boolean;
-  user: User | null;
-  token: string | null;
-  organization: OrganizationOutput | null;
-  login: (
-    user: User,
-    token: string,
-    organization: OrganizationOutput | null
-  ) => void;
-  logout: () => void;
-  updateUser: (user: Partial<User>) => void;
-  setOrganization: (organization: OrganizationOutput) => void;
-}
-
-export const useAuthStore = create<UseAuthState>()(
+export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       isAuthenticated: false,
       user: null,
       token: null,
       organization: null,
+      _hasHydrated: false,
 
       login: (payload: AuthSuccessPayload) => {
-        console.log("Login payload:", payload);
         set({
           isAuthenticated: true,
           user: payload.user,
           token: payload.token,
-          organization: payload.organization,
+          organization: payload.user.organization || null,
         });
       },
 
@@ -46,7 +27,7 @@ export const useAuthStore = create<UseAuthState>()(
           isAuthenticated: false,
           user: null,
           token: null,
-          organization: null, // Limpa a organização no logout
+          organization: null,
         });
       },
 
@@ -64,8 +45,14 @@ export const useAuthStore = create<UseAuthState>()(
       },
 
       fetchAndSyncUser: async () => {
+        const token = get().token;
+        if (!token) {
+          get().logout();
+          return;
+        }
+
         try {
-          const { user, organization } = await userService.getMe();
+          const { user, organization } = await userService.getMe(token);
           set({ user, organization, isAuthenticated: true });
         } catch (error) {
           console.error(
@@ -78,12 +65,25 @@ export const useAuthStore = create<UseAuthState>()(
     }),
     {
       name: "auth-status",
+      partialize: (state) => {
+        const userForStorage = state.user
+          ? { ...state.user, organization: undefined }
+          : null;
 
+        return {
+          isAuthenticated: state.isAuthenticated,
+          user: userForStorage,
+          token: state.token,
+          organization: state.organization,
+        };
+      },
       onRehydrateStorage: () => (state) => {
         if (state) {
+          state._hasHydrated = true;
+
           const { isAuthenticated, user, token } = state;
           if (isAuthenticated && (!user || !token)) {
-            console.warn("Auth state corrupted. Clearing state.");
+            console.warn("Auth state corrupted. Clearing state.", state);
             state.logout();
           }
         }

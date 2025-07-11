@@ -8,6 +8,7 @@ export interface User {
   lastName?: string | null;
   role: string;
   organizationId?: string | null;
+  organization?: OrganizationOutput | null;
   language: string;
   timezone: string;
   createdAt: string;
@@ -38,20 +39,21 @@ export interface AuthSuccessPayload {
   token: string;
 }
 
+export interface MePayload {
+  user: User;
+  organization: OrganizationOutput | null;
+}
+
 export interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
   token: string | null;
   organization: OrganizationOutput | null;
+  _hasHydrated: boolean;
 
   login: (payload: AuthSuccessPayload) => void;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
   setOrganization: (organization: OrganizationOutput) => void;
   fetchAndSyncUser: () => Promise<void>;
-}
-
-export interface MePayload {
-  user: User;
-  organization: OrganizationOutput | null;
 }

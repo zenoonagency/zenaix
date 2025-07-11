@@ -30,52 +30,31 @@ export function Login({ onLoginSuccess }: LoginProps) {
       ? "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT.png"
       : "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-DARK.png";
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      const response = await authService.login({ email, password });
-      console.log("Login response:", response);
-
-      let organization = null;
-      // Se vier organizationId, busca a organização
-      if (response.user.organizationId) {
+      const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError("");
+        setLoading(true);
+      
         try {
-          organization = await organizationService.findById(
-            response.token,
-            response.user.organizationId
-          );
-        } catch (orgErr) {
-          console.error("Erro ao buscar organização:", orgErr);
+          const response = await authService.login({ email, password });
+          
+          login(response);
+      
+          showToast("Login realizado com sucesso!", "success");
+          navigate("/dashboard");
+      
+          if (onLoginSuccess) {
+            onLoginSuccess();
+          }
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Erro ao fazer login";
+          setError(message);
+          showToast(message, "error");
+        } finally {
+          setLoading(false);
         }
-      }
-
-      const loginPayload = {
-        user: response.user || response,
-        token: response.token || "",
-        organization: organization,
       };
-      console.log("Login payload usado no Zustand:", loginPayload);
-      login(loginPayload);
-
-      showToast("Login realizado com sucesso!", "success");
-
-      navigate("/dashboard");
-
-      if (onLoginSuccess) {
-        onLoginSuccess();
-      }
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Erro ao fazer login";
-      setError(message);
-      showToast(message, "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);

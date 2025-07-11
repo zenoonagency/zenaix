@@ -1,9 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, BrainCircuit, Sun, Moon, User, ChevronDown } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useTheme } from '../../hooks/useTheme';
-import { useAuthStore } from '../../store/authStore';
-import { authService } from '../../services/authService';
+import React, { useState, useEffect } from "react";
+import {
+  ChevronLeft,
+  BrainCircuit,
+  Sun,
+  Moon,
+  User,
+  ChevronDown,
+} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useTheme } from "../../hooks/useTheme";
+import { useAuthStore } from "../../store/authStore";
+import { authService } from "../../services/authService";
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();
@@ -12,54 +19,63 @@ export function Header() {
   const { user, logout } = useAuthStore();
 
   // Debug temporário
-  console.log('Header - Dados do usuário:', user);
-  console.log('Header - isAuthenticated:', useAuthStore.getState().isAuthenticated);
-  console.log('Header - token:', useAuthStore.getState().token);
+  console.log("Header - Dados do usuário:", user);
+  console.log(
+    "Header - isAuthenticated:",
+    useAuthStore.getState().isAuthenticated
+  );
+  console.log("Header - token:", useAuthStore.getState().token);
 
   // Monitorar mudanças no store
   useEffect(() => {
-    console.log('Header - useEffect - user mudou:', user);
-    console.log('Header - useEffect - isAuthenticated mudou:', useAuthStore.getState().isAuthenticated);
+    console.log("Header - useEffect - user mudou:", user);
+    console.log(
+      "Header - useEffect - isAuthenticated mudou:",
+      useAuthStore.getState().isAuthenticated
+    );
   }, [user]);
 
   const handleLogout = () => {
     try {
-      console.log('Iniciando logout...');
-      
+      console.log("Iniciando logout...");
+
       // Limpar dados do localStorage
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('token');
-      localStorage.removeItem('auth-status');
-      
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("token");
+      localStorage.removeItem("auth-status");
+
       // Limpar dados do store
       logout();
-      
+
       // Fechar dropdown
       setIsDropdownOpen(false);
-      
+
       // Forçar recarregamento da página para limpar tudo
-      window.location.href = '/login';
-      
-      console.log('Logout realizado com sucesso');
+      window.location.href = "/login";
+
+      console.log("Logout realizado com sucesso");
     } catch (error) {
-      console.error('Erro ao fazer logout:', error);
+      console.error("Erro ao fazer logout:", error);
       // Forçar logout mesmo com erro
       localStorage.clear();
-      window.location.href = '/login';
+      window.location.href = "/login";
     }
   };
+
+  // Exibir nome do plano corretamente
+  const planName = user?.organization?.plan?.name || "Plano Básico";
 
   return (
     <header className="px-4 py-2 flex items-center justify-between relative bg-transparent">
       <div className="flex items-center gap-4">
         <button
-          onClick={() => window.open('/pergunte-ia', '_blank')}
+          onClick={() => window.open("/pergunte-ia", "_blank")}
           className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-900 dark:text-white hover:bg-[#7f00ff]/10 rounded-lg transition-colors bg-white dark:bg-dark-700"
         >
-          <img 
-            src="https://zenaix.com.br/wp-content/uploads/2025/03/pergunte-a-IA.webp" 
-            alt="IA" 
-            className="w-5 h-5 mr-1" 
+          <img
+            src="https://zenaix.com.br/wp-content/uploads/2025/03/pergunte-a-IA.webp"
+            alt="IA"
+            className="w-5 h-5 mr-1"
           />
           Pergunte à IA
         </button>
@@ -67,9 +83,17 @@ export function Header() {
         <button
           onClick={toggleTheme}
           className="p-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-800 rounded-lg transition-colors"
-          title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+          title={
+            theme === "dark"
+              ? "Mudar para tema claro"
+              : "Mudar para tema escuro"
+          }
         >
-          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          {theme === "dark" ? (
+            <Sun className="w-5 h-5" />
+          ) : (
+            <Moon className="w-5 h-5" />
+          )}
         </button>
 
         {/* Botão de Logout Temporário */}
@@ -98,8 +122,12 @@ export function Header() {
                 </div>
               )}
               <div className="flex flex-col items-start">
-                <span className="text-sm font-medium">{user?.name || 'Usuário'}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">{user?.plan || 'Plano Básico'}</span>
+                <span className="text-sm font-medium">
+                  {user?.name || "Usuário"}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {planName}
+                </span>
               </div>
             </div>
             <ChevronDown className="w-4 h-4 ml-2" />
@@ -125,4 +153,4 @@ export function Header() {
       </div>
     </header>
   );
-} 
+}

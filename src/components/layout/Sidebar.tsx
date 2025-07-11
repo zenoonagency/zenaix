@@ -694,27 +694,11 @@ export function Sidebar() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [planName, setPlanName] = useState("Plano Básico");
+
+  // Exibir nome do plano corretamente
+  const planName = user?.organization?.plan?.name || "Plano Básico";
   const dropdownRef = useRef<HTMLDivElement>(null);
   const logout = useAuthStore((state) => state.logout);
-
-  useEffect(() => {
-    async function fetchPlanName() {
-      if (organization?.planId && token) {
-        try {
-          console.log('Buscando plano com token:', token, 'e planId:', organization.planId);
-          const plan = await planService.findById(token, organization.planId);
-          setPlanName(plan.name);
-        } catch (err) {
-          console.error('Erro ao buscar plano:', err);
-          setPlanName("Plano Personalizado");
-        }
-      } else {
-        setPlanName("Plano Básico");
-      }
-    }
-    fetchPlanName();
-  }, [organization?.planId, token]);
 
   const logoUrl =
     theme === "dark"
