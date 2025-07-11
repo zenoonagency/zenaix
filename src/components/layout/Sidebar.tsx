@@ -689,6 +689,7 @@ export function Sidebar() {
   const { theme } = useThemeStore();
   const user = useAuthStore((state) => state.user);
   const organization = useAuthStore((state) => state.organization);
+  const token = useAuthStore((state) => state.token);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
@@ -699,11 +700,13 @@ export function Sidebar() {
 
   useEffect(() => {
     async function fetchPlanName() {
-      if (organization?.planId) {
+      if (organization?.planId && token) {
         try {
-          const plan = await planService.findById("", organization.planId); // token não é obrigatório para GET público
+          console.log('Buscando plano com token:', token, 'e planId:', organization.planId);
+          const plan = await planService.findById(token, organization.planId);
           setPlanName(plan.name);
-        } catch {
+        } catch (err) {
+          console.error('Erro ao buscar plano:', err);
           setPlanName("Plano Personalizado");
         }
       } else {
@@ -711,7 +714,7 @@ export function Sidebar() {
       }
     }
     fetchPlanName();
-  }, [organization?.planId]);
+  }, [organization?.planId, token]);
 
   const logoUrl =
     theme === "dark"
@@ -983,9 +986,6 @@ h-[calc(100%-2.5rem)]
       <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
-        userEmail={`${user?.email
-          .toLowerCase()
-          .replace(/\s+/g, ".")}@zenoon.com`}
       />
       <ChatModal
         isOpen={isChatModalOpen}
