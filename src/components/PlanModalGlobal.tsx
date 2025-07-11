@@ -12,7 +12,7 @@ function hasActivePlan(organization) {
     organization?.planId &&
     String(organization?.subscriptionStatus).toLowerCase() === "active"
   )
-    return true;
+
   return false;
 }
 
