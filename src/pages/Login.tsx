@@ -39,11 +39,23 @@ export function Login({ onLoginSuccess }: LoginProps) {
       const response = await authService.login({ email, password });
       console.log("Login response:", response);
 
-      // Garante que todos os campos obrigatórios existem
+      let organization = null;
+      // Se vier organizationId, busca a organização
+      if (response.user.organizationId) {
+        try {
+          organization = await organizationService.findById(
+            response.token,
+            response.user.organizationId
+          );
+        } catch (orgErr) {
+          console.error("Erro ao buscar organização:", orgErr);
+        }
+      }
+
       const loginPayload = {
         user: response.user || response,
         token: response.token || "",
-        organization: response.organization || null,
+        organization: organization,
       };
       console.log("Login payload usado no Zustand:", loginPayload);
       login(loginPayload);
