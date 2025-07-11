@@ -97,7 +97,7 @@ export const planService = {
       const response = await fetch(url, {
         method: "GET",
         headers: getAuthHeaders(token),
-       });
+      });
       const responseData: ApiResponse<PlanOutput[]> = await response.json();
       if (!response.ok) {
         throw new APIError(
@@ -115,7 +115,10 @@ export const planService = {
   async findById(token: string, id: string): Promise<PlanOutput> {
     try {
       const url = `${API_CONFIG.baseUrl}${API_CONFIG.plans.readById(id)}`;
-      const response = await fetch(url, { method: "GET" });
+      const response = await fetch(url, {
+        method: "GET",
+        headers: getAuthHeaders(token),
+      });
       const responseData: ApiResponse<PlanOutput> = await response.json();
       if (!response.ok) {
         throw new APIError(responseData.message || "Falha ao buscar o plano.");
