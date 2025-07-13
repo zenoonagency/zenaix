@@ -1,12 +1,8 @@
-import {
-  AuthSuccessPayload,
-  MePayload,
-  RegisterData,
-  User,
-} from "../../types/auth";
+import { User } from "../../types/auth";
 import { APIError } from "../errors/api.errors";
 import { API_CONFIG } from "../../config/api.config";
 import { ApiResponse } from "../../types/api.types";
+import { fetchWithAuth } from "../apiClient";
 
 const getAuthHeaders = (
   token: string,
@@ -27,45 +23,19 @@ const getAuthHeaders = (
 };
 
 export const userService = {
-  async register(data: RegisterData): Promise<AuthSuccessPayload> {
-    try {
-      const response = await fetch(
-        `${API_CONFIG.baseUrl}${API_CONFIG.auth.register}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new APIError(
-          errorData?.message || "Falha ao registar utilizador."
-        );
-      }
-
-      const responseData: ApiResponse<AuthSuccessPayload> =
-        await response.json();
-      return responseData.data;
-    } catch (error) {
-      console.error("Register Error:", error);
-      if (error instanceof APIError) throw error;
-      throw new APIError("Ocorreu um erro inesperado durante o registo.");
-    }
-  },
-
   async updateUser(
     token: string,
     userId: string,
     updates: Partial<User>
   ): Promise<User> {
     try {
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${API_CONFIG.baseUrl}${API_CONFIG.users.update(userId)}`,
         {
           method: "PUT",
-          headers: getAuthHeaders(token),
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify(updates),
         }
       );
@@ -78,6 +48,8 @@ export const userService = {
       }
 
       const responseData: ApiResponse<User> = await response.json();
+      console.log("responseData");
+      console.log(responseData);
       return responseData.data;
     } catch (error) {
       console.error("Update User Error:", error);
@@ -93,13 +65,12 @@ export const userService = {
       const formData = new FormData();
       formData.append("avatar", avatarFile);
 
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${API_CONFIG.baseUrl}${API_CONFIG.users.me_avatar}`,
         {
           method: "PATCH",
           headers: {
             Authorization: `Bearer ${token}`,
-            // NÃO envie Content-Type aqui!
           },
           body: formData,
         }
@@ -135,7 +106,7 @@ export const userService = {
 
   async removeAvatar(token: string): Promise<void> {
     try {
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${API_CONFIG.baseUrl}${API_CONFIG.users.me_avatar}`,
         {
           method: "DELETE",
@@ -156,7 +127,7 @@ export const userService = {
 
   async deleteAccount(token: string, password: string): Promise<void> {
     try {
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${API_CONFIG.baseUrl}${API_CONFIG.users.me}`,
         {
           method: "DELETE",
@@ -176,29 +147,46 @@ export const userService = {
     }
   },
 
-  // ATENÇÃO: O backend deve garantir que o objeto user retornado já inclui organization e plan embutidos!
-  async getMe(token: string): Promise<MePayload> {
+  async getMe(token: string, signal?: AbortSignal): Promise<User> {
     try {
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${API_CONFIG.baseUrl}${API_CONFIG.users.me}`,
         {
           method: "GET",
           headers: getAuthHeaders(token),
+          signal,
         }
       );
 
-      const responseData: ApiResponse<MePayload> = await response.json();
-
       if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
         throw new APIError(
-          responseData.message || "Falha ao buscar dados do utilizador."
+          errorData?.message ||
+            `Erro ${response.status}: Falha ao buscar dados do utilizador.`
         );
       }
 
+      const responseData: ApiResponse<User> = await response.json();
       return responseData.data;
-    } catch (error) {
-      console.error("Get Me Error:", error);
-      if (error instanceof APIError) throw error;
+    } catch (error: any) {
+      if (
+        error.name === "AbortError" ||
+        (error instanceof TypeError && error.message === "Failed to fetch")
+      ) {
+        console.log(
+          "Serviço: Requisição cancelada pelo cliente (AbortError ou TypeError). Relançando para ser ignorado."
+        );
+        throw error; 
+      }
+
+      if (error instanceof APIError) {
+        throw error;
+      }
+
+      console.error(
+        "Serviço: Erro de API ou rede não tratado detectado.",
+        error
+      );
       throw new APIError("Ocorreu um erro inesperado ao buscar os seus dados.");
     }
   },

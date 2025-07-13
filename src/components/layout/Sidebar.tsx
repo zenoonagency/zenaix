@@ -27,8 +27,6 @@ import {
 import { TagList } from "../tags/TagList";
 import { useThemeStore } from "../../store/themeStore";
 import { useAuthStore } from "../../store/authStore";
-import { planService } from "../../services/plan/plan.service";
-import * as Icons from "lucide-react";
 import { ProfileModal } from "../../components/ProfileModal";
 
 interface SidebarLinkProps {
@@ -205,7 +203,6 @@ function ChatModal({ isOpen, onClose }: ChatModalProps) {
         }
       }
 
-      // Limpar mensagens anteriores se houver
       const chatMessages = document.getElementById("chat-messages");
       if (chatMessages) {
         chatMessages.innerHTML = "";
@@ -226,7 +223,6 @@ function ChatModal({ isOpen, onClose }: ChatModalProps) {
         sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
       }
 
-      // Obter referências atualizadas
       const updatedChatInput = document.getElementById("chat-input");
       const updatedSendBtn = document.getElementById("send-btn");
       const updatedChatMessages = document.getElementById("chat-messages");
@@ -687,16 +683,16 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [showTags, setShowTags] = useState(false);
   const { theme } = useThemeStore();
-  const user = useAuthStore((state) => state.user);
-  const organization = useAuthStore((state) => state.organization);
-  const token = useAuthStore((state) => state.token);
+
+  const { user, organization } = useAuthStore((state) => ({
+    user: state.user,
+    organization: state.organization,
+  }));
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Exibir nome do plano corretamente
-  const planName = user?.organization?.plan?.name || "Plano Básico";
+  const planName = organization?.plan?.name || "Plano Básico";
   const dropdownRef = useRef<HTMLDivElement>(null);
   const logout = useAuthStore((state) => state.logout);
 
@@ -825,7 +821,6 @@ h-[calc(100%-2.5rem)]
                 </button>
               </div>
 
-              {/* Botão Pergunte à IA */}
               <button
                 onClick={() => setIsChatModalOpen(true)}
                 className={`
@@ -981,10 +976,7 @@ h-[calc(100%-2.5rem)]
         onEditProfile={() => setIsProfileModalOpen(true)}
         onLogout={() => {
           logout();
-          localStorage.removeItem("auth_token");
-          localStorage.removeItem("token");
-          localStorage.removeItem("auth-status");
-          window.location.href = "/login";
+          navigate("/login");
         }}
         name={user?.name || "Usuário"}
         photo={user?.avatarUrl || null}

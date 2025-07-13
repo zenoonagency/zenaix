@@ -3,18 +3,19 @@ import { useAuthStore } from "../../store/authStore";
 import { userService } from "../../services/user/user.service";
 import { toast } from "react-toastify";
 import { LANGUAGE_OPTIONS } from "../../contexts/LocalizationContext";
-import { TIMEZONE_OPTIONS } from "../../utils/timezones";
+import { TIMEZONE_OPTIONS } from "../../utils/dateUtils";
+import { compressImage } from "../../utils/imageCompression";
 
 export function ProfileTab() {
   const { user, token, updateUser, logout } = useAuthStore();
   const organization = user?.organization;
-  const plan = organization?.plan;
 
   const [formData, setFormData] = useState({
     name: user?.name || "",
     language: user?.language || "pt-BR",
     timezone: user?.timezone || "America/Sao_Paulo",
   });
+
   const [previewUrl, setPreviewUrl] = useState(user?.avatarUrl || "");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingAvatar, setIsLoadingAvatar] = useState(false);
@@ -47,10 +48,6 @@ export function ProfileTab() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 300 * 1024) {
-      toast.error("O ficheiro deve ter no máximo 300KB");
-      return;
-    }
     if (!file.type.startsWith("image/")) {
       toast.error("Por favor, selecione apenas ficheiros de imagem");
       return;
@@ -60,16 +57,30 @@ export function ProfileTab() {
     try {
       if (!token) throw new Error("Utilizador não autenticado.");
 
-      // Preview imediato
+      const result = await compressImage(file, { maxSizeKB: 300 });
+
+      if (!result.success || !result.file) {
+        toast.error(result.error || "Erro ao processar imagem");
+        setIsLoadingAvatar(false);
+        return;
+      }
+
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      reader.onloadend = () => setPreviewUrl(reader.result as string);
+      reader.readAsDataURL(result.file);
 
-      const updatedUser = await userService.updateAvatar(token, file);
-      updateUser({ avatarUrl: updatedUser.avatarUrl });
+      const updatedUserFromApi = await userService.updateAvatar(
+        token,
+        result.file
+      );
+      updateUser(updatedUserFromApi);
 
+      if (
+        result.compressedSize &&
+        result.compressedSize < result.originalSize
+      ) {
+        toast.success("Imagem comprimida com sucesso!");
+      }
       toast.success("Avatar atualizado com sucesso!");
     } catch (error) {
       toast.error("Erro ao atualizar avatar. Tente novamente.");
@@ -85,7 +96,7 @@ export function ProfileTab() {
       if (!token) throw new Error("Utilizador não autenticado.");
       await userService.removeAvatar(token);
 
-      updateUser({ avatarUrl: "" }); // Apenas chamamos a ação do store
+      updateUser({ avatarUrl: "" });
       setPreviewUrl("");
 
       toast.success("Avatar removido com sucesso!");
@@ -109,13 +120,14 @@ export function ProfileTab() {
 
     setIsLoading(true);
     try {
-      const updatedUser = await userService.updateUser(token, user.id, {
+      console.log(user.id);
+      const updatedUserFromApi = await userService.updateUser(token, user.id, {
         name: formData.name.trim(),
         language: formData.language,
         timezone: formData.timezone,
       });
 
-      updateUser(updatedUser);
+      updateUser(updatedUserFromApi);
 
       toast.success("Perfil atualizado com sucesso!");
     } catch (error) {
@@ -138,9 +150,6 @@ export function ProfileTab() {
     setIsDeleting(true);
     try {
       await userService.deleteAccount(token, deletePassword);
-
-      toast.success("Conta deletada com sucesso!");
-
       logout();
 
       window.location.href = "/login";

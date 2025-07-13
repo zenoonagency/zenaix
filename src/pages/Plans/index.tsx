@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { PlanCard } from "./components/PlanCard";
 import {
   CalendarDays,
-  Calendar,
   Copy,
   ExternalLink,
   User,
@@ -11,26 +10,25 @@ import {
 } from "lucide-react";
 import { Modal } from "../../components/Modal";
 import { toast } from "react-toastify";
-import { planService } from "../../services/plan/plan.service";
-import { PlanOutput } from "../../types/plan";
 import { useAuthStore } from "../../store/authStore";
-import {
-  organizationService,
-  InputCreateOrgAndSubscribeDTO,
-} from "../../services/oganization/organization.service";
+import { organizationService } from "../../services/oganization/organization.service";
+import { InputCreateOrgAndSubscribeDTO } from "../../types/organization";
+import { usePlanStore } from "../../store/planStore";
+import { subscriptionService } from "../../services/subscription/subscription.service";
+import { InputCreateSubscriptionDTO } from "../../types/subscription";
 
 export function Plans() {
-  const [plans, setPlans] = useState<PlanOutput[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const token = useAuthStore((state) => state.token);
+  const { basePlans, addOns, isLoading } = usePlanStore();
   const [error, setError] = useState<string | null>(null);
-  const [selectedPlan, setSelectedPlan] = useState("essential");
+  const [selectedPlan, setSelectedPlan] = useState(basePlans[0].id || null);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
     "monthly"
   );
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentLink, setPaymentLink] = useState("");
+  const { organization } = useAuthStore();
 
-  // Adiciona estado para modal de organização e dados do formulário
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [orgForm, setOrgForm] = useState({
     name: "",
@@ -41,30 +39,6 @@ export function Plans() {
   });
   const [orgLoading, setOrgLoading] = useState(false);
 
-  const token = useAuthStore((state) => state.token);
-
-  useEffect(() => {
-    const fetchPlans = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const fetchedPlans = await planService.findAll(token);
-        setPlans(fetchedPlans);
-
-        // Seleciona o primeiro plano BASE como padrão, se existir
-        const firstBasePlan = fetchedPlans.find((plan) => plan.type === "BASE");
-        if (firstBasePlan) setSelectedPlan(firstBasePlan.id);
-      } catch (err) {
-        console.error("Erro ao buscar planos:", err);
-        setError("Não foi possível carregar os planos.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchPlans();
-  }, []);
-
   const formatPrice = (value: number) => {
     return value.toLocaleString("pt-BR", {
       style: "currency",
@@ -74,8 +48,6 @@ export function Plans() {
     });
   };
 
-  // Filtrar ADD_ONs
-  const addOns = plans.filter((p) => p.type === "ADD_ON");
   const memberAddOn = addOns.find((p) =>
     p.name.toLowerCase().includes("membro")
   );
@@ -94,21 +66,41 @@ export function Plans() {
     e.preventDefault();
     setOrgLoading(true);
     try {
-      const data: InputCreateOrgAndSubscribeDTO = {
-        name: orgForm.name,
-        document: orgForm.document,
-        planId: selectedPlan,
-        extraBoards: orgForm.extraBoards,
-        extraTeamMembers: orgForm.extraTeamMembers,
-        extraTriggers: orgForm.extraTriggers,
-      };
-      const res = await organizationService.createOrganizationAndSubscribe(
-        data,
-        token
-      );
-      setShowOrgModal(false);
-      setPaymentLink(res.data.checkoutUrl);
-      setShowPaymentModal(true);
+      if (organization) {
+        const data: InputCreateSubscriptionDTO = {
+          planId: selectedPlan,
+          extraBoards: orgForm.extraBoards,
+          extraTeamMembers: orgForm.extraTeamMembers,
+          extraTriggers: orgForm.extraTriggers,
+        };
+
+        const res = await subscriptionService.createCheckoutSession(
+          token,
+          organization.id,
+          data
+        );
+
+        setShowOrgModal(false);
+        setPaymentLink(res.checkoutUrl);
+        setShowPaymentModal(true);
+      } else {
+        const data: InputCreateOrgAndSubscribeDTO = {
+          name: orgForm.name,
+          document: orgForm.document,
+          planId: selectedPlan,
+          extraBoards: orgForm.extraBoards,
+          extraTeamMembers: orgForm.extraTeamMembers,
+          extraTriggers: orgForm.extraTriggers,
+        };
+        const res = await organizationService.createCheckoutSessionForNewOrg(
+          data,
+          token
+        );
+
+        setShowOrgModal(false);
+        setPaymentLink(res.checkoutUrl);
+        setShowPaymentModal(true);
+      }
     } catch (err: any) {
       toast.error(err.message || "Erro ao criar organização");
     } finally {
@@ -116,7 +108,7 @@ export function Plans() {
     }
   };
 
-  const selectedPlanData = plans.find((plan) => plan.id === selectedPlan);
+  const selectedPlanData = basePlans.find((plan) => plan.id === selectedPlan);
 
   // Loading visual
   if (isLoading) {
@@ -165,31 +157,29 @@ export function Plans() {
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Coluna da esquerda - Planos */}
             <div className="w-full lg:w-2/3 space-y-3">
-              {plans
-                .filter((plan) => plan.type === "BASE")
-                .map((plan) => (
-                  <PlanCard
-                    key={plan.id}
-                    title={plan.name}
-                    description={plan.description}
-                    price={plan.price}
-                    billingPeriod={billingPeriod}
-                    features={[
-                      `Até ${plan.maxContacts} contatos`,
-                      "Disparo em massa padrão",
-                      "Suporte 24/7 por whatsapp",
-                      "Controle financeiro e contratual",
-                      "CRM avançado",
-                      `Até ${plan.maxBoards} Kanbans`,
-                      `Até ${plan.maxTriggers} Disparos por mês`,
-                    ]}
-                    isPopular={true}
-                    gradient={"from-purple-500 to-indigo-600"}
-                    baseUsers={plan.maxTeamMembers}
-                    isSelected={selectedPlan === plan.id}
-                    onClick={() => setSelectedPlan(plan.id)}
-                  />
-                ))}
+              {basePlans.map((plan) => (
+                <PlanCard
+                  key={plan.id}
+                  title={plan.name}
+                  description={plan.description}
+                  price={plan.price}
+                  billingPeriod={billingPeriod}
+                  features={[
+                    `Até ${plan.maxContacts} contatos`,
+                    "Disparo em massa padrão",
+                    "Suporte 24/7 por whatsapp",
+                    "Controle financeiro e contratual",
+                    "CRM avançado",
+                    `Até ${plan.maxBoards} Kanbans`,
+                    `Até ${plan.maxTriggers} Disparos por mês`,
+                  ]}
+                  isPopular={true}
+                  gradient={"from-purple-500 to-indigo-600"}
+                  baseUsers={plan.maxTeamMembers}
+                  isSelected={selectedPlan === plan.id}
+                  onClick={() => setSelectedPlan(plan.id)}
+                />
+              ))}
             </div>
 
             {/* Coluna da direita - Licenças */}
@@ -389,7 +379,7 @@ export function Plans() {
                 {selectedPlanData?.description || "Descrição do plano."}
               </div>
               <div className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white flex items-end gap-2">
-                {formatPrice( 
+                {formatPrice(
                   (selectedPlanData?.price || 0) +
                     orgForm.extraTeamMembers * (memberAddOn?.price || 0) +
                     orgForm.extraBoards * (boardAddOn?.price || 0) +
@@ -455,7 +445,8 @@ export function Plans() {
                 <input
                   type="text"
                   required
-                  value={orgForm.name}
+                  disabled={organization.name && true}
+                  value={organization.name || orgForm.name}
                   onChange={(e) =>
                     setOrgForm((f) => ({ ...f, name: e.target.value }))
                   }
@@ -469,7 +460,8 @@ export function Plans() {
                 <input
                   type="text"
                   required
-                  value={orgForm.document}
+                  disabled={organization.document && true}
+                  value={organization.document || orgForm.document}
                   onChange={(e) =>
                     setOrgForm((f) => ({ ...f, document: e.target.value }))
                   }

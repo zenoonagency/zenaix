@@ -40,7 +40,8 @@ export const organizationService = {
           responseData.message || "Erro ao criar sessão de checkout."
         );
       }
-      return responseData;
+
+      return responseData.data;
     } catch (error) {
       console.error("Erro ao criar sessão de checkout:", error);
       if (error instanceof APIError) throw error;
@@ -113,7 +114,7 @@ export const organizationService = {
         organizationId
       )}`;
       const response = await fetch(url, {
-        method: "PUT", // ou PATCH
+        method: "PUT",
         headers: getAuthHeaders(token),
         body: JSON.stringify(data),
       });

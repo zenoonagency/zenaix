@@ -1,9 +1,15 @@
-import React from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Notification } from "../Notification";
 import { HelpButton } from "../HelpButton";
 import { PlanModalGlobal } from "../PlanModalGlobal";
+import { createClient } from "@supabase/supabase-js";
+import { API_CONFIG } from "../../config/api.config";
+
+const supabase = createClient(
+  API_CONFIG.supabaseUrl,
+  API_CONFIG.supabaseAnonKey
+);
 
 export function DashboardLayout() {
   return (

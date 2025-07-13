@@ -1,3 +1,4 @@
+import { RealtimeChannel } from "@supabase/supabase-js";
 import { OrganizationOutput } from "./organization";
 
 export interface User {
@@ -39,20 +40,19 @@ export interface AuthSuccessPayload {
   token: string;
 }
 
-export interface MePayload {
-  user: User;
-  organization: OrganizationOutput | null;
-}
-
 export interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
   token: string | null;
   organization: OrganizationOutput | null;
   _hasHydrated: boolean;
+  realtimeChannel: RealtimeChannel | null;
 
+  connectToRealtime: () => void;
+  disconnectFromRealtime: () => void;
   login: (payload: AuthSuccessPayload) => void;
   logout: () => void;
+  setToken: (token: string) => void;
   updateUser: (user: Partial<User>) => void;
   setOrganization: (organization: OrganizationOutput) => void;
   fetchAndSyncUser: () => Promise<void>;

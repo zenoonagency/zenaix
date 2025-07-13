@@ -30,31 +30,33 @@ export function Login({ onLoginSuccess }: LoginProps) {
       ? "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT.png"
       : "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-DARK.png";
 
-      const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError("");
-        setLoading(true);
-      
-        try {
-          const response = await authService.login({ email, password });
-          
-          login(response);
-      
-          showToast("Login realizado com sucesso!", "success");
-          navigate("/dashboard");
-      
-          if (onLoginSuccess) {
-            onLoginSuccess();
-          }
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : "Erro ao fazer login";
-          setError(message);
-          showToast(message, "error");
-        } finally {
-          setLoading(false);
-        }
-      };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await authService.login({ email, password });
+
+      console.log("DADOS RECEBIDOS DO BACKEND:", response);
+
+      login(response);
+
+      showToast("Login realizado com sucesso!", "success");
+      navigate("/dashboard");
+
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro ao fazer login";
+      setError(message);
+      showToast(message, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);

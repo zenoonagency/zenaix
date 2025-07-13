@@ -1,28 +1,40 @@
 // src/pages/Clients/index.tsx
-import React, { useState } from 'react';
-import { Plus, Edit2, Copy, Trash2, ChevronDown, LayoutGrid, CheckSquare, Search, X, Zap, Settings } from 'lucide-react';
-import { useKanbanStore } from './store/kanbanStore';
-import { KanbanBoard } from './components/KanbanBoard';
-import { useThemeStore } from '../../store/themeStore';
-import { BoardList } from './components/BoardList';
-import { useCustomModal } from '../../components/CustomModal';
-import { api } from '../../services/api';
-import { mutate } from 'swr';
-import { useToast } from '../../hooks/useToast';
-import { BoardSelector } from './components/BoardSelector';
-import { CompletedListSelectorModal } from './components/CompletedListSelectorModal';
-import { SearchCardModal } from './components/SearchCardModal';
-import { CardDetailModal } from './components/CardDetailModal';
-import { CardModal } from './components/CardModal';
-import { AutomationModal } from './components/AutomationModal';
-import { Board, Card } from './types';
-import { BoardConfigModal } from './components/BoardConfigModal';
+import React, { useState } from "react";
+import {
+  Plus,
+  Edit2,
+  Copy,
+  Trash2,
+  ChevronDown,
+  LayoutGrid,
+  CheckSquare,
+  Search,
+  X,
+  Zap,
+  Settings,
+} from "lucide-react";
+import { useKanbanStore } from "./store/kanbanStore";
+import { KanbanBoard } from "./components/KanbanBoard";
+import { useThemeStore } from "../../store/themeStore";
+import { BoardList } from "./components/BoardList";
+import { useCustomModal } from "../../components/CustomModal";
+import { api } from "../../services/api";
+import { mutate } from "swr";
+import { useToast } from "../../hooks/useToast";
+import { BoardSelector } from "./components/BoardSelector";
+import { CompletedListSelectorModal } from "./components/CompletedListSelectorModal";
+import { SearchCardModal } from "./components/SearchCardModal";
+import { CardDetailModal } from "./components/CardDetailModal";
+import { CardModal } from "./components/CardModal";
+import { AutomationModal } from "./components/AutomationModal";
+import { Board, Card } from "./types";
+import { BoardConfigModal } from "./components/BoardConfigModal";
 
 export function Clients() {
   const { theme } = useThemeStore();
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
   const { showToast } = useToast();
-  const { 
+  const {
     boards,
     activeBoard: activeBoardId,
     setActiveBoard,
@@ -32,22 +44,24 @@ export function Clients() {
     duplicateBoard,
     toggleBoardVisibility,
     setCompletedList,
-    getCompletedListId
+    getCompletedListId,
   } = useKanbanStore();
   const { modal, customPrompt, customConfirm } = useCustomModal();
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editBoardTitle, setEditBoardTitle] = useState('');
+  const [editBoardTitle, setEditBoardTitle] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newBoardTitle, setNewBoardTitle] = useState('');
+  const [newBoardTitle, setNewBoardTitle] = useState("");
   const [showBoardSelector, setShowBoardSelector] = useState(false);
   const [showListSelector, setShowListSelector] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [showEditCardModal, setShowEditCardModal] = useState(false);
-  const [selectedCardForEdit, setSelectedCardForEdit] = useState<Card | null>(null);
+  const [selectedCardForEdit, setSelectedCardForEdit] = useState<Card | null>(
+    null
+  );
   const [showAutomationModal, setShowAutomationModal] = useState(false);
   const [showBoardConfigModal, setShowBoardConfigModal] = useState(false);
 
@@ -57,23 +71,23 @@ export function Clients() {
 
   const handleCreateNewBoard = () => {
     if (!newBoardTitle.trim()) return;
-    
+
     // Adiciona o novo quadro
     addBoard(newBoardTitle.trim());
-    
+
     // Pega o quadro recém-criado (último da lista)
     const newBoard = boards[boards.length - 1];
-    
-    setNewBoardTitle('');
+
+    setNewBoardTitle("");
     setShowCreateModal(false);
     setActiveBoard(newBoard.id);
-    showToast('Quadro criado com sucesso!', 'success');
+    showToast("Quadro criado com sucesso!", "success");
   };
 
   const handleEditBoard = () => {
     if (editBoardTitle.trim() && activeBoardId) {
       updateBoard(activeBoardId, { title: editBoardTitle.trim() });
-      setEditBoardTitle('');
+      setEditBoardTitle("");
       setShowEditModal(false);
     }
   };
@@ -89,29 +103,30 @@ export function Clients() {
 
   const handleCardClick = (cardId: string) => {
     if (!currentBoard?.lists) return;
-    
+
     const card = currentBoard.lists
-      .flatMap(list => list.cards || [])
-      .find(c => c.id === cardId);
-    
+      .flatMap((list) => list.cards || [])
+      .find((c) => c.id === cardId);
+
     if (card) {
       setSelectedCard(card);
       setShowDetailModal(true);
     }
   };
 
-  const currentBoard = boards.find(b => b.id === activeBoardId);
-  const currentBoardTitle = currentBoard?.title || 'Selecione um quadro';
+  const currentBoard = boards.find((b) => b.id === activeBoardId);
+  const currentBoardTitle = currentBoard?.title || "Selecione um quadro";
 
   // Garantir que as listas e cards existam antes de usar
-  const allCards = currentBoard?.lists?.flatMap(list => list.cards || []) || [];
-  const currentList = currentBoard?.lists?.find(list => 
-    list.cards?.some(card => card.id === selectedCard?.id)
+  const allCards =
+    currentBoard?.lists?.flatMap((list) => list.cards || []) || [];
+  const currentList = currentBoard?.lists?.find((list) =>
+    list.cards?.some((card) => card.id === selectedCard?.id)
   );
 
   const handleAddList = () => {
     if (!activeBoardId || !currentBoard) {
-      showToast('Crie um quadro primeiro!', 'warning');
+      showToast("Crie um quadro primeiro!", "warning");
       setShowCreateModal(true);
       return;
     }
@@ -121,15 +136,14 @@ export function Clients() {
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
       <div className={`p-6 bg-background dark:bg-background`}>
-        <div className="flex justify-between items-center">
+        <div className="flex items-center space-x-2 mb-4">
+          <Zap className="w-6 h-6 text-[#7f00ff]" />
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] text-transparent bg-clip-text">
+            Gestão de funil
+          </h1>
+        </div>
+        <div className="flex gap-4">
           <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-  <Zap className="w-6 h-6 text-[#7f00ff]" />
-  <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] text-transparent bg-clip-text">
-    Gestão de funil
-  </h1>
-</div>
-
             {boards.length > 0 && (
               <button
                 onClick={() => setShowBoardSelector(true)}
@@ -172,10 +186,10 @@ export function Clients() {
               </>
             )}
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex  space-x-2">
             <button
               onClick={handleAddBoard}
-              className="flex items-center px-3 py-1.5 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
+              className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
             >
               <Plus className="w-4 h-4 mr-1" />
               Novo Quadro
@@ -184,20 +198,20 @@ export function Clients() {
               <>
                 <button
                   onClick={() => {
-                    const board = boards.find(b => b.id === activeBoardId);
+                    const board = boards.find((b) => b.id === activeBoardId);
                     if (board) {
                       setEditBoardTitle(board.title);
                       setShowEditModal(true);
                     }
                   }}
-                  className="flex items-center px-3 py-1.5 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
+                  className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
                 >
                   <Edit2 className="w-4 h-4 mr-1" />
                   Editar
                 </button>
                 <button
                   onClick={() => duplicateBoard(activeBoardId)}
-                  className="flex items-center px-3 py-1.5 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
+                  className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
                 >
                   <Copy className="w-4 h-4 mr-1" />
                   Duplicar
@@ -207,7 +221,7 @@ export function Clients() {
                     setBoardToDelete(activeBoardId);
                     setShowDeleteModal(true);
                   }}
-                  className="flex items-center px-3 py-1.5 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50"
+                  className="flex items-center px-4 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50"
                 >
                   <Trash2 className="w-4 h-4 mr-1" />
                   Excluir
@@ -227,7 +241,9 @@ export function Clients() {
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
               <p className="text-gray-500 dark:text-gray-400 mb-4">
-                {boards.length === 0 ? 'Nenhum quadro criado' : 'Nenhum quadro selecionado'}
+                {boards.length === 0
+                  ? "Nenhum quadro criado"
+                  : "Nenhum quadro selecionado"}
               </p>
               <button
                 onClick={handleAddBoard}
@@ -255,25 +271,37 @@ export function Clients() {
 
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className={`w-full max-w-md p-6 rounded-lg shadow-xl ${isDark ? 'bg-dark-800' : 'bg-white'}`}>
+          <div
+            className={`w-full max-w-md p-6 rounded-lg shadow-xl ${
+              isDark ? "bg-dark-800" : "bg-white"
+            }`}
+          >
             <div className="flex justify-between items-center mb-4">
-              <h3 className={`text-lg font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+              <h3
+                className={`text-lg font-medium ${
+                  isDark ? "text-gray-100" : "text-gray-900"
+                }`}
+              >
                 Novo Quadro
               </h3>
               <button
                 onClick={() => {
                   setShowCreateModal(false);
-                  setNewBoardTitle('');
+                  setNewBoardTitle("");
                 }}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-full"
               >
                 <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
-                <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label
+                  className={`block text-sm font-medium mb-1 ${
+                    isDark ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
                   Nome do quadro
                 </label>
                 <input
@@ -281,9 +309,9 @@ export function Clients() {
                   value={newBoardTitle}
                   onChange={(e) => setNewBoardTitle(e.target.value)}
                   className={`w-full px-4 py-2.5 rounded-lg border ${
-                    isDark 
-                      ? 'bg-dark-700 border-gray-600 text-gray-100' 
-                      : 'bg-white border-gray-300 text-gray-900'
+                    isDark
+                      ? "bg-dark-700 border-gray-600 text-gray-100"
+                      : "bg-white border-gray-300 text-gray-900"
                   } focus:outline-none focus:ring-2 focus:ring-[#7f00ff]`}
                   placeholder="Digite o nome do novo quadro"
                   autoFocus
@@ -295,12 +323,12 @@ export function Clients() {
               <button
                 onClick={() => {
                   setShowCreateModal(false);
-                  setNewBoardTitle('');
+                  setNewBoardTitle("");
                 }}
                 className={`px-4 py-2 rounded-lg ${
-                  isDark 
-                    ? 'text-gray-300 hover:bg-gray-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
+                  isDark
+                    ? "text-gray-300 hover:bg-gray-700"
+                    : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 Cancelar
@@ -319,25 +347,37 @@ export function Clients() {
 
       {showEditModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className={`w-full max-w-md p-6 rounded-lg shadow-xl ${isDark ? 'bg-dark-800' : 'bg-white'}`}>
+          <div
+            className={`w-full max-w-md p-6 rounded-lg shadow-xl ${
+              isDark ? "bg-dark-800" : "bg-white"
+            }`}
+          >
             <div className="flex justify-between items-center mb-4">
-              <h3 className={`text-lg font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+              <h3
+                className={`text-lg font-medium ${
+                  isDark ? "text-gray-100" : "text-gray-900"
+                }`}
+              >
                 Editar Quadro
               </h3>
               <button
                 onClick={() => {
                   setShowEditModal(false);
-                  setEditBoardTitle('');
+                  setEditBoardTitle("");
                 }}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-full"
               >
                 <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
-                <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label
+                  className={`block text-sm font-medium mb-1 ${
+                    isDark ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
                   Nome do quadro
                 </label>
                 <input
@@ -345,9 +385,9 @@ export function Clients() {
                   value={editBoardTitle}
                   onChange={(e) => setEditBoardTitle(e.target.value)}
                   className={`w-full px-4 py-2.5 rounded-lg border ${
-                    isDark 
-                      ? 'bg-dark-700 border-gray-600 text-gray-100' 
-                      : 'bg-white border-gray-300 text-gray-900'
+                    isDark
+                      ? "bg-dark-700 border-gray-600 text-gray-100"
+                      : "bg-white border-gray-300 text-gray-900"
                   } focus:outline-none focus:ring-2 focus:ring-[#7f00ff]`}
                   placeholder="Digite o novo nome do quadro"
                   autoFocus
@@ -359,12 +399,12 @@ export function Clients() {
               <button
                 onClick={() => {
                   setShowEditModal(false);
-                  setEditBoardTitle('');
+                  setEditBoardTitle("");
                 }}
                 className={`px-4 py-2 rounded-lg ${
-                  isDark 
-                    ? 'text-gray-300 hover:bg-gray-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
+                  isDark
+                    ? "text-gray-300 hover:bg-gray-700"
+                    : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 Cancelar
@@ -383,13 +423,22 @@ export function Clients() {
 
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className={`w-full max-w-md p-6 rounded-lg shadow-xl ${isDark ? 'bg-dark-800' : 'bg-white'}`}>
-            <h3 className={`text-lg font-medium mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+          <div
+            className={`w-full max-w-md p-6 rounded-lg shadow-xl ${
+              isDark ? "bg-dark-800" : "bg-white"
+            }`}
+          >
+            <h3
+              className={`text-lg font-medium mb-4 ${
+                isDark ? "text-gray-100" : "text-gray-900"
+              }`}
+            >
               Excluir Quadro
             </h3>
-            
-            <p className={`mb-6 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              Tem certeza que deseja excluir este quadro? Esta ação não pode ser desfeita.
+
+            <p className={`mb-6 ${isDark ? "text-gray-300" : "text-gray-600"}`}>
+              Tem certeza que deseja excluir este quadro? Esta ação não pode ser
+              desfeita.
             </p>
 
             <div className="flex justify-end gap-3">
@@ -399,9 +448,9 @@ export function Clients() {
                   setBoardToDelete(null);
                 }}
                 className={`px-4 py-2 rounded-lg ${
-                  isDark 
-                    ? 'text-gray-300 hover:bg-gray-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
+                  isDark
+                    ? "text-gray-300 hover:bg-gray-700"
+                    : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 Cancelar
@@ -424,7 +473,7 @@ export function Clients() {
           onSelectList={(listId) => {
             setCompletedList(activeBoardId, listId);
             setShowListSelector(false);
-            showToast('Lista de concluídos atualizada com sucesso!', 'success');
+            showToast("Lista de concluídos atualizada com sucesso!", "success");
           }}
           isOpen={showListSelector}
           onClose={() => setShowListSelector(false)}
@@ -449,7 +498,7 @@ export function Clients() {
           }}
           card={selectedCard}
           boardId={activeBoardId!}
-          listId={currentList?.id || ''}
+          listId={currentList?.id || ""}
           onEdit={() => {
             setShowDetailModal(false);
             setSelectedCardForEdit(selectedCard);
@@ -467,38 +516,38 @@ export function Clients() {
           }}
           onSave={(updatedCard) => {
             if (!currentBoard?.lists) return;
-            
+
             updateBoard(activeBoardId!, {
-              lists: currentBoard.lists.map(list => ({
+              lists: currentBoard.lists.map((list) => ({
                 ...list,
-                cards: (list.cards || []).map(card =>
+                cards: (list.cards || []).map((card) =>
                   card.id === selectedCardForEdit.id ? updatedCard : card
-                )
-              }))
+                ),
+              })),
             });
             setShowEditCardModal(false);
             setSelectedCardForEdit(null);
-            showToast('Cartão atualizado com sucesso!', 'success');
+            showToast("Cartão atualizado com sucesso!", "success");
           }}
           mode="edit"
           boardId={activeBoardId!}
-          listId={currentList?.id || ''}
+          listId={currentList?.id || ""}
           card={selectedCardForEdit}
         />
       )}
 
       {showAutomationModal && (
-        <AutomationModal 
-          isOpen={showAutomationModal} 
-          onClose={() => setShowAutomationModal(false)} 
-          boardId={activeBoardId || ''}
+        <AutomationModal
+          isOpen={showAutomationModal}
+          onClose={() => setShowAutomationModal(false)}
+          boardId={activeBoardId || ""}
         />
       )}
-      
+
       {showBoardConfigModal && activeBoardId && (
-        <BoardConfigModal 
-          isOpen={showBoardConfigModal} 
-          onClose={() => setShowBoardConfigModal(false)} 
+        <BoardConfigModal
+          isOpen={showBoardConfigModal}
+          onClose={() => setShowBoardConfigModal(false)}
           boardId={activeBoardId}
         />
       )}

@@ -18,10 +18,12 @@ import { useNotification } from "../hooks/useNotification";
 import { authService } from "../services/authService";
 import { RegisterData } from "../types/auth";
 import { LANGUAGE_OPTIONS } from "../contexts/LocalizationContext";
-import { TIMEZONE_OPTIONS } from "../utils/timezones";
+import { TIMEZONE_OPTIONS } from "../utils/dateUtils";
 import { useThemeStore } from "../store/themeStore";
 import { ParticlesEffect } from "../components/effects/ParticlesEffect";
 import { NotificationSingle } from "../components/Notification";
+import { userService } from "../services/user/user.service";
+import { compressImage } from "../utils/imageCompression";
 
 export function Register() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -40,7 +42,7 @@ export function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const navigate = useNavigate();
-  const login = useAuthStore((state) => state.login);
+  const { login, updateUser } = useAuthStore();
   const { showToast } = useToast();
   const { notification, showNotification, hideNotification } =
     useNotification();
@@ -58,15 +60,23 @@ export function Register() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 300 * 1024) {
-        showToast("Avatar deve ter no máximo 300KB", "error");
-        return;
+      const result = await compressImage(file, { maxSizeKB: 300 });
+
+      if (result.success && result.file) {
+        handleInputChange("avatar", result.file);
+        setAvatarPreview(URL.createObjectURL(result.file));
+        if (
+          result.compressedSize &&
+          result.compressedSize < result.originalSize
+        ) {
+          showToast("Imagem comprimida com sucesso!", "success");
+        }
+      } else {
+        showToast(result.error || "Erro ao processar imagem", "error");
       }
-      handleInputChange("avatar", file);
-      setAvatarPreview(URL.createObjectURL(file));
     }
   };
 
@@ -114,15 +124,46 @@ export function Register() {
     setLoading(true);
 
     try {
-      const response = await authService.register(formData);
+      const registrationData = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        language: formData.language,
+        timezone: formData.timezone,
+      };
 
-      login(response);
+      const authResponse = await authService.register(registrationData);
 
-      showToast("Cadastro realizado com sucesso!", "success");
+      login(authResponse);
+      showToast(
+        "Conta criada com sucesso! Configurando o seu perfil...",
+        "success"
+      );
+
+      if (formData.avatar) {
+        try {
+          const updatedUserWithAvatar = await userService.updateAvatar(
+            authResponse.token,
+            formData.avatar
+          );
+          updateUser({ avatarUrl: updatedUserWithAvatar.avatarUrl });
+        } catch (avatarError) {
+          console.error(
+            "Erro no upload do avatar após o registo:",
+            avatarError
+          );
+          showToast(
+            "A sua conta foi criada, mas houve um erro ao enviar o seu avatar, tente novamente nas configurações do seu perfil.",
+            "warning"
+          );
+        }
+      }
+
+      // 5. Finalmente, redirecionamos para o dashboar
       navigate("/dashboard");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Erro ao registrar usuário";
+        error instanceof Error ? error.message : "Erro ao registar utilizador";
       setError(message);
       showToast(message, "error");
       console.error("Erro ao cadastrar:", error);

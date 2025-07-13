@@ -17,9 +17,7 @@ import { toast } from "react-hot-toast";
 import { useWhatsAppConnectionStore } from "../store/whatsAppConnectionStore";
 import { proxyService } from "../services/proxyService";
 import { userService } from "../services/user/user.service";
-import { LANGUAGE_OPTIONS } from "../contexts/LocalizationContext";
-import { TIMEZONE_OPTIONS } from "../utils/timezones";
-import { planService } from "../services/plan/plan.service";
+import { compressImage } from "../utils/imageCompression";
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -36,7 +34,7 @@ type WhatsAppConnectionStatus =
   | "exists";
 
 export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
-  const user = useAuthStore((state) => state.user);
+  const { user, token, updateUser } = useAuthStore();
   const {
     isConnected: whatsAppIsConnected,
     status: persistedStatus,
@@ -46,17 +44,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setConnectionStatus: setPersistedConnectionStatus,
   } = useWhatsAppConnectionStore();
 
-  // Padrão: acessar organização e plano via user
   const organization = user?.organization;
-  const plan = organization?.plan;
-  const token = useAuthStore((state) => state.token);
-  // Remover o useEffect que buscava o plano
-  // const [planName, setPlanName] = useState<string>("");
-  // useEffect(() => { ... });
-
-  // Novo: pegar o nome do plano diretamente
-  // Remover exibição do plano do ProfileModal
-  // const planName = organization?.plan?.name || "Plano Básico";
 
   const [formData, setFormData] = useState({
     name: "",
@@ -90,12 +78,10 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   );
   const [imageError, setImageError] = useState<string | null>(null);
 
-  // Atualizar o ref quando o estado muda
   useEffect(() => {
     connectionStateRef.current = connectionState;
   }, [connectionState]);
 
-  // Sincronizar o estado local com o estado persistido
   useEffect(() => {
     if (whatsAppIsConnected && persistedStatus === "connected") {
       setConnectionStatus("connected");
@@ -330,15 +316,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           statusCheckTimeoutRef.current = null;
         }
 
-        // Salvar o nome da instância no perfil do usuário
-        // setUserData({ // This line was removed as per the new_code, as useUser is no longer used.
-        //   name: formData.name,
-        //   photo: formData.photo,
-        //   plan,
-        //   phoneNumber: formData.phoneNumber,
-        //   email: formData.email
-        // });
-
         toast.success("WhatsApp conectado com sucesso!");
       } else if (data.status === "expired") {
         // QR code expirado
@@ -369,92 +346,69 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
-    if (file) {
-      // Validar tamanho do arquivo (max 300KB)
-      if (file.size > 300 * 1024) {
-        setImageError("O arquivo deve ter no máximo 300KB");
-        toast.error("O arquivo deve ter no máximo 300KB", { duration: 5000 });
-        return;
-      } else {
-        setImageError(null);
-      }
+    if (!file) return;
 
-      // Validar tipo do arquivo
-      if (!file.type.startsWith("image/")) {
-        setImageError("Por favor, selecione apenas arquivos de imagem");
-        toast.error("Por favor, selecione apenas arquivos de imagem");
-        return;
-      } else {
-        setImageError(null);
-      }
+    if (!file.type.startsWith("image/")) {
+      setImageError("Por favor, selecione apenas arquivos de imagem");
+      toast.error("Por favor, selecione apenas arquivos de imagem");
+      return;
+    } else {
+      setImageError(null);
+    }
 
-      setIsLoadingAvatar(true);
-      try {
-        // Mostrar preview imediatamente
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64String = reader.result as string;
-          setPreviewUrl(base64String);
-          setFormData((prev) => ({ ...prev, photo: base64String }));
-        };
-        reader.readAsDataURL(file);
+    setIsLoadingAvatar(true);
+    try {
+      if (!token) throw new Error("Utilizador não autenticado.");
+      let fileToSend = file;
+      const result = await compressImage(file, { maxSizeKB: 300 });
 
-        // Fazer upload para a API
-        if (!token) throw new Error("Token não encontrado");
-        const updatedUser = await userService.updateAvatar(token, file);
-        useAuthStore
-          .getState()
-          .updateUser({ avatarUrl: updatedUser.avatarUrl });
-
-        // Forçar atualização do localStorage
-        const currentAuth = JSON.parse(
-          localStorage.getItem("auth-status") || "{}"
-        );
-        if (currentAuth.state) {
-          currentAuth.state.user = {
-            ...currentAuth.state.user,
-            ...updatedUser,
-          };
-          localStorage.setItem("auth-status", JSON.stringify(currentAuth));
-        }
-
-        // Atualizar também o estado local para garantir consistência
-        if (updatedUser.avatarUrl) {
-          setPreviewUrl(updatedUser.avatarUrl);
-          setFormData((prev) => ({ ...prev, photo: updatedUser.avatarUrl }));
-        }
-
-        toast.success("Avatar atualizado com sucesso!");
-      } catch (error) {
-        console.error("Erro ao atualizar avatar:", error);
-        toast.error("Erro ao atualizar avatar. Tente novamente.");
-
-        // Reverter preview em caso de erro
-        setPreviewUrl(user?.avatarUrl || "");
-        setFormData((prev) => ({ ...prev, photo: user?.avatarUrl || "" }));
-      } finally {
+      if (!result.success || !result.file) {
+        setImageError(result.error || "Erro ao processar imagem");
+        toast.error(result.error || "Erro ao processar imagem");
         setIsLoadingAvatar(false);
+        return;
       }
+
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewUrl(reader.result as string);
+      reader.readAsDataURL(result.file);
+
+      const updatedUserFromApi = await userService.updateAvatar(
+        token,
+        result.file
+      );
+      updateUser({ avatarUrl: updatedUserFromApi.avatarUrl });
+
+      if (
+        result.compressedSize &&
+        result.compressedSize < result.originalSize
+      ) {
+        toast.success("Imagem comprimida com sucesso!");
+      }
+      toast.success("Avatar atualizado com sucesso!");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro ao atualizar avatar.";
+      toast.error(message);
+      setPreviewUrl(user?.avatarUrl || "");
+    } finally {
+      setIsLoadingAvatar(false);
     }
   };
 
   const handleRemovePhoto = async () => {
     setIsLoadingAvatar(true);
     try {
-      if (!token) throw new Error("Token não encontrado");
+      if (!token) throw new Error("Utilizador não autenticado.");
       await userService.removeAvatar(token);
 
-      setPreviewUrl("");
-      setFormData((prev) => ({ ...prev, photo: "" }));
-
-      if (user) {
-        useAuthStore.getState().updateUser({ avatarUrl: "" });
-      }
+      updateUser({ avatarUrl: "" });
 
       toast.success("Avatar removido com sucesso!");
     } catch (error) {
-      console.error("Erro ao remover avatar:", error);
-      toast.error("Erro ao remover avatar. Tente novamente.");
+      const message =
+        error instanceof Error ? error.message : "Erro ao remover avatar.";
+      toast.error(message);
     } finally {
       setIsLoadingAvatar(false);
     }
@@ -463,51 +417,32 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validação apenas do nome, já que o email é obtido automaticamente
     if (!formData.name.trim()) {
       toast.error("O nome é obrigatório");
       return;
     }
 
-    if (!user?.id) {
-      toast.error("Usuário não identificado");
-      return;
-    }
-
-    if (!token) {
-      toast.error("Token não encontrado");
+    if (!user?.id || !token) {
+      toast.error("Sessão inválida. Por favor, faça login novamente.");
       return;
     }
 
     setIsLoadingProfile(true);
     try {
-      const updatedUser = await userService.updateUser(token, user.id, {
+      const updatedUserFromApi = await userService.updateUser(token, user.id, {
         name: formData.name.trim(),
-        language: "pt-BR", // Valor padrão
-        timezone: "America/Sao_Paulo", // Valor padrão
       });
 
-      useAuthStore
-        .getState()
-        .updateUser({
-          name: updatedUser.name,
-          language: updatedUser.language,
-          timezone: updatedUser.timezone,
-        });
+      console.log(updatedUserFromApi);
 
-      const currentAuth = JSON.parse(
-        localStorage.getItem("auth-status") || "{}"
-      );
-      if (currentAuth.state) {
-        currentAuth.state.user = { ...currentAuth.state.user, ...updatedUser };
-        localStorage.setItem("auth-status", JSON.stringify(currentAuth));
-      }
+      updateUser(updatedUserFromApi);
 
       toast.success("Perfil atualizado com sucesso!");
       onClose();
     } catch (error) {
-      console.error("Erro ao atualizar perfil:", error);
-      toast.error("Erro ao atualizar perfil. Tente novamente.");
+      const message =
+        error instanceof Error ? error.message : "Erro ao atualizar perfil.";
+      toast.error(message);
     } finally {
       setIsLoadingProfile(false);
     }
@@ -724,38 +659,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Editar Perfil">
-      {/* Bloco de informações do plano */}
-      {organization && (
-        <div className="mb-6 p-4 rounded-lg bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800 flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-[#7f00ff] text-lg">
-              {organization.plan?.name || "Plano Básico"}
-            </span>
-            <span
-              className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
-                organization.subscriptionStatus === "ACTIVE"
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-700"
-              }`}
-            >
-              {organization.subscriptionStatus === "ACTIVE"
-                ? "Ativo"
-                : "Inativo"}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-4 mt-2 text-sm">
-            <span>
-              Boards extras: <b>{organization.extraBoards}</b>
-            </span>
-            <span>
-              Membros extras: <b>{organization.extraTeamMembers}</b>
-            </span>
-            <span>
-              Triggers extras: <b>{organization.extraTriggers}</b>
-            </span>
-          </div>
-        </div>
-      )}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex flex-col items-center space-y-4">
           <div className="relative">

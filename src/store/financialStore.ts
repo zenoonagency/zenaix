@@ -1,32 +1,35 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { generateId } from '../utils/generateId';
-import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { generateId } from "../utils/generateId";
+import { getCurrentISOString } from "../utils/dateUtils";
+import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 
 export interface Transaction {
   id: string;
   date: string;
   amount: number;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   description: string;
   category: string;
-  status: 'pendente' | 'concluido' | 'cancelado';
+  status: "pendente" | "concluido" | "cancelado";
 }
 
 interface FinancialState {
   transactions: Transaction[];
   selectedDate: string;
   showAllTime: boolean;
-  viewMode: 'month' | 'year' | 'all';
+  viewMode: "month" | "year" | "all";
   totalIncome: number;
   totalExpenses: number;
   netIncome: number;
-  addTransaction: (transaction: Omit<Transaction, 'id'> & { id?: string }) => void;
+  addTransaction: (
+    transaction: Omit<Transaction, "id"> & { id?: string }
+  ) => void;
   updateTransaction: (id: string, updates: Partial<Transaction>) => void;
   deleteTransaction: (id: string) => void;
   setSelectedDate: (date: string) => void;
   setShowAllTime: (show: boolean) => void;
-  setViewMode: (mode: 'month' | 'year' | 'all') => void;
+  setViewMode: (mode: "month" | "year" | "all") => void;
   getFilteredTransactions: () => Transaction[];
   calculateTotals: (transactions: Transaction[]) => void;
   clearTransactions: (startDate?: string, endDate?: string) => void;
@@ -39,15 +42,15 @@ function generateSampleData(): Transaction[] {
   // Adicionar a transação ArrudaCred específica
   const arrudaDate = new Date(2025, 2, 13);
   arrudaDate.setHours(12, 0, 0, 0); // Definir meio-dia para evitar problemas de fuso horário
-  
+
   transactions.push({
     id: generateId(),
     date: arrudaDate.toISOString(), // 13/03/2025
     amount: 5000,
-    type: 'income', // Corrigido para income
-    description: 'ArrudaCred',
-    category: 'agente de IA',
-    status: 'concluido'
+    type: "income", // Corrigido para income
+    description: "ArrudaCred",
+    category: "agente de IA",
+    status: "concluido",
   });
 
   // Gerar transações para os últimos 30 dias
@@ -57,28 +60,30 @@ function generateSampleData(): Transaction[] {
     date.setHours(12, 0, 0, 0); // Definir meio-dia para evitar problemas de fuso horário
 
     // Gerar receita
-    if (Math.random() > 0.3) { // 70% de chance de ter receita no dia
+    if (Math.random() > 0.3) {
+      // 70% de chance de ter receita no dia
       transactions.push({
         id: generateId(),
         date: date.toISOString(),
         amount: Math.floor(Math.random() * 5000) + 1000, // Valor entre 1000 e 6000
-        type: 'income',
-        description: `Receita ${date.toLocaleDateString('pt-BR')}`,
-        category: 'Salário',
-        status: 'concluido'
+        type: "income",
+        description: `Receita ${date.toLocaleDateString("pt-BR")}`,
+        category: "Salário",
+        status: "concluido",
       });
     }
 
     // Gerar despesa
-    if (Math.random() > 0.4) { // 60% de chance de ter despesa no dia
+    if (Math.random() > 0.4) {
+      // 60% de chance de ter despesa no dia
       transactions.push({
         id: generateId(),
         date: date.toISOString(),
         amount: Math.floor(Math.random() * 2000) + 500, // Valor entre 500 e 2500
-        type: 'expense',
-        description: `Despesa ${date.toLocaleDateString('pt-BR')}`,
-        category: 'Alimentação',
-        status: 'concluido'
+        type: "expense",
+        description: `Despesa ${date.toLocaleDateString("pt-BR")}`,
+        category: "Alimentação",
+        status: "concluido",
       });
     }
   }
@@ -90,9 +95,9 @@ export const useFinancialStore = create<FinancialState>()(
   persist(
     (set, get) => ({
       transactions: generateSampleData(),
-      selectedDate: new Date().toISOString(),
+              selectedDate: getCurrentISOString(),
       showAllTime: false,
-      viewMode: 'month',
+      viewMode: "month",
       totalIncome: 0,
       totalExpenses: 0,
       netIncome: 0,
@@ -100,16 +105,16 @@ export const useFinancialStore = create<FinancialState>()(
       addTransaction: (transaction) => {
         const newTransaction = {
           ...transaction,
-          id: transaction.id || generateId()
+          id: transaction.id || generateId(),
         };
-        
+
         set((state) => {
           const newTransactions = [...state.transactions, newTransaction];
           return {
             transactions: newTransactions,
           };
         });
-        
+
         // Recalcular totais após adicionar a transação
         const filteredTransactions = get().getFilteredTransactions();
         get().calculateTotals(filteredTransactions);
@@ -124,7 +129,7 @@ export const useFinancialStore = create<FinancialState>()(
             transactions: newTransactions,
           };
         });
-        
+
         // Recalcular totais após atualizar a transação
         const filteredTransactions = get().getFilteredTransactions();
         get().calculateTotals(filteredTransactions);
@@ -139,7 +144,7 @@ export const useFinancialStore = create<FinancialState>()(
             transactions: newTransactions,
           };
         });
-        
+
         // Recalcular totais após excluir a transação
         const filteredTransactions = get().getFilteredTransactions();
         get().calculateTotals(filteredTransactions);
@@ -165,22 +170,22 @@ export const useFinancialStore = create<FinancialState>()(
 
       getFilteredTransactions: () => {
         const state = get();
-        
-        if (state.viewMode === 'all') {
+
+        if (state.viewMode === "all") {
           return state.transactions;
         }
 
         // Extrair a data diretamente da string ISO
         const selectedDate = new Date(state.selectedDate);
-        
+
         // Usar UTC para evitar problemas com fuso horário
         const year = selectedDate.getUTCFullYear();
         const month = selectedDate.getUTCMonth();
-        
+
         // Criar datas de início e fim do período
         let start, end;
-        
-        if (state.viewMode === 'month') {
+
+        if (state.viewMode === "month") {
           // Criar as datas de início e fim do mês explicitamente usando UTC
           start = new Date(Date.UTC(year, month, 1, 0, 0, 0));
           end = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999)); // Último dia do mês
@@ -194,16 +199,17 @@ export const useFinancialStore = create<FinancialState>()(
 
         return state.transactions.filter((transaction) => {
           const transactionDate = new Date(transaction.date);
-          
+
           // Verificar datas das transações
-          
+
           // Comparar ano e mês para filtro mensal, ou apenas ano para filtro anual
-          if (state.viewMode === 'month') {
-            const match = transactionDate.getUTCFullYear() === year && 
-                         transactionDate.getUTCMonth() === month;
-            
+          if (state.viewMode === "month") {
+            const match =
+              transactionDate.getUTCFullYear() === year &&
+              transactionDate.getUTCMonth() === month;
+
             // Verificar correspondência da transação
-            
+
             return match;
           } else {
             // Filtro anual
@@ -215,7 +221,7 @@ export const useFinancialStore = create<FinancialState>()(
       calculateTotals: (transactions) => {
         const totals = transactions.reduce(
           (acc, curr) => {
-            if (curr.type === 'income') {
+            if (curr.type === "income") {
               acc.income += curr.amount;
             } else {
               acc.expenses += curr.amount;
@@ -235,7 +241,7 @@ export const useFinancialStore = create<FinancialState>()(
       clearTransactions: (startDate?: string, endDate?: string) => {
         set((state) => {
           let newTransactions;
-          
+
           if (!startDate || !endDate) {
             newTransactions = [];
           } else {
@@ -249,13 +255,13 @@ export const useFinancialStore = create<FinancialState>()(
 
           return { transactions: newTransactions };
         });
-        
+
         const filteredTransactions = get().getFilteredTransactions();
         get().calculateTotals(filteredTransactions);
       },
     }),
     {
-      name: 'financial-storage',
+      name: "financial-storage",
       onRehydrateStorage: () => (state) => {
         if (state) {
           const filteredTransactions = state.getFilteredTransactions();
@@ -264,4 +270,4 @@ export const useFinancialStore = create<FinancialState>()(
       },
     }
   )
-); 
+);

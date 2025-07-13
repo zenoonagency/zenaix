@@ -32,6 +32,7 @@ export interface OrganizationOutput {
   extraTriggers: number;
   triggersUsedThisMonth: number;
   oneTimeTriggers: number;
+  subscriptionEndsAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

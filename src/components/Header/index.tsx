@@ -16,53 +16,27 @@ export function Header() {
   const { theme, toggleTheme } = useTheme();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
-
-  // Debug temporário
-  console.log("Header - Dados do usuário:", user);
-  console.log(
-    "Header - isAuthenticated:",
-    useAuthStore.getState().isAuthenticated
-  );
-  console.log("Header - token:", useAuthStore.getState().token);
-
-  // Monitorar mudanças no store
-  useEffect(() => {
-    console.log("Header - useEffect - user mudou:", user);
-    console.log(
-      "Header - useEffect - isAuthenticated mudou:",
-      useAuthStore.getState().isAuthenticated
-    );
-  }, [user]);
+  const { user, organization, token, updateUser, logout, isAuthenticated } =
+    useAuthStore();
 
   const handleLogout = () => {
     try {
-      console.log("Iniciando logout...");
-
-      // Limpar dados do localStorage
       localStorage.removeItem("auth_token");
       localStorage.removeItem("token");
       localStorage.removeItem("auth-status");
 
-      // Limpar dados do store
       logout();
 
-      // Fechar dropdown
       setIsDropdownOpen(false);
 
-      // Forçar recarregamento da página para limpar tudo
       window.location.href = "/login";
 
-      console.log("Logout realizado com sucesso");
     } catch (error) {
-      console.error("Erro ao fazer logout:", error);
-      // Forçar logout mesmo com erro
       localStorage.clear();
       window.location.href = "/login";
     }
   };
 
-  // Exibir nome do plano corretamente
   const planName = user?.organization?.plan?.name || "Plano Básico";
 
   return (

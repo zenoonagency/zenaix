@@ -1,6 +1,5 @@
 import { LoginData, RegisterData, AuthSuccessPayload } from "../types/auth";
 import { API_CONFIG } from "../config/api.config";
-import { ApiResponse } from "../types/api.types";
 import { APIError } from "./errors/api.errors";
 
 export const authService = {
@@ -33,32 +32,18 @@ export const authService = {
     }
   },
 
-  async register(data: RegisterData): Promise<AuthSuccessPayload> {
+  async register(
+    data: Omit<RegisterData, "avatar" | "confirmPassword">
+  ): Promise<AuthSuccessPayload> {
     try {
-      let requestBody: FormData | string;
-      let headers: HeadersInit = {};
-
-      if (data.avatar) {
-        const formData = new FormData();
-        formData.append("name", data.name);
-        formData.append("email", data.email);
-        formData.append("password", data.password);
-        if (data.language) formData.append("language", data.language);
-        if (data.timezone) formData.append("timezone", data.timezone);
-        formData.append("avatar", data.avatar);
-
-        requestBody = formData;
-      } else {
-        requestBody = JSON.stringify(data);
-        headers["Content-Type"] = "application/json";
-      }
-
       const response = await fetch(
         `${API_CONFIG.baseUrl}${API_CONFIG.auth.register}`,
         {
           method: "POST",
-          headers,
-          body: requestBody,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
         }
       );
 
@@ -80,5 +65,22 @@ export const authService = {
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado durante o registo.");
     }
+  },
+
+  async refreshToken(): Promise<{ token: string }> {
+    const response = await fetch(`${API_CONFIG.baseUrl}/auth/refresh`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error("Sessão expirada. Por favor, faça login novamente.");
+    }
+
+    const data = await response.json();
+    return data;
   },
 };
