@@ -144,7 +144,7 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
             </>
           ) : (
             <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
-              {formatPrice(valorTotalAtual)}
+              {formatPrice(0)}
               <span className="text-base font-normal text-gray-500 mb-1">
                 /mês
               </span>

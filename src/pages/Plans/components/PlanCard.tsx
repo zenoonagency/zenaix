@@ -12,6 +12,7 @@ interface PlanCardProps {
   baseUsers: number;
   isSelected?: boolean;
   onClick?: () => void;
+  className?: string;
 }
 
 export function PlanCard({
@@ -25,6 +26,7 @@ export function PlanCard({
   baseUsers,
   isSelected,
   onClick,
+  className,
 }: PlanCardProps) {
   const formatPrice = (value: number) => {
     return value.toLocaleString("pt-BR", {
@@ -49,6 +51,7 @@ export function PlanCard({
         }
         hover:translate-y-[-2px]
         cursor-pointer bg-white dark:bg-dark-800 shadow-lg hover:shadow-xl
+        ${className || ""}
       `}
       onClick={onClick}
       role="button"
