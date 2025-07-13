@@ -579,10 +579,14 @@ function ProfileMenuModal({
   name,
   photo,
   plan,
-}: ProfileMenuModalProps) {
+  organization,
+}: ProfileMenuModalProps & { organization: any }) {
   const navigate = useNavigate();
 
   if (!isOpen) return null;
+
+  const totalDisparos =
+    (organization?.extraTriggers || 0) + (organization?.oneTimeTriggers || 0);
 
   return (
     <>
@@ -619,10 +623,15 @@ function ProfileMenuModal({
               </div>
             )}
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
+              <p className="text-base font-medium text-gray-900 dark:text-white">
                 {name}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{plan}</p>
+              <p className="text-base font-medium text-purple-600 dark:text-purple-400">
+                {plan}
+              </p>
+              <p className="text-xs text-gray-800 dark:text-gray-200 mt-1">
+                Disparos disponíveis: {totalDisparos}
+              </p>
             </div>
           </div>
         </div>
@@ -981,6 +990,7 @@ h-[calc(100%-2.5rem)]
         name={user?.name || "Usuário"}
         photo={user?.avatarUrl || null}
         plan={planName}
+        organization={organization}
       />
     </>
   );
