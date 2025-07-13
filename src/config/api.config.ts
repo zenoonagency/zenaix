@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  baseUrl: "https://app-backend-zenaix.mgmxhs.easypanel.host/api",
+  baseUrl: "/api",
   supabaseUrl: "https://samiqqeumkhpfgwdkjvb.supabase.co",
   supabaseAnonKey:
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhbWlxcWV1bWtocGZnd2RranZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4MTM3NTYsImV4cCI6MjA2NzM4OTc1Nn0.tKy_PaZetxDfHqLH626SWPk6fWu8HQvhZCQG-4zXbUM",
@@ -23,6 +23,7 @@ export const API_CONFIG = {
   plans: {
     create: "/plans/",
     readAll: "/plans/",
+
     readById: (id: string) => `/plans/${id}`,
     update: (id: string) => `/plans/${id}`,
     delete: (id: string) => `/plans/${id}`,
