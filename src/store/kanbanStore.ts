@@ -3,7 +3,6 @@ import { persist } from 'zustand/middleware';
 import { KanbanState, Board, Card, List } from '../types';
 import { generateId } from '../utils/generateId';
 import { kanbanService, Board as SupaBoard, List as SupaList, Card as SupaCard } from '../services/kanbanService';
-import { supabase } from '../services/supabaseClient';
 
 interface ExtendedBoard extends Board {
   lists?: (List & { cards?: Card[] })[];

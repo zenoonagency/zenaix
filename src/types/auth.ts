@@ -47,6 +47,7 @@ export interface AuthState {
   organization: OrganizationOutput | null;
   _hasHydrated: boolean;
   realtimeChannel: RealtimeChannel | null;
+  isSyncingUser: boolean;
 
   connectToRealtime: () => void;
   disconnectFromRealtime: () => void;

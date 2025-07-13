@@ -1,21 +1,53 @@
-import React, { useState } from "react";
+import React, {
+  useState,
+  forwardRef,
+  useImperativeHandle,
+  ForwardedRef,
+} from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { subscriptionService } from "../../../services/subscription/subscription.service";
 import { usePlanStore } from "../../../store/planStore";
-export function ManageAddonsForm({
-  organization,
-  addOns,
-  memberAddOn,
-  boardAddOn,
-  triggerAddOn,
-  formatPrice,
-  onSubmit,
-}) {
+
+type Props = {
+  organization: any;
+  addOns: any;
+  memberAddOn: any;
+  boardAddOn: any;
+  triggerAddOn: any;
+  formatPrice: any;
+  onSubmit: any;
+  onResetForm?: () => void;
+};
+
+export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
+  {
+    organization,
+    addOns,
+    memberAddOn,
+    boardAddOn,
+    triggerAddOn,
+    formatPrice,
+    onSubmit,
+    onResetForm,
+  }: Props,
+  ref: ForwardedRef<{ resetForm: () => void }>
+) {
   const [form, setForm] = useState({
     extraBoards: 0,
     extraTeamMembers: 0,
     extraTriggers: 0,
   });
+
+  // Função para zerar o formulário
+  const resetForm = () => {
+    setForm({
+      extraBoards: 0,
+      extraTeamMembers: 0,
+      extraTriggers: 0,
+    });
+    if (onResetForm) onResetForm();
+  };
+  useImperativeHandle(ref, () => ({ resetForm }));
 
   // Controle de seleção de card
   const [selectedCard, setSelectedCard] = useState<"addons" | "oneTime">(
@@ -409,4 +441,4 @@ export function ManageAddonsForm({
       </div>
     </div>
   );
-}
+});

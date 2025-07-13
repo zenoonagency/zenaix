@@ -1,4 +1,5 @@
-import { supabase } from './supabaseClient';
+
+import { supabase } from '../lib/supabaseClient';
 import { getCurrentUser } from './authService';
 import { monitorSupabaseOperation, performanceMonitor } from './performanceMonitor';
 

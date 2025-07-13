@@ -5,11 +5,9 @@ import { HelpButton } from "../HelpButton";
 import { PlanModalGlobal } from "../PlanModalGlobal";
 import { createClient } from "@supabase/supabase-js";
 import { API_CONFIG } from "../../config/api.config";
+import { supabase } from "../../lib/supabaseClient";
 
-const supabase = createClient(
-  API_CONFIG.supabaseUrl,
-  API_CONFIG.supabaseAnonKey
-);
+
 
 export function DashboardLayout() {
   return (

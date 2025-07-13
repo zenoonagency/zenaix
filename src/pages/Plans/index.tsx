@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { PlanCard } from "./components/PlanCard";
 import {
   CalendarDays,
@@ -19,7 +19,7 @@ import { InputCreateSubscriptionDTO } from "../../types/subscription";
 import { ManageAddonsForm } from "./components/ManageAddonsForm";
 
 export function Plans() {
-  const token = useAuthStore((state) => state.token);
+  const { token, organization, fetchAndSyncUser } = useAuthStore();
   const { basePlans, addOns, isLoading } = usePlanStore();
   const [error, setError] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState(basePlans[0].id || null);
@@ -28,7 +28,6 @@ export function Plans() {
   );
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentLink, setPaymentLink] = useState("");
-  const { organization } = useAuthStore();
 
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [orgForm, setOrgForm] = useState({
@@ -44,6 +43,9 @@ export function Plans() {
   const [showConfirmAddonsModal, setShowConfirmAddonsModal] = useState(false);
   const [pendingAddonsForm, setPendingAddonsForm] = useState(null);
   const [loadingAddons, setLoadingAddons] = useState(false);
+
+  // Ref para o ManageAddonsForm
+  const manageAddonsFormRef = useRef(null);
 
   const formatPrice = (value: number) => {
     return value.toLocaleString("pt-BR", {
@@ -332,6 +334,7 @@ export function Plans() {
 
             {organization && activeTab === "recursos" && (
               <ManageAddonsForm
+                ref={manageAddonsFormRef}
                 organization={organization}
                 addOns={addOns}
                 memberAddOn={memberAddOn}
@@ -821,25 +824,19 @@ export function Plans() {
                     );
                   }
                   await Promise.all(promises);
-                  // Sincroniza usuário/organização
-                  if (typeof window !== "undefined") {
-                    const { fetchAndSyncUser } =
-                      require("../../store/authStore").useAuthStore.getState();
-                    if (fetchAndSyncUser) await fetchAndSyncUser();
-                  }
-                  // Zera os campos do formulário de recursos adicionais
-                  setOrgForm((f) => ({
-                    ...f,
-                    extraBoards: 0,
-                    extraTeamMembers: 0,
-                    extraTriggers: 0,
-                  }));
                   toast.success("Recursos adicionais comprados com sucesso!");
-                  setShowConfirmAddonsModal(false);
+                  if (
+                    manageAddonsFormRef.current &&
+                    manageAddonsFormRef.current.resetForm
+                  ) {
+                    manageAddonsFormRef.current.resetForm();
+                  }
                 } catch (err) {
                   toast.error("Erro ao comprar recursos adicionais.");
                 } finally {
+                  fetchAndSyncUser();
                   setLoadingAddons(false);
+                  setShowConfirmAddonsModal(false);
                 }
               }}
               className="px-4 py-2 rounded bg-purple-600 text-white disabled:opacity-50"

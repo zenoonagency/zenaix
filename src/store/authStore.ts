@@ -20,6 +20,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
       organization: null,
       realtimeChannel: null,
       _hasHydrated: false,
+      isSyncingUser: false,
 
       connectToRealtime: () => {
         const { token, user, realtimeChannel, fetchAndSyncUser } = get();
@@ -110,16 +111,18 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
       },
 
       fetchAndSyncUser: async () => {
-        const { logout, token, updateUser } = get();
+        const { logout, token, updateUser, isSyncingUser } = get();
 
         if (!token) {
           logout();
           return;
         }
 
+        // Se já está sincronizando, não faz nada
+        if (isSyncingUser) return;
+        set({ isSyncingUser: true });
         try {
           const user = await userService.getMe(token);
-
           updateUser(user);
         } catch (error) {
           if (
@@ -137,6 +140,8 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             error
           );
           logout();
+        } finally {
+          set({ isSyncingUser: false });
         }
       },
     }),
