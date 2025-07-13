@@ -93,20 +93,31 @@ export function ManageAddonsForm({
           Recursos adicionais
         </h3>
         <div className="flex flex-col items-start mb-2">
-          <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
-            {formatPrice(valorNovosRecursos)}
-            <span className="text-base font-normal text-gray-500 mb-1">
-              /mês
-            </span>
-          </span>
-          <div className="flex flex-col mt-2">
-            <span className="text-xs text-gray-500 line-through decoration-dashed">
+          {recursosAlterados ? (
+            <>
+              <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
+                {formatPrice(valorNovosRecursos)}
+                <span className="text-base font-normal text-gray-500 mb-1">
+                  /mês
+                </span>
+              </span>
+              <div className="flex flex-col mt-2">
+                <span className="text-xs text-gray-500 line-through decoration-dashed">
+                  {formatPrice(valorTotalAtual)}
+                </span>
+                <span className="text-base font-bold text-gray-900 dark:text-white">
+                  {formatPrice(valorTotalNovo)}
+                </span>
+              </div>
+            </>
+          ) : (
+            <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
               {formatPrice(valorTotalAtual)}
+              <span className="text-base font-normal text-gray-500 mb-1">
+                /mês
+              </span>
             </span>
-            <span className="text-base font-bold text-gray-900 dark:text-white">
-              {formatPrice(valorTotalNovo)}
-            </span>
-          </div>
+          )}
         </div>
         <ul className="text-base text-gray-700 dark:text-gray-300 space-y-1 font-medium">
           <li>

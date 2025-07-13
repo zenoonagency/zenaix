@@ -763,25 +763,20 @@ export function Plans() {
                 extraTriggersCost
               );
             })();
-            // Novo valor total após alteração (adicionais já existentes + adicionais do input)
-            const valorNovoTotal =
-              (organization?.plan?.price || 0) +
+            // Valor dos recursos adicionais (apenas o que está sendo comprado agora)
+            const valorAdicionais =
               (memberAddOn?.price || 0) *
-                ((organization?.extraTeamMembers || 0) +
-                  (pendingAddonsForm?.extraTeamMembers || 0)) +
-              (boardAddOn?.price || 0) *
-                ((organization?.extraBoards || 0) +
-                  (pendingAddonsForm?.extraBoards || 0)) +
+                (pendingAddonsForm?.extraTeamMembers || 0) +
+              (boardAddOn?.price || 0) * (pendingAddonsForm?.extraBoards || 0) +
               (triggerAddOn?.price || 0) *
-                ((organization?.extraTriggers || 0) +
-                  (pendingAddonsForm?.extraTriggers || 0));
+                (pendingAddonsForm?.extraTriggers || 0);
             return (
               <div className="flex flex-col gap-1 mt-4">
-                <span className="text-gray-500 line-through text-base">
+                {/* <span className="text-gray-500 line-through text-base">
                   Valor atual: {formatPrice(valorAtual)}
-                </span>
-                <span className="text-lg font-bold text-purple-700 dark:text-purple-300">
-                  Novo valor total: {formatPrice(valorNovoTotal)}
+                </span> */}
+                <span className="text-lg font-bold">
+                  Valor dos recursos: {formatPrice(valorAdicionais)}
                 </span>
               </div>
             );
@@ -826,6 +821,19 @@ export function Plans() {
                     );
                   }
                   await Promise.all(promises);
+                  // Sincroniza usuário/organização
+                  if (typeof window !== "undefined") {
+                    const { fetchAndSyncUser } =
+                      require("../../store/authStore").useAuthStore.getState();
+                    if (fetchAndSyncUser) await fetchAndSyncUser();
+                  }
+                  // Zera os campos do formulário de recursos adicionais
+                  setOrgForm((f) => ({
+                    ...f,
+                    extraBoards: 0,
+                    extraTeamMembers: 0,
+                    extraTriggers: 0,
+                  }));
                   toast.success("Recursos adicionais comprados com sucesso!");
                   setShowConfirmAddonsModal(false);
                 } catch (err) {
