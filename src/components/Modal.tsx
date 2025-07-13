@@ -8,7 +8,7 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  size?: "default" | "large"; // Adiciona prop para tamanho
+  size?: "default" | "medium" | "large"; // Adiciona prop para tamanho
 }
 
 export function Modal({
@@ -18,6 +18,13 @@ export function Modal({
   children,
   size = "default",
 }: ModalProps) {
+  const sizeClass =
+    size === "large"
+      ? "max-w-5xl"
+      : size === "medium"
+      ? "max-w-3xl"
+      : "max-w-md";
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -45,8 +52,7 @@ export function Modal({
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel
-                className={`modal-content w-full ${
-                  size === "large" ? "max-w-5xl" : "max-w-md"
+                className={`modal-content w-full ${sizeClass}
                 } transform overflow-hidden rounded-2xl bg-white dark:bg-dark-800 p-6 text-left align-middle shadow-xl transition-all`}
               >
                 <div className="flex items-start justify-between mb-4">
