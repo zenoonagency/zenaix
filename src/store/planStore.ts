@@ -11,6 +11,7 @@ export const usePlanStore = create<PlanState>()(
       plans: [],
       basePlans: [],
       addOns: [],
+      oneTime: [],
       isLoading: false,
       error: null,
       lastFetched: null,
@@ -36,8 +37,15 @@ export const usePlanStore = create<PlanState>()(
 
           const basePlans = fetchedPlans.filter((p) => p.type === "BASE");
           const addOns = fetchedPlans.filter((p) => p.type === "ADD_ON");
+          const oneTime = fetchedPlans.filter((p) => p.type === "ONE_TIME");
 
-          set({ basePlans, addOns, isLoading: false, lastFetched: Date.now() });
+          set({
+            basePlans,
+            addOns,
+            oneTime,
+            isLoading: false,
+            lastFetched: Date.now(),
+          });
         } catch (err) {
           console.error("Erro ao buscar planos:", err);
           const errorMessage =

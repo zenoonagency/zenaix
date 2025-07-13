@@ -30,6 +30,7 @@ export interface PlanState {
   plans: PlanOutput[];
   basePlans: PlanOutput[];
   addOns: PlanOutput[];
+  oneTime: PlanOutput[];
   isLoading: boolean;
   lastFetched: number | null;
   error: string | null;

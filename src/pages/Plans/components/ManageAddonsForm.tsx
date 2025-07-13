@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-
+import { useAuthStore } from "../../../store/authStore";
+import { subscriptionService } from "../../../services/subscription/subscription.service";
+import { usePlanStore } from "../../../store/planStore";
 export function ManageAddonsForm({
   organization,
   addOns,
@@ -10,10 +12,15 @@ export function ManageAddonsForm({
   onSubmit,
 }) {
   const [form, setForm] = useState({
-    extraBoards: organization?.extraBoards || 0,
-    extraTeamMembers: organization?.extraTeamMembers || 0,
-    extraTriggers: organization?.extraTriggers || 0,
+    extraBoards: 0,
+    extraTeamMembers: 0,
+    extraTriggers: 0,
   });
+
+  // Controle de seleção de card
+  const [selectedCard, setSelectedCard] = useState<"addons" | "oneTime">(
+    "addons"
+  );
 
   const valorAtual = (() => {
     if (!organization || !addOns) return 0;
@@ -37,16 +44,155 @@ export function ManageAddonsForm({
     (triggerAddOn?.price || 0) * form.extraTriggers +
     (organization?.plan?.price || 0);
 
+  // Corrigir lógica do botão: liberar se qualquer campo > 0
   const recursosAlterados =
-    form.extraBoards > (organization?.extraBoards || 0) ||
-    form.extraTeamMembers > (organization?.extraTeamMembers || 0) ||
-    form.extraTriggers > (organization?.extraTriggers || 0);
+    form.extraBoards > 0 || form.extraTeamMembers > 0 || form.extraTriggers > 0;
+
+  // Disparo único
+  const [oneTimeTriggers, setOneTimeTriggers] = useState(0);
+  const oneTimePlans = usePlanStore((state) => state.oneTime);
+  const oneTimeTriggerPlan = oneTimePlans[0];
+  const valorDisparoUnico = (oneTimeTriggerPlan?.price || 0) * oneTimeTriggers;
+  const canBuyOneTime = oneTimeTriggers > 0;
+
+  const token = useAuthStore((state) => state.token);
+  const [loadingOneTime, setLoadingOneTime] = useState(false);
+
+  const valorNovosRecursos =
+    (memberAddOn?.price || 0) *
+      (form.extraTeamMembers > 0 ? form.extraTeamMembers : 0) +
+    (boardAddOn?.price || 0) * (form.extraBoards > 0 ? form.extraBoards : 0) +
+    (triggerAddOn?.price || 0) *
+      (form.extraTriggers > 0 ? form.extraTriggers : 0);
+
+  // Valor total atual (plano + extras já existentes)
+  const valorTotalAtual =
+    (organization?.plan?.price || 0) +
+    (memberAddOn?.price || 0) * (organization?.extraTeamMembers || 0) +
+    (boardAddOn?.price || 0) * (organization?.extraBoards || 0) +
+    (triggerAddOn?.price || 0) * (organization?.extraTriggers || 0);
+
+  // Novo valor total após compra
+  const valorTotalNovo =
+    (organization?.plan?.price || 0) +
+    (memberAddOn?.price || 0) *
+      ((organization?.extraTeamMembers || 0) +
+        (form.extraTeamMembers > 0 ? form.extraTeamMembers : 0)) +
+    (boardAddOn?.price || 0) *
+      ((organization?.extraBoards || 0) +
+        (form.extraBoards > 0 ? form.extraBoards : 0)) +
+    (triggerAddOn?.price || 0) *
+      ((organization?.extraTriggers || 0) +
+        (form.extraTriggers > 0 ? form.extraTriggers : 0));
+
+  // Resumo do card selecionado
+  const resumoCardSelecionado =
+    selectedCard === "addons" ? (
+      <>
+        <h3 className="text-lg font-semibold text-purple-700 dark:text-purple-300 mb-2">
+          Recursos adicionais
+        </h3>
+        <div className="flex flex-col items-start mb-2">
+          <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
+            {formatPrice(valorNovosRecursos)}
+            <span className="text-base font-normal text-gray-500 mb-1">
+              /mês
+            </span>
+          </span>
+          <div className="flex flex-col mt-2">
+            <span className="text-xs text-gray-500 line-through decoration-dashed">
+              {formatPrice(valorTotalAtual)}
+            </span>
+            <span className="text-base font-bold text-gray-900 dark:text-white">
+              {formatPrice(valorTotalNovo)}
+            </span>
+          </div>
+        </div>
+        <ul className="text-base text-gray-700 dark:text-gray-300 space-y-1 font-medium">
+          <li>
+            <span className="text-black dark:text-white font-bold">
+              {organization?.extraTeamMembers || 0}
+            </span>
+            {form.extraTeamMembers > 0 && (
+              <span className="text-purple-600 dark:text-purple-400 font-bold">
+                {" + "}
+                {form.extraTeamMembers}
+              </span>
+            )}{" "}
+            <span className="text-gray-500 font-normal">membros</span>
+          </li>
+          <li>
+            <span className="text-black dark:text-white font-bold">
+              {organization?.extraBoards || 0}
+            </span>
+            {form.extraBoards > 0 && (
+              <span className="text-purple-600 dark:text-purple-400 font-bold">
+                {" + "}
+                {form.extraBoards}
+              </span>
+            )}{" "}
+            <span className="text-gray-500 font-normal">kanbans</span>
+          </li>
+          <li>
+            <span className="text-black dark:text-white font-bold">
+              {organization?.extraTriggers || 0}
+            </span>
+            {form.extraTriggers > 0 && (
+              <span className="text-purple-600 dark:text-purple-400 font-bold">
+                {" + "}
+                {form.extraTriggers}
+              </span>
+            )}{" "}
+            <span className="text-gray-500 font-normal">disparos</span>
+          </li>
+          {form.extraBoards === 0 &&
+            form.extraTeamMembers === 0 &&
+            form.extraTriggers === 0 &&
+            (organization?.extraBoards || 0) === 0 &&
+            (organization?.extraTeamMembers || 0) === 0 &&
+            (organization?.extraTriggers || 0) === 0 && (
+              <li className="text-gray-400">
+                Nenhum recurso adicional selecionado.
+              </li>
+            )}
+        </ul>
+      </>
+    ) : (
+      <>
+        <h3 className="text-lg font-semibold text-purple-700 dark:text-purple-300 mb-2">
+          Comprar disparo único
+        </h3>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
+            {oneTimeTriggerPlan && oneTimeTriggerPlan.price > 0
+              ? formatPrice(valorDisparoUnico)
+              : formatPrice(0)}
+          </span>
+          <span className="text-base font-normal text-gray-500 mb-0">
+            total
+          </span>
+        </div>
+        <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+          <li>
+            {oneTimeTriggers > 0
+              ? `+${oneTimeTriggers} disparos únicos`
+              : "Nenhum disparo selecionado."}
+          </li>
+        </ul>
+      </>
+    );
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6">
-      {/* Coluna da esquerda - Resumo dos recursos */}
-      <div className="w-full lg:w-2/3">
-        <div className="bg-white dark:bg-dark-800 rounded-lg p-6 ring-2 ring-purple-500 ring-offset-2 dark:ring-offset-dark-900">
+    <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col gap-6 w-full lg:w-2/3">
+        <div
+          className={`flex-1 cursor-pointer transition-all duration-150 ${
+            selectedCard === "addons"
+              ? "ring-2 ring-purple-500 ring-offset-2 dark:ring-offset-dark-900 bg-white dark:bg-dark-800"
+              : "opacity-60 bg-white dark:bg-dark-800 border border-purple-200"
+          } rounded-lg p-6`}
+          onClick={() => setSelectedCard("addons")}
+        >
           <h3 className="text-2xl font-bold mb-2 text-purple-700 dark:text-purple-300">
             Recursos adicionais
           </h3>
@@ -62,8 +208,9 @@ export function ManageAddonsForm({
                 </label>
                 <input
                   type="number"
-                  min={organization?.extraBoards || 0}
+                  min={0}
                   value={form.extraBoards}
+                  onFocus={() => setSelectedCard("addons")}
                   onChange={(e) =>
                     setForm((f) => ({
                       ...f,
@@ -84,8 +231,9 @@ export function ManageAddonsForm({
                 </label>
                 <input
                   type="number"
-                  min={organization?.extraTeamMembers || 0}
+                  min={0}
                   value={form.extraTeamMembers}
+                  onFocus={() => setSelectedCard("addons")}
                   onChange={(e) =>
                     setForm((f) => ({
                       ...f,
@@ -100,14 +248,16 @@ export function ManageAddonsForm({
                   </span>
                 )}
               </div>
+
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-1">
                   Disparos adicionais
                 </label>
                 <input
                   type="number"
-                  min={organization?.extraTriggers || 0}
+                  min={0}
                   value={form.extraTriggers}
+                  onFocus={() => setSelectedCard("addons")}
                   onChange={(e) =>
                     setForm((f) => ({
                       ...f,
@@ -124,37 +274,45 @@ export function ManageAddonsForm({
               </div>
             </div>
           </form>
-          <div className="flex items-center gap-4 mt-8 mb-4">
-            {valorAtual !== valorNovo && (
-              <span className="text-xl font-semibold text-gray-400 line-through decoration-dashed">
-                {formatPrice(valorAtual)}
-              </span>
-            )}
-            <span className="text-3xl font-extrabold text-gray-900 dark:text-white">
-              {formatPrice(valorNovo)}
-            </span>
-            <span className="text-base font-normal text-gray-500 mb-1">
-              /mês
-            </span>
-          </div>
-          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 mt-4">
-            {form.extraBoards > 0 && (
-              <li>+{form.extraBoards} Kanbans adicionais</li>
-            )}
-            {form.extraTeamMembers > 0 && (
-              <li>+{form.extraTeamMembers} membros adicionais</li>
-            )}
-            {form.extraTriggers > 0 && (
-              <li>+{form.extraTriggers} disparos adicionais</li>
-            )}
-            {form.extraBoards === 0 &&
-              form.extraTeamMembers === 0 &&
-              form.extraTriggers === 0 && (
-                <li className="text-gray-400">
-                  Nenhum recurso adicional selecionado.
-                </li>
-              )}
-          </ul>
+        </div>
+        {/* Card de disparo único */}
+        <div
+          className={`flex-1 cursor-pointer transition-all duration-150 ${
+            selectedCard === "oneTime"
+              ? "ring-2 ring-purple-500 ring-offset-2 dark:ring-offset-dark-900 bg-white dark:bg-dark-800"
+              : "opacity-60 bg-white dark:bg-dark-800 border border-purple-200"
+          } rounded-lg p-6`}
+          onClick={() => setSelectedCard("oneTime")}
+        >
+          <h3 className="text-2xl font-bold mb-2 text-purple-700 dark:text-purple-300">
+            Comprar disparo único
+          </h3>
+          <p className="text-base text-gray-500 mb-4">
+            Compre disparos avulsos para usar quando precisar. Eles não são
+            recorrentes e expiram após o uso.
+          </p>
+          <form className="space-y-6">
+            <div className="flex flex-col md:flex-row gap-6 items-end">
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-1">
+                  Quantidade de disparos únicos
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={oneTimeTriggers}
+                  onFocus={() => setSelectedCard("oneTime")}
+                  onChange={(e) => setOneTimeTriggers(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded border"
+                />
+                {oneTimeTriggerPlan && (
+                  <span className="text-xs text-gray-500">
+                    R$ {oneTimeTriggerPlan?.price?.toFixed(2)} cada
+                  </span>
+                )}
+              </div>
+            </div>
+          </form>
         </div>
       </div>
       {/* Coluna da direita - Confirmação e pagamento */}
@@ -162,25 +320,48 @@ export function ManageAddonsForm({
         <div className="sticky top-4">
           <div className="bg-white dark:bg-dark-800 rounded-lg shadow-lg p-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Resumo da compra
+              Confirmar compra
             </h3>
-            <div className="border-t border-gray-200 dark:border-dark-700 pt-4 mb-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-300">
-                  Total mensal
-                </span>
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {formatPrice(valorNovo)}
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={() => onSubmit(form)}
-              className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!recursosAlterados}
-            >
-              Seguir para pagamento
-            </button>
+            <div className="mb-4">{resumoCardSelecionado}</div>
+            {selectedCard === "addons" ? (
+              <button
+                onClick={() => onSubmit(form)}
+                className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!recursosAlterados}
+              >
+                Seguir para pagamento
+              </button>
+            ) : (
+              <button
+                onClick={async () => {
+                  if (!organization || !token || !oneTimeTriggers) return;
+                  setLoadingOneTime(true);
+                  try {
+                    const res =
+                      await subscriptionService.purchaseOneTimeTriggers(
+                        token,
+                        organization.id,
+                        {
+                          quantity: oneTimeTriggers,
+                        }
+                      );
+                    // Chama o onSubmit passando o link para abrir a modal de pagamento
+                    onSubmit &&
+                      onSubmit({ oneTimePaymentUrl: res.checkoutUrl });
+                  } catch (err) {
+                    alert(
+                      "Erro ao gerar link de pagamento para disparo único."
+                    );
+                  } finally {
+                    setLoadingOneTime(false);
+                  }
+                }}
+                className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!canBuyOneTime || loadingOneTime}
+              >
+                {loadingOneTime ? "Gerando link..." : "Comprar disparo único"}
+              </button>
+            )}
             <div className="bg-white dark:bg-dark-800 rounded-lg p-4 mt-4">
               <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
                 Visualize nossos termos

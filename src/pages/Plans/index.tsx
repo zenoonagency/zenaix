@@ -40,6 +40,10 @@ export function Plans() {
   });
   const [orgLoading, setOrgLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"planos" | "recursos">("planos");
+  const [isOneTimePayment, setIsOneTimePayment] = useState(false);
+  const [showConfirmAddonsModal, setShowConfirmAddonsModal] = useState(false);
+  const [pendingAddonsForm, setPendingAddonsForm] = useState(null);
+  const [loadingAddons, setLoadingAddons] = useState(false);
 
   const formatPrice = (value: number) => {
     return value.toLocaleString("pt-BR", {
@@ -154,9 +158,9 @@ export function Plans() {
 
   // Só mostra o botão se houver alteração
   const recursosAlterados =
-    orgForm.extraBoards > (organization?.extraBoards || 0) ||
-    orgForm.extraTeamMembers > (organization?.extraTeamMembers || 0) ||
-    orgForm.extraTriggers > (organization?.extraTriggers || 0);
+    orgForm.extraBoards > 0 ||
+    orgForm.extraTeamMembers > 0 ||
+    orgForm.extraTriggers > 0;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900">
@@ -213,138 +217,145 @@ export function Plans() {
           )}
 
           {/* Conteúdo das abas */}
-          {(!organization || activeTab === "planos") && (
-            <div className="flex flex-col lg:flex-row gap-6">
-              {/* Coluna da esquerda - Planos */}
-              <div className="w-full lg:w-2/3 space-y-3">
-                {basePlans.map((plan) => (
-                  <PlanCard
-                    key={plan.id}
-                    title={plan.name}
-                    description={plan.description}
-                    price={plan.price}
-                    billingPeriod={billingPeriod}
-                    features={[
-                      `Até ${plan.maxContacts} contatos`,
-                      "Disparo em massa padrão",
-                      "Suporte 24/7 por whatsapp",
-                      "Controle financeiro e contratual",
-                      "CRM avançado",
-                      `Até ${plan.maxBoards} Kanbans`,
-                      `Até ${plan.maxTriggers} Disparos por mês`,
-                    ]}
-                    isPopular={true}
-                    gradient={"from-purple-500 to-indigo-600"}
-                    baseUsers={plan.maxTeamMembers}
-                    isSelected={selectedPlan === plan.id}
-                    onClick={() => setSelectedPlan(plan.id)}
-                  />
-                ))}
-              </div>
+          <>
+            {(!organization || activeTab === "planos") && (
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Coluna da esquerda - Planos */}
+                <div className="w-full lg:w-2/3 space-y-3">
+                  {basePlans.map((plan) => (
+                    <PlanCard
+                      key={plan.id}
+                      title={plan.name}
+                      description={plan.description}
+                      price={plan.price}
+                      billingPeriod={billingPeriod}
+                      features={[
+                        `Até ${plan.maxContacts} contatos`,
+                        "Disparo em massa padrão",
+                        "Suporte 24/7 por whatsapp",
+                        "Controle financeiro e contratual",
+                        "CRM avançado",
+                        `Até ${plan.maxBoards} Kanbans`,
+                        `Até ${plan.maxTriggers} Disparos por mês`,
+                      ]}
+                      isPopular={true}
+                      gradient={"from-purple-500 to-indigo-600"}
+                      baseUsers={plan.maxTeamMembers}
+                      isSelected={selectedPlan === plan.id}
+                      onClick={() => setSelectedPlan(plan.id)}
+                    />
+                  ))}
+                </div>
 
-              {/* Coluna da direita - Licenças */}
-              <div className="w-full lg:w-1/3">
-                <div className="sticky top-4">
-                  <div className="bg-white dark:bg-dark-800 rounded-lg shadow-lg p-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                      Resumo do plano
-                    </h3>
+                {/* Coluna da direita - Licenças */}
+                <div className="w-full lg:w-1/3">
+                  <div className="sticky top-4">
+                    <div className="bg-white dark:bg-dark-800 rounded-lg shadow-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                        Resumo do plano
+                      </h3>
 
-                    {/* Seleção de Licenças - Substituído por texto informativo */}
-                    <div className="border-t border-gray-200 dark:border-dark-700 pt-4 mb-6">
-                      <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-3">
-                        Licenças
-                      </h4>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        1 licença incluída
-                        <br />
-                        Opção de licenças adicionais dentro do checkout
+                      {/* Seleção de Licenças - Substituído por texto informativo */}
+                      <div className="border-t border-gray-200 dark:border-dark-700 pt-4 mb-6">
+                        <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-3">
+                          Licenças
+                        </h4>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          1 licença incluída
+                          <br />
+                          Opção de licenças adicionais dentro do checkout
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Total */}
-                    <div className="border-t border-gray-200 dark:border-dark-700 pt-4 mb-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600 dark:text-gray-300">
-                          Total{" "}
-                          {billingPeriod === "monthly" ? "mensal" : "anual"}
-                        </span>
-                        <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {formatPrice(
-                            billingPeriod === "monthly"
-                              ? selectedPlanData?.price || 0
-                              : selectedPlanData?.pricePerYear || 0
-                          )}
-                        </span>
+                      {/* Total */}
+                      <div className="border-t border-gray-200 dark:border-dark-700 pt-4 mb-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
+                            Total{" "}
+                            {billingPeriod === "monthly" ? "mensal" : "anual"}
+                          </span>
+                          <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                            {formatPrice(
+                              billingPeriod === "monthly"
+                                ? selectedPlanData?.price || 0
+                                : selectedPlanData?.pricePerYear || 0
+                            )}
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Botão */}
-                    <button
-                      onClick={handlePayment}
-                      className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold hover:shadow-lg transition-all duration-200"
-                    >
-                      Seguir para pagamento
-                    </button>
+                      {/* Botão */}
+                      <button
+                        onClick={handlePayment}
+                        className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold hover:shadow-lg transition-all duration-200"
+                      >
+                        Seguir para pagamento
+                      </button>
 
-                    {/* Container dos Termos */}
-                    <div className="bg-white dark:bg-dark-800 rounded-lg p-4 mt-4">
-                      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-                        Visualize nossos termos
-                      </h4>
-                      <div className="space-y-2">
-                        <a
-                          href="#"
-                          className="block text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          Termos de uso
-                        </a>
-                        <a
-                          href="#"
-                          className="block text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          Termos de segurança
-                        </a>
-                        <a
-                          href="#"
-                          className="block text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          Termos gerais
-                        </a>
+                      {/* Container dos Termos */}
+                      <div className="bg-white dark:bg-dark-800 rounded-lg p-4 mt-4">
+                        <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                          Visualize nossos termos
+                        </h4>
+                        <div className="space-y-2">
+                          <a
+                            href="#"
+                            className="block text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Termos de uso
+                          </a>
+                          <a
+                            href="#"
+                            className="block text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Termos de segurança
+                          </a>
+                          <a
+                            href="#"
+                            className="block text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Termos gerais
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Aba de Recursos adicionais */}
-          {organization && activeTab === "recursos" && (
-            <ManageAddonsForm
-              organization={organization}
-              addOns={addOns}
-              memberAddOn={memberAddOn}
-              boardAddOn={boardAddOn}
-              triggerAddOn={triggerAddOn}
-              formatPrice={formatPrice}
-              onSubmit={(form) => {
-                // Aqui você pode chamar handlePayment ou lógica de checkout
-                setOrgForm((f) => ({ ...f, ...form }));
-                handlePayment();
-              }}
-            />
-          )}
+            {organization && activeTab === "recursos" && (
+              <ManageAddonsForm
+                organization={organization}
+                addOns={addOns}
+                memberAddOn={memberAddOn}
+                boardAddOn={boardAddOn}
+                triggerAddOn={triggerAddOn}
+                formatPrice={formatPrice}
+                onSubmit={(form) => {
+                  // Se for compra de disparo único, abrir modal direto com o link
+                  if (form && form.oneTimePaymentUrl) {
+                    setPaymentLink(form.oneTimePaymentUrl);
+                    setIsOneTimePayment(true);
+                    setShowPaymentModal(true);
+                    return;
+                  }
+                  // Caso padrão: recursos adicionais
+                  setPendingAddonsForm(form);
+                  setShowConfirmAddonsModal(true);
+                }}
+              />
+            )}
+          </>
         </div>
       </div>
 
-      {/* Modal de Pagamento */}
       <Modal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
@@ -352,90 +363,144 @@ export function Plans() {
       >
         <div className="w-full max-w-md mx-auto">
           <div className="bg-white dark:bg-dark-800 p-6 rounded-xl mb-6 shadow flex flex-col gap-2">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <p className="font-semibold text-gray-900 dark:text-white text-lg mb-1">
-                  {selectedPlanData?.name}
-                </p>
-                {/* Resumo dos adicionais em lista vertical com ícones */}
-                <div className="flex flex-col gap-1 mb-1">
-                  {orgForm.extraTeamMembers > 0 && (
-                    <span className="flex items-center text-xs text-gray-700 dark:text-gray-300 gap-1">
-                      <User
-                        size={14}
-                        className="text-purple-600 dark:text-purple-400"
-                      />
-                      +{orgForm.extraTeamMembers} membro
-                      {orgForm.extraTeamMembers > 1 ? "s" : ""}
-                    </span>
-                  )}
-                  {orgForm.extraBoards > 0 && (
-                    <span className="flex items-center text-xs text-gray-700 dark:text-gray-300 gap-1">
-                      <KanbanSquare
-                        size={14}
-                        className="text-purple-600 dark:text-purple-400"
-                      />
-                      +{orgForm.extraBoards} board
-                      {orgForm.extraBoards > 1 ? "s" : ""}
-                    </span>
-                  )}
-                  {orgForm.extraTriggers > 0 && (
-                    <span className="flex items-center text-xs text-gray-700 dark:text-gray-300 gap-1">
-                      <Zap
-                        size={14}
-                        className="text-purple-600 dark:text-purple-400"
-                      />
-                      +{orgForm.extraTriggers} disparo
-                      {orgForm.extraTriggers > 1 ? "s" : ""}
-                    </span>
-                  )}
+            {isOneTimePayment ? (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="font-semibold text-gray-900 dark:text-white text-lg mb-1">
+                      Compra de disparo único
+                    </p>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {/* O valor será mostrado no botão de compra, mas pode ser passado como prop se quiser exibir aqui também */}
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Período: {billingPeriod === "monthly" ? "Mensal" : "Anual"}
-                </p>
-              </div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                {formatPrice(
-                  (selectedPlanData?.price || 0) +
-                    orgForm.extraTeamMembers * (memberAddOn?.price || 0) +
-                    orgForm.extraBoards * (boardAddOn?.price || 0) +
-                    orgForm.extraTriggers * (triggerAddOn?.price || 0)
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="text-center space-y-6">
-            <div>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">
-                Escolha como deseja prosseguir com o pagamento:
-              </p>
-            </div>
-            {/* Botões de ação */}
-            <div className="space-y-4">
-              <button
-                onClick={() => window.open(paymentLink, "_blank")}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-base font-semibold"
-              >
-                <ExternalLink size={20} />
-                Abrir página de pagamento
-              </button>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(paymentLink);
-                  toast.success("Link copiado para a área de transferência!");
-                }}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-base"
-              >
-                <Copy size={20} />
-                Copiar link de pagamento
-              </button>
-            </div>
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Você será redirecionado para nossa página segura de pagamento no
-                Stripe
-              </p>
-            </div>
+                <div className="text-center space-y-6">
+                  <div>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4">
+                      Clique abaixo para finalizar a compra dos disparos únicos.
+                    </p>
+                  </div>
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => window.open(paymentLink, "_blank")}
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-base font-semibold"
+                    >
+                      <ExternalLink size={20} />
+                      Abrir página de pagamento
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(paymentLink);
+                        toast.success(
+                          "Link copiado para a área de transferência!"
+                        );
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-base"
+                    >
+                      <Copy size={20} />
+                      Copiar link de pagamento
+                    </button>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Você será redirecionado para nossa página segura de
+                      pagamento no Stripe
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="font-semibold text-gray-900 dark:text-white text-lg mb-1">
+                      {selectedPlanData?.name}
+                    </p>
+                    {/* Resumo dos adicionais em lista vertical com ícones */}
+                    <div className="flex flex-col gap-1 mb-1">
+                      {orgForm.extraTeamMembers > 0 && (
+                        <span className="flex items-center text-xs text-gray-700 dark:text-gray-300 gap-1">
+                          <User
+                            size={14}
+                            className="text-purple-600 dark:text-purple-400"
+                          />
+                          +{orgForm.extraTeamMembers} membro
+                          {orgForm.extraTeamMembers > 1 ? "s" : ""}
+                        </span>
+                      )}
+                      {orgForm.extraBoards > 0 && (
+                        <span className="flex items-center text-xs text-gray-700 dark:text-gray-300 gap-1">
+                          <KanbanSquare
+                            size={14}
+                            className="text-purple-600 dark:text-purple-400"
+                          />
+                          +{orgForm.extraBoards} board
+                          {orgForm.extraBoards > 1 ? "s" : ""}
+                        </span>
+                      )}
+                      {orgForm.extraTriggers > 0 && (
+                        <span className="flex items-center text-xs text-gray-700 dark:text-gray-300 gap-1">
+                          <Zap
+                            size={14}
+                            className="text-purple-600 dark:text-purple-400"
+                          />
+                          +{orgForm.extraTriggers} disparo
+                          {orgForm.extraTriggers > 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Período:{" "}
+                      {billingPeriod === "monthly" ? "Mensal" : "Anual"}
+                    </p>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {formatPrice(
+                      (selectedPlanData?.price || 0) +
+                        orgForm.extraTeamMembers * (memberAddOn?.price || 0) +
+                        orgForm.extraBoards * (boardAddOn?.price || 0) +
+                        orgForm.extraTriggers * (triggerAddOn?.price || 0)
+                    )}
+                  </div>
+                </div>
+                <div className="text-center space-y-6">
+                  <div>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4">
+                      Escolha como deseja prosseguir com o pagamento:
+                    </p>
+                  </div>
+                  {/* Botões de ação */}
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => window.open(paymentLink, "_blank")}
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-base font-semibold"
+                    >
+                      <ExternalLink size={20} />
+                      Abrir página de pagamento
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(paymentLink);
+                        toast.success(
+                          "Link copiado para a área de transferência!"
+                        );
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-base"
+                    >
+                      <Copy size={20} />
+                      Copiar link de pagamento
+                    </button>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Você será redirecionado para nossa página segura de
+                      pagamento no Stripe
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </Modal>
@@ -497,7 +562,7 @@ export function Plans() {
                       + {orgForm.extraTriggers}
                     </span>
                   )}{" "}
-                  disparos/mês
+                  disparos
                 </li>
                 <li>
                   <b>{selectedPlanData?.maxContacts ?? "-"}</b> contatos
@@ -637,6 +702,153 @@ export function Plans() {
           </div>
         </Modal>
       )}
+      {/* Modal de confirmação de compra de recursos adicionais */}
+      <Modal
+        isOpen={showConfirmAddonsModal}
+        onClose={() => setShowConfirmAddonsModal(false)}
+        title="Confirmar compra de recursos adicionais"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700 dark:text-gray-200">
+            Você confirma a compra de:
+          </p>
+          <ul className="text-base text-gray-700 dark:text-gray-300 space-y-1 font-medium">
+            {pendingAddonsForm?.extraTeamMembers > 0 && (
+              <li>
+                <span className="text-purple-600 dark:text-purple-400 font-bold">
+                  +{pendingAddonsForm.extraTeamMembers}
+                </span>{" "}
+                membros
+              </li>
+            )}
+            {pendingAddonsForm?.extraBoards > 0 && (
+              <li>
+                <span className="text-purple-600 dark:text-purple-400 font-bold">
+                  +{pendingAddonsForm.extraBoards}
+                </span>{" "}
+                boards
+              </li>
+            )}
+            {pendingAddonsForm?.extraTriggers > 0 && (
+              <li>
+                <span className="text-purple-600 dark:text-purple-400 font-bold">
+                  +{pendingAddonsForm.extraTriggers}
+                </span>{" "}
+                disparos/mês
+              </li>
+            )}
+          </ul>
+          {/* Cálculo dos valores total atual e novo total */}
+          {(() => {
+            // Valor total atual
+            const valorAtual = (() => {
+              if (!organization || !addOns) return 0;
+              const basePrice = organization?.plan?.price || 0;
+              const boardAddOnPrice =
+                addOns.find((p) => p.name.includes("Board"))?.price || 0;
+              const memberAddOnPrice =
+                addOns.find((p) => p.name.includes("Membro"))?.price || 0;
+              const triggerAddOnPrice =
+                addOns.find((p) => p.name.includes("Disparo"))?.price || 0;
+              const extraBoardsCost =
+                (organization.extraBoards || 0) * boardAddOnPrice;
+              const extraMembersCost =
+                (organization.extraTeamMembers || 0) * memberAddOnPrice;
+              const extraTriggersCost =
+                (organization.extraTriggers || 0) * triggerAddOnPrice;
+              return (
+                basePrice +
+                extraBoardsCost +
+                extraMembersCost +
+                extraTriggersCost
+              );
+            })();
+            // Novo valor total após alteração (adicionais já existentes + adicionais do input)
+            const valorNovoTotal =
+              (organization?.plan?.price || 0) +
+              (memberAddOn?.price || 0) *
+                ((organization?.extraTeamMembers || 0) +
+                  (pendingAddonsForm?.extraTeamMembers || 0)) +
+              (boardAddOn?.price || 0) *
+                ((organization?.extraBoards || 0) +
+                  (pendingAddonsForm?.extraBoards || 0)) +
+              (triggerAddOn?.price || 0) *
+                ((organization?.extraTriggers || 0) +
+                  (pendingAddonsForm?.extraTriggers || 0));
+            return (
+              <div className="flex flex-col gap-1 mt-4">
+                <span className="text-gray-500 line-through text-base">
+                  Valor atual: {formatPrice(valorAtual)}
+                </span>
+                <span className="text-lg font-bold text-purple-700 dark:text-purple-300">
+                  Novo valor total: {formatPrice(valorNovoTotal)}
+                </span>
+              </div>
+            );
+          })()}
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              onClick={() => setShowConfirmAddonsModal(false)}
+              className="px-4 py-2 rounded bg-gray-200 dark:bg-dark-700 text-gray-800 dark:text-gray-200"
+              disabled={loadingAddons}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={async () => {
+                if (!organization || !token || !pendingAddonsForm) return;
+                setLoadingAddons(true);
+                try {
+                  // Para cada recurso adicional comprado, chama a service separadamente
+                  const promises = [];
+                  if (pendingAddonsForm.extraBoards > 0) {
+                    promises.push(
+                      subscriptionService.addSlots(token, organization.id, {
+                        slotType: "board",
+                        quantity: pendingAddonsForm.extraBoards,
+                      })
+                    );
+                  }
+                  if (pendingAddonsForm.extraTeamMembers > 0) {
+                    promises.push(
+                      subscriptionService.addSlots(token, organization.id, {
+                        slotType: "member",
+                        quantity: pendingAddonsForm.extraTeamMembers,
+                      })
+                    );
+                  }
+                  if (pendingAddonsForm.extraTriggers > 0) {
+                    promises.push(
+                      subscriptionService.addSlots(token, organization.id, {
+                        slotType: "trigger",
+                        quantity: pendingAddonsForm.extraTriggers,
+                      })
+                    );
+                  }
+                  await Promise.all(promises);
+                  toast.success("Recursos adicionais comprados com sucesso!");
+                  setShowConfirmAddonsModal(false);
+                } catch (err) {
+                  toast.error("Erro ao comprar recursos adicionais.");
+                } finally {
+                  setLoadingAddons(false);
+                }
+              }}
+              className="px-4 py-2 rounded bg-purple-600 text-white disabled:opacity-50"
+              disabled={
+                loadingAddons ||
+                !(
+                  pendingAddonsForm?.extraBoards > 0 ||
+                  pendingAddonsForm?.extraTeamMembers > 0 ||
+                  pendingAddonsForm?.extraTriggers > 0
+                )
+              }
+            >
+              {loadingAddons ? "Confirmando..." : "Confirmar compra"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
