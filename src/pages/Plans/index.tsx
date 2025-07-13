@@ -22,7 +22,10 @@ export function Plans() {
   const { token, organization, fetchAndSyncUser } = useAuthStore();
   const { basePlans, addOns, isLoading } = usePlanStore();
   const [error, setError] = useState<string | null>(null);
-  const [selectedPlan, setSelectedPlan] = useState(basePlans[0].id || null);
+  const [selectedPlan, setSelectedPlan] = useState(() => {
+    if (organization?.plan?.id) return organization.plan.id;
+    return basePlans[0]?.id || null;
+  });
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
     "monthly"
   );
@@ -224,29 +227,37 @@ export function Plans() {
               <div className="flex flex-col lg:flex-row gap-6">
                 {/* Coluna da esquerda - Planos */}
                 <div className="w-full lg:w-2/3 space-y-3">
-                  {basePlans.map((plan) => (
-                    <PlanCard
-                      key={plan.id}
-                      title={plan.name}
-                      description={plan.description}
-                      price={plan.price}
-                      billingPeriod={billingPeriod}
-                      features={[
-                        `Até ${plan.maxContacts} contatos`,
-                        "Disparo em massa padrão",
-                        "Suporte 24/7 por whatsapp",
-                        "Controle financeiro e contratual",
-                        "CRM avançado",
-                        `Até ${plan.maxBoards} Kanbans`,
-                        `Até ${plan.maxTriggers} Disparos por mês`,
-                      ]}
-                      isPopular={true}
-                      gradient={"from-purple-500 to-indigo-600"}
-                      baseUsers={plan.maxTeamMembers}
-                      isSelected={selectedPlan === plan.id}
-                      onClick={() => setSelectedPlan(plan.id)}
-                    />
-                  ))}
+                  {basePlans.map((plan) => {
+                    const isCurrentPlan = organization?.plan?.id === plan.id;
+                    return (
+                      <PlanCard
+                        key={plan.id}
+                        title={plan.name}
+                        description={plan.description}
+                        price={plan.price}
+                        billingPeriod={billingPeriod}
+                        features={[
+                          `Até ${plan.maxContacts} contatos`,
+                          "Disparo em massa padrão",
+                          "Suporte 24/7 por whatsapp",
+                          "Controle financeiro e contratual",
+                          "CRM avançado",
+                          `Até ${plan.maxBoards} Kanbans`,
+                          `Até ${plan.maxTriggers} Disparos por mês`,
+                        ]}
+                        isPopular={true}
+                        gradient={"from-purple-500 to-indigo-600"}
+                        baseUsers={plan.maxTeamMembers}
+                        isSelected={selectedPlan === plan.id}
+                        onClick={() => {
+                          if (!isCurrentPlan) setSelectedPlan(plan.id);
+                        }}
+                        className={
+                          isCurrentPlan ? "opacity-50 pointer-events-none" : ""
+                        }
+                      />
+                    );
+                  })}
                 </div>
 
                 {/* Coluna da direita - Licenças */}
@@ -290,6 +301,11 @@ export function Plans() {
                       <button
                         onClick={handlePayment}
                         className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold hover:shadow-lg transition-all duration-200"
+                        disabled={organization?.plan?.id === selectedPlan}
+                        style={{
+                          opacity:
+                            organization?.plan?.id === selectedPlan ? 0.5 : 1,
+                        }}
                       >
                         Seguir para pagamento
                       </button>
