@@ -1,6 +1,7 @@
 import { LoginData, RegisterData, AuthSuccessPayload } from "../types/auth";
 import { API_CONFIG } from "../config/api.config";
 import { APIError } from "./errors/api.errors";
+import { formatApiError } from "../utils/formatters";
 
 export const authService = {
   async login(data: LoginData): Promise<AuthSuccessPayload> {
@@ -51,7 +52,7 @@ export const authService = {
 
       if (!response.ok) {
         throw new APIError(
-          responseData.message || "Erro ao registar utilizador."
+          formatApiError(responseData, "Erro ao registar utilizador.")
         );
       }
 

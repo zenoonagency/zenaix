@@ -1,3 +1,6 @@
+import { ErrorApiResponse } from "../types/api.types";
+import { ApiResponse } from "../types/plan";
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -16,4 +19,34 @@ export function formatPhoneNumber(phone: string): string {
     return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
   }
   return phone;
+}
+
+export function formatApiError(
+  errorData: ErrorApiResponse,
+  fallback = "Ocorreu um erro."
+) {
+  let errorMessage = errorData.message || fallback;
+
+  if (errorData.errors && typeof errorData.errors === "object") {
+    const details = Object.entries(errorData.errors)
+      .map(
+        ([field, messages]) =>
+          `${formatFieldName(field)}: ${messages.join(", ")}`
+      )
+      .join(" | ");
+
+    errorMessage += ` (${details})`;
+  }
+
+  return errorMessage;
+}
+
+function formatFieldName(field: string): string {
+  const map: Record<string, string> = {
+    email: "E-mail",
+    password: "Senha",
+    name: "Nome",
+  };
+
+  return map[field] || field.charAt(0).toUpperCase() + field.slice(1);
 }
