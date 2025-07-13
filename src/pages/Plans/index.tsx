@@ -16,6 +16,7 @@ import { InputCreateOrgAndSubscribeDTO } from "../../types/organization";
 import { usePlanStore } from "../../store/planStore";
 import { subscriptionService } from "../../services/subscription/subscription.service";
 import { InputCreateSubscriptionDTO } from "../../types/subscription";
+import { ManageAddonsForm } from "./components/ManageAddonsForm";
 
 export function Plans() {
   const token = useAuthStore((state) => state.token);
@@ -31,13 +32,14 @@ export function Plans() {
 
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [orgForm, setOrgForm] = useState({
-    name: "",
-    document: "",
-    extraTeamMembers: 0,
-    extraBoards: 0,
-    extraTriggers: 0,
+    name: organization?.name || "",
+    document: organization?.document || "",
+    extraTeamMembers: organization?.extraTeamMembers || 0,
+    extraBoards: organization?.extraBoards || 0,
+    extraTriggers: organization?.extraTriggers || 0,
   });
   const [orgLoading, setOrgLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"planos" | "recursos">("planos");
 
   const formatPrice = (value: number) => {
     return value.toLocaleString("pt-BR", {
@@ -126,6 +128,36 @@ export function Plans() {
     return <div>Erro: {error}</div>;
   }
 
+  // Valor atual já pago (igual ao Settings)
+  const valorAtual = (() => {
+    if (!organization || !addOns) return 0;
+    const basePrice = organization?.plan?.price || 0;
+    const boardAddOnPrice =
+      addOns.find((p) => p.name.includes("Board"))?.price || 0;
+    const memberAddOnPrice =
+      addOns.find((p) => p.name.includes("Membro"))?.price || 0;
+    const triggerAddOnPrice =
+      addOns.find((p) => p.name.includes("Disparo"))?.price || 0;
+    const extraBoardsCost = (organization.extraBoards || 0) * boardAddOnPrice;
+    const extraMembersCost =
+      (organization.extraTeamMembers || 0) * memberAddOnPrice;
+    const extraTriggersCost =
+      (organization.extraTriggers || 0) * triggerAddOnPrice;
+    return basePrice + extraBoardsCost + extraMembersCost + extraTriggersCost;
+  })();
+  // Valor novo
+  const valorNovo =
+    (memberAddOn?.price || 0) * orgForm.extraTeamMembers +
+    (boardAddOn?.price || 0) * orgForm.extraBoards +
+    (triggerAddOn?.price || 0) * orgForm.extraTriggers +
+    (organization?.plan?.price || 0);
+
+  // Só mostra o botão se houver alteração
+  const recursosAlterados =
+    orgForm.extraBoards > (organization?.extraBoards || 0) ||
+    orgForm.extraTeamMembers > (organization?.extraTeamMembers || 0) ||
+    orgForm.extraTriggers > (organization?.extraTriggers || 0);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900">
       <div className="px-4 py-4 border-b border-gray-200 dark:border-dark-700">
@@ -154,114 +186,161 @@ export function Plans() {
             </div>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Coluna da esquerda - Planos */}
-            <div className="w-full lg:w-2/3 space-y-3">
-              {basePlans.map((plan) => (
-                <PlanCard
-                  key={plan.id}
-                  title={plan.name}
-                  description={plan.description}
-                  price={plan.price}
-                  billingPeriod={billingPeriod}
-                  features={[
-                    `Até ${plan.maxContacts} contatos`,
-                    "Disparo em massa padrão",
-                    "Suporte 24/7 por whatsapp",
-                    "Controle financeiro e contratual",
-                    "CRM avançado",
-                    `Até ${plan.maxBoards} Kanbans`,
-                    `Até ${plan.maxTriggers} Disparos por mês`,
-                  ]}
-                  isPopular={true}
-                  gradient={"from-purple-500 to-indigo-600"}
-                  baseUsers={plan.maxTeamMembers}
-                  isSelected={selectedPlan === plan.id}
-                  onClick={() => setSelectedPlan(plan.id)}
-                />
-              ))}
+          {/* Tabs de Planos e Recursos adicionais */}
+          {organization && (
+            <div className="flex gap-2 mb-8">
+              <button
+                className={`px-6 py-2 rounded-t-lg font-semibold text-base border-b-2 transition-colors ${
+                  activeTab === "planos"
+                    ? "border-[#7f00ff] text-[#7f00ff] bg-white"
+                    : "border-transparent text-gray-500 bg-gray-100 hover:text-[#7f00ff]"
+                }`}
+                onClick={() => setActiveTab("planos")}
+              >
+                Planos
+              </button>
+              <button
+                className={`px-6 py-2 rounded-t-lg font-semibold text-base border-b-2 transition-colors ${
+                  activeTab === "recursos"
+                    ? "border-[#7f00ff] text-[#7f00ff] bg-white"
+                    : "border-transparent text-gray-500 bg-gray-100 hover:text-[#7f00ff]"
+                }`}
+                onClick={() => setActiveTab("recursos")}
+              >
+                Recursos adicionais
+              </button>
             </div>
+          )}
 
-            {/* Coluna da direita - Licenças */}
-            <div className="w-full lg:w-1/3">
-              <div className="sticky top-4">
-                <div className="bg-white dark:bg-dark-800 rounded-lg shadow-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Resumo do plano
-                  </h3>
+          {/* Conteúdo das abas */}
+          {(!organization || activeTab === "planos") && (
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Coluna da esquerda - Planos */}
+              <div className="w-full lg:w-2/3 space-y-3">
+                {basePlans.map((plan) => (
+                  <PlanCard
+                    key={plan.id}
+                    title={plan.name}
+                    description={plan.description}
+                    price={plan.price}
+                    billingPeriod={billingPeriod}
+                    features={[
+                      `Até ${plan.maxContacts} contatos`,
+                      "Disparo em massa padrão",
+                      "Suporte 24/7 por whatsapp",
+                      "Controle financeiro e contratual",
+                      "CRM avançado",
+                      `Até ${plan.maxBoards} Kanbans`,
+                      `Até ${plan.maxTriggers} Disparos por mês`,
+                    ]}
+                    isPopular={true}
+                    gradient={"from-purple-500 to-indigo-600"}
+                    baseUsers={plan.maxTeamMembers}
+                    isSelected={selectedPlan === plan.id}
+                    onClick={() => setSelectedPlan(plan.id)}
+                  />
+                ))}
+              </div>
 
-                  {/* Seleção de Licenças - Substituído por texto informativo */}
-                  <div className="border-t border-gray-200 dark:border-dark-700 pt-4 mb-6">
-                    <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-3">
-                      Licenças
-                    </h4>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      1 licença incluída
-                      <br />
-                      Opção de licenças adicionais dentro do checkout
+              {/* Coluna da direita - Licenças */}
+              <div className="w-full lg:w-1/3">
+                <div className="sticky top-4">
+                  <div className="bg-white dark:bg-dark-800 rounded-lg shadow-lg p-4">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                      Resumo do plano
+                    </h3>
+
+                    {/* Seleção de Licenças - Substituído por texto informativo */}
+                    <div className="border-t border-gray-200 dark:border-dark-700 pt-4 mb-6">
+                      <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-3">
+                        Licenças
+                      </h4>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        1 licença incluída
+                        <br />
+                        Opção de licenças adicionais dentro do checkout
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Total */}
-                  <div className="border-t border-gray-200 dark:border-dark-700 pt-4 mb-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-300">
-                        Total {billingPeriod === "monthly" ? "mensal" : "anual"}
-                      </span>
-                      <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {formatPrice(
-                          billingPeriod === "monthly"
-                            ? selectedPlanData?.price || 0
-                            : selectedPlanData?.pricePerYear || 0
-                        )}
-                      </span>
+                    {/* Total */}
+                    <div className="border-t border-gray-200 dark:border-dark-700 pt-4 mb-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600 dark:text-gray-300">
+                          Total{" "}
+                          {billingPeriod === "monthly" ? "mensal" : "anual"}
+                        </span>
+                        <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {formatPrice(
+                            billingPeriod === "monthly"
+                              ? selectedPlanData?.price || 0
+                              : selectedPlanData?.pricePerYear || 0
+                          )}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Botão */}
-                  <button
-                    onClick={handlePayment}
-                    className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold hover:shadow-lg transition-all duration-200"
-                  >
-                    Seguir para pagamento
-                  </button>
+                    {/* Botão */}
+                    <button
+                      onClick={handlePayment}
+                      className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold hover:shadow-lg transition-all duration-200"
+                    >
+                      Seguir para pagamento
+                    </button>
 
-                  {/* Container dos Termos */}
-                  <div className="bg-white dark:bg-dark-800 rounded-lg p-4 mt-4">
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-                      Visualize nossos termos
-                    </h4>
-                    <div className="space-y-2">
-                      <a
-                        href="#"
-                        className="block text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Termos de uso
-                      </a>
-                      <a
-                        href="#"
-                        className="block text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Termos de segurança
-                      </a>
-                      <a
-                        href="#"
-                        className="block text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Termos gerais
-                      </a>
+                    {/* Container dos Termos */}
+                    <div className="bg-white dark:bg-dark-800 rounded-lg p-4 mt-4">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                        Visualize nossos termos
+                      </h4>
+                      <div className="space-y-2">
+                        <a
+                          href="#"
+                          className="block text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Termos de uso
+                        </a>
+                        <a
+                          href="#"
+                          className="block text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Termos de segurança
+                        </a>
+                        <a
+                          href="#"
+                          className="block text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Termos gerais
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Aba de Recursos adicionais */}
+          {organization && activeTab === "recursos" && (
+            <ManageAddonsForm
+              organization={organization}
+              addOns={addOns}
+              memberAddOn={memberAddOn}
+              boardAddOn={boardAddOn}
+              triggerAddOn={triggerAddOn}
+              formatPrice={formatPrice}
+              onSubmit={(form) => {
+                // Aqui você pode chamar handlePayment ou lógica de checkout
+                setOrgForm((f) => ({ ...f, ...form }));
+                handlePayment();
+              }}
+            />
+          )}
         </div>
       </div>
 
@@ -445,8 +524,8 @@ export function Plans() {
                 <input
                   type="text"
                   required
-                  disabled={organization.name && true}
-                  value={organization.name || orgForm.name}
+                  disabled={organization && organization.name.length > 0}
+                  value={organization ? organization.name : orgForm.name}
                   onChange={(e) =>
                     setOrgForm((f) => ({ ...f, name: e.target.value }))
                   }
@@ -460,8 +539,10 @@ export function Plans() {
                 <input
                   type="text"
                   required
-                  disabled={organization.document && true}
-                  value={organization.document || orgForm.document}
+                  disabled={organization && organization.document.length > 0}
+                  value={
+                    organization ? organization.document : orgForm.document
+                  }
                   onChange={(e) =>
                     setOrgForm((f) => ({ ...f, document: e.target.value }))
                   }
