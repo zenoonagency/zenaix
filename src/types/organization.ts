@@ -30,8 +30,8 @@ export interface OrganizationOutput {
   extraBoards: number;
   extraTeamMembers: number;
   extraTriggers: number;
-  triggersUsedThisMonth: number;
   oneTimeTriggers: number;
+  triggersUsedThisMonth: number;
   subscriptionEndsAt: string | null;
   createdAt: string;
   updatedAt: string;

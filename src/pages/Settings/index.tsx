@@ -15,6 +15,7 @@ import { toast } from "react-toastify";
 import { PerformanceTab } from "./PerformanceTab";
 import { ProfileTab } from "./ProfileTab";
 import { SubscriptionTab } from "./SubscriptionTab";
+import { useAuthStore } from "../../store/authStore";
 
 export function Settings() {
   const { ai, asaas, openai, updateAI, updateAsaas, updateOpenAI } =
@@ -23,6 +24,9 @@ export function Settings() {
   const [activeTab, setActiveTab] = useState<
     "general" | "performance" | "profile" | "subscription"
   >("general");
+
+  const { user, organization } = useAuthStore();
+  const isMaster = organization?.masterUserId === user?.id;
 
   const handleSave = () => {
     toast.success("Configurações salvas com sucesso!");
@@ -61,16 +65,18 @@ export function Settings() {
           >
             Perfil
           </button>
-          <button
-            className={`px-4 py-2 text-sm font-medium ${
-              activeTab === "subscription"
-                ? "text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            }`}
-            onClick={() => setActiveTab("subscription")}
-          >
-            Assinatura
-          </button>
+          {isMaster && (
+            <button
+              className={`px-4 py-2 text-sm font-medium ${
+                activeTab === "subscription"
+                  ? "text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              }`}
+              onClick={() => setActiveTab("subscription")}
+            >
+              Assinatura
+            </button>
+          )}
           <button
             className={`px-4 py-2 text-sm font-medium ${
               activeTab === "performance"
@@ -385,7 +391,9 @@ export function Settings() {
           <ProfileTab />
         </div>
       ) : activeTab === "subscription" ? (
-        <SubscriptionTab />
+        isMaster ? (
+          <SubscriptionTab />
+        ) : null
       ) : (
         /* Aba de Diagnóstico de Desempenho */
         <PerformanceTab />
