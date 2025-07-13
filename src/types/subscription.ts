@@ -23,7 +23,6 @@ export interface InputRemoveSlotsDTO {
 
 export interface InputPurchaseOneTimeTriggersDTO {
   quantity: number;
-  paymentMethodId: string;
 }
 
 export interface CreateSessionResponse {

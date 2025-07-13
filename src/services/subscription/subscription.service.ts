@@ -196,7 +196,7 @@ export const subscriptionService = {
     token: string,
     organizationId: string,
     data: InputPurchaseOneTimeTriggersDTO
-  ): Promise<void> {
+  ): Promise<CreateSessionResponse> {
     try {
       const url = `${
         API_CONFIG.baseUrl
@@ -210,6 +210,9 @@ export const subscriptionService = {
         const errorData = await response.json().catch(() => null);
         throw new APIError(errorData?.message || "Falha ao comprar disparos.");
       }
+
+      const responseData = await response.json();
+      return responseData.data;
     } catch (error) {
       console.error("Erro ao comprar disparos:", error);
       if (error instanceof APIError) throw error;

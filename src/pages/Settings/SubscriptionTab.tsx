@@ -9,15 +9,18 @@ import { InputCreateSubscriptionDTO } from "../../types/subscription";
 import { formatDateTimeGeneral } from "../../utils/dateUtils";
 import { formatMessageTime } from "../../utils/dateUtils";
 import { Modal } from "../../components/Modal";
+import { ManageResourcesForm } from "../../components/ManageResourcesForm";
 
 export function SubscriptionTab() {
   const { organization, token, fetchAndSyncUser } = useAuthStore();
   const plan = organization?.plan;
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittingManage, setIsSubmittingManage] = useState(false);
+  const [isSubmittingAddons, setIsSubmittingAddons] = useState(false);
   const { addOns, isLoading } = usePlanStore();
   const [checkoutUrl, setCheckoutUrl] = useState("");
   const [showManageModal, setShowManageModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showAddonsModal, setShowAddonsModal] = useState(false);
   const navigate = useNavigate();
 
   const totalMonthlyCost = useMemo(() => {
@@ -43,7 +46,7 @@ export function SubscriptionTab() {
 
   const handleCancel = async () => {
     if (!token || !organization?.id) return;
-    setIsSubmitting(true);
+    setIsSubmittingManage(true);
     try {
       await subscriptionService.cancel(token, organization.id);
       await fetchAndSyncUser();
@@ -54,13 +57,13 @@ export function SubscriptionTab() {
         error instanceof Error ? error.message : "Erro ao cancelar assinatura.";
       toast.error(message);
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingManage(false);
     }
   };
 
   const handleReactivate = async () => {
     if (!token || !organization?.id) return;
-    setIsSubmitting(true);
+    setIsSubmittingManage(true);
     try {
       await subscriptionService.reactivate(token, organization.id);
 
@@ -70,14 +73,14 @@ export function SubscriptionTab() {
         error instanceof Error ? error.message : "Erro ao reativar assinatura.";
       toast.error(message);
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingManage(false);
       toast.success("Assinatura reativada com sucesso!");
     }
   };
 
   const handleManage = async () => {
     if (!token || !organization?.id) return;
-    setIsSubmitting(true);
+    setIsSubmittingManage(true);
     try {
       const data = await subscriptionService.managePlan(token, organization.id);
       setCheckoutUrl(data.portalUrl);
@@ -89,8 +92,14 @@ export function SubscriptionTab() {
           : "Erro ao gerenciar assinatura.";
       toast.error(message);
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingManage(false);
     }
+  };
+
+  const handleManageAddons = async () => {
+    setIsSubmittingAddons(true);
+    setShowAddonsModal(true);
+    setTimeout(() => setIsSubmittingAddons(false), 300); // garante loading visual rápido
   };
 
   const renderManagementButton = () => {
@@ -104,10 +113,10 @@ export function SubscriptionTab() {
             <>
               <button
                 onClick={handleReactivate}
-                disabled={isSubmitting}
+                disabled={isSubmittingManage}
                 className="w-full mt-4 px-4 py-2 mb-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center"
               >
-                {isSubmitting ? (
+                {isSubmittingManage ? (
                   <Loader2 className="animate-spin mr-2" />
                 ) : null}
                 Reativar Assinatura
@@ -122,21 +131,28 @@ export function SubscriptionTab() {
         }
         return (
           <>
-            <button
-              onClick={handleManage}
-              disabled={isSubmitting}
-              className="w-full my-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center"
-            >
-              {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : null}
-              Gerenciar Assinatura e Pagamento
-            </button>
-
-            <button
-              onClick={() => setShowCancelModal(true)}
-              className="w-full px-4 py-2 cursor-pointer text-red-600 rounded-lg hover:text-red-700 hover:underline disabled:opacity-50 flex items-center justify-center"
-            >
-              Cancelar Assinatura
-            </button>
+            <div className="flex flex-row gap-4 mb-4">
+              <button
+                onClick={handleManage}
+                disabled={isSubmittingManage}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center"
+              >
+                {isSubmittingManage ? (
+                  <Loader2 className="animate-spin mr-2" />
+                ) : null}
+                Gerenciar Assinatura e Pagamento
+              </button>
+              <button
+                onClick={handleManageAddons}
+                disabled={isSubmittingAddons}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center"
+              >
+                {isSubmittingAddons ? (
+                  <Loader2 className="animate-spin mr-2" />
+                ) : null}
+                Gerenciar Recursos adicionais
+              </button>
+            </div>
           </>
         );
       case "PAST_DUE":
@@ -144,10 +160,12 @@ export function SubscriptionTab() {
         return (
           <button
             onClick={handleManage}
-            disabled={isSubmitting}
+            disabled={isSubmittingManage}
             className="w-full mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center"
           >
-            {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : null}
+            {isSubmittingManage ? (
+              <Loader2 className="animate-spin mr-2" />
+            ) : null}
             Gerenciar Assinatura e Pagamento
           </button>
         );
@@ -200,7 +218,14 @@ export function SubscriptionTab() {
     );
   }
   return (
-    <div className="max-w-2xl mx-auto mt-8">
+    <div className="max-w-2xl mx-auto mt-8 mb-8">
+      {/* Título de seção: Assinatura ativa */}
+      {(organization?.subscriptionStatus === "ACTIVE" ||
+        organization?.subscriptionStatus === "TRIALING") && (
+        <h2 className="text-2xl font-bold text-[#7f00ff] mb-6">
+          Assinatura ativa
+        </h2>
+      )}
       <div className="border-2 border-purple-400 rounded-2xl p-8 bg-white dark:bg-dark-800 shadow-md">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-2xl font-bold text-[#7f00ff]">
@@ -260,7 +285,7 @@ export function SubscriptionTab() {
             CRM avançado
           </li>
         </ul>
-        <div className="flex flex-wrap gap-4 mt-2 text-sm">
+        <div className="flex flex-wrap gap-4 my-3 text-sm">
           <span>
             Quadros Kanban adicionais: <b>{organization?.extraBoards}</b>
           </span>
@@ -283,6 +308,48 @@ export function SubscriptionTab() {
           {renderManagementButton()}
         </div>
       </div>
+      {/* Seção de cancelamento, só aparece se assinatura ativa ou trialing */}
+      {(organization?.subscriptionStatus === "ACTIVE" ||
+        organization?.subscriptionStatus === "TRIALING") && (
+        <div className="border-t border-gray-200 mt-8 pt-6 max-w-2xl mx-auto">
+          <h3 className="text-xl font-bold text-[#7f00ff] mb-4">
+            Cancelamento de assinatura
+          </h3>
+          <div className="text-left text-gray-700 dark:text-gray-300 space-y-3">
+            <p>
+              Ao cancelar sua assinatura, você terá até <b>30 dias</b> para
+              reativá-la sem perder seus dados e configurações. Após esse
+              período, sua assinatura será encerrada definitivamente e será
+              necessário contratar um novo plano para continuar utilizando a
+              plataforma.
+            </p>
+            <p>
+              Essa política segue as regras do Stripe, nosso processador de
+              pagamentos. Para mais informações, consulte nossos
+              <a
+                href="/termos"
+                className="text-[#7f00ff] underline font-medium hover:text-purple-800 transition-colors mx-1"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Termos de Uso
+              </a>
+              .
+            </p>
+            <p className="mt-4">
+              Se mesmo assim você quiser solicitar o cancelamento,{" "}
+              <button
+                onClick={() => setShowCancelModal(true)}
+                className="text-red-600 underline hover:text-red-800 font-normal px-0 py-0 bg-transparent border-none inline"
+                style={{ textDecorationThickness: 1 }}
+              >
+                clique aqui
+              </button>
+              .
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Gerenciamento */}
       <Modal
@@ -319,7 +386,22 @@ export function SubscriptionTab() {
         </div>
       </Modal>
 
-      {/* Modal de Confirmação de Cancelamento */}
+      <Modal
+        isOpen={showAddonsModal}
+        onClose={() => setShowAddonsModal(false)}
+        title="Gerenciar Recursos"
+        size="medium"
+      >
+        <ManageResourcesForm
+          plan={plan}
+          organization={organization}
+          addOns={addOns}
+          valorAtual={totalMonthlyCost}
+          onClose={() => setShowAddonsModal(false)}
+          fetchAndSyncUser={fetchAndSyncUser}
+        />
+      </Modal>
+
       <Modal
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
@@ -339,10 +421,12 @@ export function SubscriptionTab() {
             </button>
             <button
               onClick={handleCancel}
-              disabled={isSubmitting}
+              disabled={isSubmittingManage}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center"
             >
-              {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : null}
+              {isSubmittingManage ? (
+                <Loader2 className="animate-spin mr-2" />
+              ) : null}
               Confirmar Cancelamento
             </button>
           </div>
