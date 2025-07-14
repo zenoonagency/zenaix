@@ -17,6 +17,7 @@ export interface User {
   avatarUrl?: string;
   plan?: string;
   phoneNumber?: string;
+  permissions: string[];
 }
 
 export interface RegisterData {
@@ -37,6 +38,7 @@ export interface LoginData {
 export interface AuthSuccessPayload {
   user: User;
   organization: OrganizationOutput | null;
+  permissions: string[];
   token: string;
 }
 
@@ -45,12 +47,14 @@ export interface AuthState {
   user: User | null;
   token: string | null;
   organization: OrganizationOutput | null;
+  permissions: string[];
   _hasHydrated: boolean;
   realtimeChannel: RealtimeChannel | null;
   isSyncingUser: boolean;
 
   connectToRealtime: () => void;
   disconnectFromRealtime: () => void;
+  hasPermission: (permission: string) => boolean;
   login: (payload: AuthSuccessPayload) => void;
   logout: () => void;
   setToken: (token: string) => void;

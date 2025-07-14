@@ -5,6 +5,7 @@ import { OrganizationOutput } from "../types/organization";
 import { createWithEqualityFn } from "zustand/traditional";
 import { createClient } from "@supabase/supabase-js";
 import { API_CONFIG } from "../config/api.config";
+import { Permission } from "../config/permissions";
 
 const supabase = createClient(
   API_CONFIG.supabaseUrl,
@@ -18,6 +19,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
       user: null,
       token: null,
       organization: null,
+      permissions: null,
       realtimeChannel: null,
       _hasHydrated: false,
       isSyncingUser: false,
@@ -67,12 +69,18 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         }
       },
 
+      hasPermission: (permission: Permission): boolean => {
+        const { permissions } = get();
+        return permissions.includes(permission);
+      },
+
       login: (payload: AuthSuccessPayload) => {
         get().disconnectFromRealtime();
         set({
           isAuthenticated: true,
           user: payload.user,
           token: payload.token,
+          permissions: payload.permissions || [],
           organization: payload.user.organization || null,
         });
         get().connectToRealtime();
@@ -89,6 +97,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           user: null,
           token: null,
           organization: null,
+          permissions: [],
         });
       },
 
@@ -102,6 +111,9 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           set({
             user: newUser,
             organization: newUser.organization || get().organization,
+            permissions: Array.isArray(newUser.permissions)
+              ? newUser.permissions
+              : get().permissions,
           });
         }
       },
@@ -118,7 +130,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           return;
         }
 
-        // Se já está sincronizando, não faz nada
         if (isSyncingUser) return;
         set({ isSyncingUser: true });
         try {
@@ -157,6 +168,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           user: userForStorage,
           token: state.token,
           organization: state.organization,
+          permissions: state.permissions,
         };
       },
       onRehydrateStorage: () => (state) => {
