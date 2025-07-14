@@ -5,18 +5,18 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  firstName?: string | null;
-  lastName?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
   role: string;
-  organizationId?: string | null;
+  organization_id?: string | null;
   organization?: OrganizationOutput | null;
   language: string;
   timezone: string;
-  createdAt: string;
-  updatedAt: string;
-  avatarUrl?: string;
+  created_at: string;
+  updated_at: string;
+  avatar_url?: string;
   plan?: string;
-  phoneNumber?: string;
+  phone_number?: string;
   permissions: string[];
 }
 
@@ -52,13 +52,13 @@ export interface AuthState {
   realtimeChannel: RealtimeChannel | null;
   isSyncingUser: boolean;
 
-  connectToRealtime: () => void;
-  disconnectFromRealtime: () => void;
+  connectToOrgChanges: () => void;
+  disconnectFromOrgChanges: () => void;
   hasPermission: (permission: string) => boolean;
   login: (payload: AuthSuccessPayload) => void;
   logout: () => void;
   setToken: (token: string) => void;
   updateUser: (user: Partial<User>) => void;
   setOrganization: (organization: OrganizationOutput) => void;
-  fetchAndSyncUser: () => Promise<void>;
+  fetchAndSyncUser: () => Promise<User | null>;
 }

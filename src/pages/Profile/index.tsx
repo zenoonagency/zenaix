@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { User, Camera, Trash2, QrCode, X, LogOut } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
-import { useSettingsStore } from '../../store/settingsStore';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef } from "react";
+import { User, Camera, Trash2, QrCode, X, LogOut } from "lucide-react";
+import { useAuthStore } from "../../store/authStore";
+import { useSettingsStore } from "../../store/settingsStore";
+import { useNavigate } from "react-router-dom";
 
 export function Profile() {
   const { user, logout, updateUser } = useAuthStore();
@@ -12,8 +12,8 @@ export function Profile() {
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    photo: user?.avatarUrl || '',
+    name: user?.name || "",
+    photo: user?.avatar_url || "",
   });
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,32 +22,32 @@ export function Profile() {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
-        setFormData(prev => ({ ...prev, photo: base64String }));
-        updateUser({ avatarUrl: base64String });
+        setFormData((prev) => ({ ...prev, photo: base64String }));
+        updateUser({ avatar_url: base64String });
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleRemovePhoto = () => {
-    setFormData(prev => ({ ...prev, photo: '' }));
-    updateUser({ avatarUrl: '' });
+    setFormData((prev) => ({ ...prev, photo: "" }));
+    updateUser({ avatar_url: "" });
   };
 
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newName = event.target.value;
-    setFormData(prev => ({ ...prev, name: newName }));
+    setFormData((prev) => ({ ...prev, name: newName }));
     updateUser({ name: newName });
   };
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   const handleGenerateQRCode = async () => {
     if (!webhookAgent) {
-      alert('Webhook não configurado');
+      alert("Webhook não configurado");
       return;
     }
 
@@ -56,30 +56,31 @@ export function Profile() {
 
     try {
       const response = await fetch(webhookAgent, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name: formData.name,
           photo: formData.photo,
-          plan: user?.plan || 'Plano Básico'
-        })
+          plan: user?.plan || "Plano Básico",
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Erro ao gerar QR Code');
+        throw new Error("Erro ao gerar QR Code");
       }
 
       const data = await response.json();
-      if (data.qrcode) { // Assumindo que o webhook retorna { qrcode: 'base64string' }
+      if (data.qrcode) {
+        // Assumindo que o webhook retorna { qrcode: 'base64string' }
         setQrCodeImage(data.qrcode);
       } else {
-        throw new Error('QR Code não recebido');
+        throw new Error("QR Code não recebido");
       }
     } catch (error) {
-      console.error('Erro:', error);
-      alert('Erro ao gerar QR Code');
+      console.error("Erro:", error);
+      alert("Erro ao gerar QR Code");
     } finally {
       setIsGeneratingQR(false);
     }
@@ -89,7 +90,9 @@ export function Profile() {
     <div className="max-w-2xl mx-auto p-6">
       <div className="bg-white dark:bg-dark-800 rounded-lg shadow-lg p-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Perfil</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Perfil
+          </h1>
           {qrCodeImage && (
             <button
               onClick={() => setQrCodeImage(null)}
@@ -99,15 +102,11 @@ export function Profile() {
             </button>
           )}
         </div>
-        
+
         <div className="space-y-6">
           {qrCodeImage ? (
             <div className="flex flex-col items-center gap-4">
-              <img
-                src={qrCodeImage}
-                alt="QR Code"
-                className="w-64 h-64"
-              />
+              <img src={qrCodeImage} alt="QR Code" className="w-64 h-64" />
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Escaneie o QR Code para compartilhar seu perfil
               </p>
@@ -155,7 +154,10 @@ export function Profile() {
 
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     Nome
                   </label>
                   <input
@@ -172,7 +174,7 @@ export function Profile() {
                     Plano Atual
                   </label>
                   <div className="px-4 py-2 rounded-lg bg-[#7f00ff]/10 text-[#7f00ff] font-medium">
-                    {user?.plan || 'Plano Básico'}
+                    {user?.plan || "Plano Básico"}
                   </div>
                 </div>
 
@@ -182,7 +184,7 @@ export function Profile() {
                   className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <QrCode className="w-5 h-5" />
-                  {isGeneratingQR ? 'Gerando QR Code...' : 'Gerar QR Code'}
+                  {isGeneratingQR ? "Gerando QR Code..." : "Gerar QR Code"}
                 </button>
 
                 <button
@@ -199,4 +201,4 @@ export function Profile() {
       </div>
     </div>
   );
-} 
+}

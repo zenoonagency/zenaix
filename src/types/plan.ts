@@ -1,13 +1,11 @@
 export interface PlanInput {
   name: string;
-  maxBoards: number;
-  maxTeamMembers: number;
-  maxTriggers: number;
-  maxContacts: number;
+  max_boards: number;
+  max_team_members: number;
+  max_triggers: number;
+  max_contacts: number;
   price: number;
-  pricePerYear?: number;
-  stripePriceId: string;
-  stripePriceIdPerYear?: string;
+  stripe_price_id: string;
   description?: string;
 }
 
@@ -16,8 +14,8 @@ export type PlanUpdate = Partial<PlanInput>;
 export interface PlanOutput extends PlanInput {
   id: string;
   type: "BASE" | "ADD_ON" | "ONE_TIME";
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ApiResponse<T> {

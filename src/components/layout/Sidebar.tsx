@@ -796,9 +796,9 @@ h-[calc(100%-2.5rem)]
                     rounded-lg
                   `}
                 >
-                  {user?.avatarUrl ? (
+                  {user?.avatar_url ? (
                     <img
-                      src={user.avatarUrl}
+                      src={user.avatar_url}
                       alt={user.name || "Usuário"}
                       className={`${
                         collapsed ? "w-10 h-10" : "w-9 h-9 mr-3"
@@ -988,7 +988,7 @@ h-[calc(100%-2.5rem)]
           navigate("/login");
         }}
         name={user?.name || "Usuário"}
-        photo={user?.avatarUrl || null}
+        photo={user?.avatar_url || null}
         plan={planName}
         organization={organization}
       />

@@ -10,7 +10,9 @@ import { useEmbedPagesStore } from "../../store/embedPagesStore";
 import { EmbedOutput } from "../../types/embed";
 
 export function EmbedPages() {
-  const [isLoading, setIsLoading] = useState(false);
+  const isInitialLoading = useEmbedPagesStore((state) => state.isLoading);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -19,54 +21,31 @@ export function EmbedPages() {
 
   const { token, organizationId, hasPermission } = useAuthStore((state) => ({
     token: state.token,
-    organizationId: state.user?.organizationId,
+    organizationId: state.user?.organization_id,
     hasPermission: state.hasPermission,
   }));
-  const { addPage, setPages, pages, updatePage, deletePage } =
-    useEmbedPagesStore();
+
+  const { pages, addPage, updatePage, deletePage } = useEmbedPagesStore();
 
   useEffect(() => {
-    const fetchInitialPages = async () => {
-      if (!token || organizationId) return;
-
-      setIsLoading(true);
-      try {
-        const initialPages = await embedService.findAll(token, organizationId);
-        setPages(initialPages);
-        if (initialPages.length > 0) {
-          setActivePage(initialPages[0]);
-        }
-      } catch (error: any) {
-        toast.error(error.message || "Falha ao carregar as páginas.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchInitialPages();
-  }, [token, organizationId, setPages]);
+    if (!activePage && pages.length > 0) {
+      setActivePage(pages[0]);
+    }
+  }, [pages, activePage]);
 
   const handleCreatePage = async () => {
-    if (
-      !hasPermission(PERMISSIONS.EMBED_CREATE) ||
-      !token ||
-      !organizationId
-    ) {
+    if (!hasPermission(PERMISSIONS.EMBED_CREATE) || !token || !organizationId) {
       toast.error("Você não tem permissão para esta ação.");
       return;
     }
 
-    setIsLoading(true);
+    setIsActionLoading(true);
     try {
       const input: InputCreateEmbedDTO = {
         name: formData.name,
         url: formData.url,
       };
-      const newPage = await embedService.create(
-        token,
-        organizationId,
-        input
-      );
+      const newPage = await embedService.create(token, organizationId, input);
       addPage(newPage);
       setActivePage(newPage);
       toast.success("Página embed criada com sucesso!");
@@ -75,7 +54,7 @@ export function EmbedPages() {
     } catch (error: any) {
       toast.error(error.message || "Ocorreu uma falha ao criar a página.");
     } finally {
-      setIsLoading(false);
+      setIsActionLoading(false);
     }
   };
 
@@ -85,7 +64,7 @@ export function EmbedPages() {
       return;
     }
 
-    setIsLoading(true);
+    setIsActionLoading(true);
     try {
       const input: InputUpdateEmbedDTO = {
         name: formData.name,
@@ -107,7 +86,7 @@ export function EmbedPages() {
     } catch (error: any) {
       toast.error(error.message || "Ocorreu uma falha ao atualizar a página.");
     } finally {
-      setIsLoading(false);
+      setIsActionLoading(false);
     }
   };
 
@@ -117,23 +96,22 @@ export function EmbedPages() {
       return;
     }
 
-    setIsLoading(true);
+    setIsActionLoading(true);
     try {
       await embedService.delete(token, organizationId, activePage.id);
+      const pageIdToDelete = activePage.id;
 
-      deletePage(activePage.id);
-
-      toast.success("Página embed excluída com sucesso!");
-
-      // Correção 3: Define uma nova página ativa para melhorar a UX
-      const remainingPages = pages.filter((p) => p.id !== activePage.id);
+      const remainingPages = pages.filter((p) => p.id !== pageIdToDelete);
       setActivePage(remainingPages.length > 0 ? remainingPages[0] : null);
 
+      deletePage(pageIdToDelete);
+
+      toast.success("Página embed excluída com sucesso!");
       setShowDeleteModal(false);
     } catch (error: any) {
       toast.error(error.message || "Ocorreu uma falha ao excluir a página.");
     } finally {
-      setIsLoading(false);
+      setIsActionLoading(false);
     }
   };
 
@@ -143,24 +121,6 @@ export function EmbedPages() {
     setShowEditModal(true);
   };
 
-  // O resto do seu JSX continua aqui...
-  // Apenas o botão de exclusão no modal precisa ser conectado:
-  // <button onClick={handleDeletePage} ...> Excluir </button>
-
-  // ... (seu JSX completo) ...
-  // No modal de exclusão, atualize o botão:
-  /*
-  <Modal isOpen={showDeleteModal} ...>
-    ...
-    <button
-      onClick={handleDeletePage} // <--- CONECTE A FUNÇÃO AQUI
-      disabled={isLoading}
-      className="px-4 py-2 ... bg-red-600 ...">
-      {isLoading ? "Excluindo..." : "Excluir"}
-    </button>
-    ...
-  </Modal>
-  */
   return (
     <div className="p-6 h-[95vh] flex flex-col">
       <div className="flex justify-between items-center mb-6">
@@ -180,7 +140,7 @@ export function EmbedPages() {
         </button>
       </div>
 
-      {isLoading && pages.length === 0 ? (
+      {isActionLoading && pages.length === 0 ? (
         <div className="text-center py-12">Carregando páginas...</div>
       ) : pages.length === 0 ? (
         <div className="text-center py-12">
@@ -201,9 +161,9 @@ export function EmbedPages() {
           {/* Barra de navegação das páginas */}
           <div className="flex items-center gap-1 p-1 bg-gray-100 dark:bg-dark-700 rounded-t-lg overflow-x-auto">
             {pages.map((page) => (
-              <button
-                key={page.id}
+              <div
                 onClick={() => setActivePage(page)}
+                key={page.id}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors min-w-[150px] max-w-[200px] ${
                   activePage && activePage.id === page.id
                     ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
@@ -236,15 +196,14 @@ export function EmbedPages() {
                     <Trash2 size={14} />
                   </button>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
 
-          {/* Área de visualização da página ativa */}
           <div className="flex-grow relative">
             {activePage ? (
               <iframe
-                key={activePage.id} // Adicionar key aqui força o iframe a recarregar se a URL mudar
+                key={activePage.id}
                 src={activePage.url}
                 className="w-full h-full border-0"
                 title={`Preview de ${activePage.name}`}
@@ -260,7 +219,6 @@ export function EmbedPages() {
         </div>
       )}
 
-      {/* Modal de Criação */}
       <Modal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
@@ -305,10 +263,10 @@ export function EmbedPages() {
             </button>
             <button
               onClick={handleCreatePage}
-              disabled={isLoading}
+              disabled={isActionLoading}
               className="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md hover:bg-purple-700 disabled:bg-purple-400"
             >
-              {isLoading ? "Criando..." : "Criar Página"}
+              {isActionLoading ? "Criando..." : "Criar Página"}
             </button>{" "}
           </div>
         </div>
@@ -319,20 +277,48 @@ export function EmbedPages() {
         onClose={() => setShowEditModal(false)}
         title="Editar Página Embed"
       >
-        <div className="flex justify-end gap-3 mt-6">
-          <button
-            onClick={() => setShowEditModal(false)}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleEditPage}
-            disabled={isLoading}
-            className="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md hover:bg-purple-700 disabled:bg-purple-400"
-          >
-            {isLoading ? "Salvando..." : "Salvar Alterações"}
-          </button>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Nome da Página
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              URL da Página
+            </label>
+            <input
+              type="url"
+              value={formData.url}
+              onChange={(e) =>
+                setFormData({ ...formData, url: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+          <div className="flex justify-end gap-3 mt-6">
+            <button
+              onClick={() => setShowEditModal(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleEditPage}
+              disabled={isActionLoading}
+              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md hover:bg-purple-700 disabled:bg-purple-400"
+            >
+              {isActionLoading ? "Salvando..." : "Salvar Alterações"}
+            </button>
+          </div>
         </div>
       </Modal>
 
@@ -355,10 +341,10 @@ export function EmbedPages() {
             </button>
             <button
               onClick={handleDeletePage}
-              disabled={isLoading}
+              disabled={isActionLoading}
               className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 disabled:bg-red-400"
             >
-              {isLoading ? "Excluindo..." : "Excluir"}
+              {isActionLoading ? "Excluindo..." : "Excluir"}
             </button>
           </div>
         </div>

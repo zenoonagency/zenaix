@@ -16,7 +16,7 @@ export function ProfileTab() {
     timezone: user?.timezone || "America/Sao_Paulo",
   });
 
-  const [previewUrl, setPreviewUrl] = useState(user?.avatarUrl || "");
+  const [previewUrl, setPreviewUrl] = useState(user?.avatar_url || "");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingAvatar, setIsLoadingAvatar] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export function ProfileTab() {
         language: user.language || "pt-BR",
         timezone: user.timezone || "America/Sao_Paulo",
       });
-      setPreviewUrl(user.avatarUrl || "");
+      setPreviewUrl(user.avatar_url || "");
     }
   }, [user]);
 
@@ -84,7 +84,7 @@ export function ProfileTab() {
       toast.success("Avatar atualizado com sucesso!");
     } catch (error) {
       toast.error("Erro ao atualizar avatar. Tente novamente.");
-      setPreviewUrl(user?.avatarUrl || "");
+      setPreviewUrl(user?.avatar_url || "");
     } finally {
       setIsLoadingAvatar(false);
     }
@@ -96,7 +96,7 @@ export function ProfileTab() {
       if (!token) throw new Error("Utilizador não autenticado.");
       await userService.removeAvatar(token);
 
-      updateUser({ avatarUrl: "" });
+      updateUser({ avatar_url: "" });
       setPreviewUrl("");
 
       toast.success("Avatar removido com sucesso!");

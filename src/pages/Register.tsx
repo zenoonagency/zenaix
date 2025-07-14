@@ -146,7 +146,7 @@ export function Register() {
             authResponse.token,
             formData.avatar
           );
-          updateUser({ avatarUrl: updatedUserWithAvatar.avatarUrl });
+          updateUser({ avatar_url: updatedUserWithAvatar.avatar_url });
         } catch (avatarError) {
           console.error(
             "Erro no upload do avatar após o registo:",

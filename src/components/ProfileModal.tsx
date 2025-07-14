@@ -93,11 +93,11 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     if (isOpen && user) {
       setFormData({
         name: user.name || "",
-        photo: user.avatarUrl || "",
-        phoneNumber: user.phoneNumber || "",
+        photo: user.avatar_url || "",
+        phoneNumber: user.phone_number || "",
         email: user.email || "",
       });
-      setPreviewUrl(user.avatarUrl || "");
+      setPreviewUrl(user.avatar_url || "");
     }
   }, [isOpen, user]);
 
@@ -377,7 +377,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         token,
         result.file
       );
-      updateUser({ avatarUrl: updatedUserFromApi.avatarUrl });
+      updateUser({ avatar_url: updatedUserFromApi.avatar_url });
 
       if (
         result.compressedSize &&
@@ -390,7 +390,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       const message =
         error instanceof Error ? error.message : "Erro ao atualizar avatar.";
       toast.error(message);
-      setPreviewUrl(user?.avatarUrl || "");
+      setPreviewUrl(user?.avatar_url || "");
     } finally {
       setIsLoadingAvatar(false);
     }
@@ -402,7 +402,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       if (!token) throw new Error("Utilizador não autenticado.");
       await userService.removeAvatar(token);
 
-      updateUser({ avatarUrl: "" });
+      updateUser({ avatar_url: "" });
 
       toast.success("Avatar removido com sucesso!");
     } catch (error) {

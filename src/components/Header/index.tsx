@@ -30,7 +30,6 @@ export function Header() {
       setIsDropdownOpen(false);
 
       window.location.href = "/login";
-
     } catch (error) {
       localStorage.clear();
       window.location.href = "/login";
@@ -84,9 +83,9 @@ export function Header() {
             className="flex items-center gap-3 px-3 py-1.5 text-sm font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-800 rounded-lg transition-colors"
           >
             <div className="flex items-center gap-3">
-              {user?.avatarUrl ? (
+              {user?.avatar_url ? (
                 <img
-                  src={user.avatarUrl}
+                  src={user.avatar_url}
                   alt={user.name}
                   className="w-8 h-8 rounded-full object-cover border-2 border-[#7f00ff]"
                 />

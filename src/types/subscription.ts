@@ -1,24 +1,24 @@
 export type SlotType = "board" | "member" | "trigger";
 
 export interface InputCreateSubscriptionDTO {
-  planId: string;
-  extraBoards?: number;
-  extraTeamMembers?: number;
-  extraTriggers?: number;
+  plan_id: string;
+  extra_boards?: number;
+  extra_team_members?: number;
+  extra_triggers?: number;
 }
 
 export interface InputChangePlanDTO {
-  newPlanId: string;
+  new_plan_id: string;
 }
 
 export interface InputAddSlotsDTO {
-  slotType: SlotType;
+  slot_type: SlotType;
   quantity: number;
 }
 
 export interface InputRemoveSlotsDTO {
-  slotType: SlotType;
-  quantityToRemove: number;
+  slot_type: SlotType;
+  quantity_to_remove: number;
 }
 
 export interface InputPurchaseOneTimeTriggersDTO {
@@ -26,9 +26,9 @@ export interface InputPurchaseOneTimeTriggersDTO {
 }
 
 export interface CreateSessionResponse {
-  checkoutUrl: string;
+  checkout_url: string;
 }
 
 export interface PortalSessionResponse {
-  portalUrl: string;
+  portal_url: string;
 }

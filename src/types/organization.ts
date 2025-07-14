@@ -4,13 +4,13 @@ export interface InputCreateOrgAndSubscribeDTO {
   name: string;
   document: string;
   planId: string;
-  extraBoards?: number;
-  extraTeamMembers?: number;
-  extraTriggers?: number;
+  extra_boards?: number;
+  extra_team_members?: number;
+  extra_triggers?: number;
 }
 
 export interface CreateOrgResponse {
-  checkoutUrl: string;
+  checkout_url: string;
 }
 
 export interface InputUpdateOrganizationDTO {
@@ -21,18 +21,18 @@ export interface OrganizationOutput {
   id: string;
   name: string;
   document: string;
-  masterUserId: string;
-  planId: string;
+  master_user_id: string;
+  plan_id: string;
   plan?: PlanOutput;
-  subscriptionStatus: string;
-  stripeCustomerId?: string | null;
-  stripeSubscriptionId?: string | null;
-  extraBoards: number;
-  extraTeamMembers: number;
-  extraTriggers: number;
-  oneTimeTriggers: number;
-  triggersUsedThisMonth: number;
-  subscriptionEndsAt: string | null;
-  createdAt: string;
-  updatedAt: string;
+  subscription_status: string;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+  extra_boards: number;
+  extra_team_members: number;
+  extra_triggers: number;
+  one_time_triggers: number;
+  triggers_used_this_month: number;
+  subscription_ends_at: string | null;
+  created_at: string;
+  updated_at: string;
 }

@@ -3,14 +3,10 @@ import { User, AuthState, AuthSuccessPayload } from "../types/auth";
 import { userService } from "../services/user/user.service";
 import { OrganizationOutput } from "../types/organization";
 import { createWithEqualityFn } from "zustand/traditional";
-import { createClient } from "@supabase/supabase-js";
-import { API_CONFIG } from "../config/api.config";
 import { Permission } from "../config/permissions";
+import { supabase } from "../lib/supabaseClient";
 
-const supabase = createClient(
-  API_CONFIG.supabaseUrl,
-  API_CONFIG.supabaseAnonKey
-);
+import { RealtimePostgresUpdatePayload } from "@supabase/supabase-js";
 
 export const useAuthStore = createWithEqualityFn<AuthState>()(
   persist(
@@ -19,55 +15,10 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
       user: null,
       token: null,
       organization: null,
-      permissions: null,
+      permissions: [],
       realtimeChannel: null,
       _hasHydrated: false,
       isSyncingUser: false,
-
-      connectToRealtime: () => {
-        const { token, user, realtimeChannel, fetchAndSyncUser } = get();
-
-        if (realtimeChannel || !token || !user) {
-          return;
-        }
-
-        supabase.realtime.setAuth(token);
-
-        const channel = supabase
-          .channel("db-user-changes")
-          .on(
-            "postgres_changes",
-            {
-              event: "*",
-              schema: "public",
-              table: "Organization",
-            },
-            (payload) => {
-              console.log(
-                "✅ Evento na tabela Organization recebido:",
-                payload
-              );
-              fetchAndSyncUser();
-            }
-          )
-          .subscribe((status) => {
-            if (status === "SUBSCRIBED") {
-              console.log(
-                "✅ Conectado e inscrito para ouvir mudanças na organização!"
-              );
-            }
-          });
-
-        set({ realtimeChannel: channel });
-      },
-      disconnectFromRealtime: () => {
-        const { realtimeChannel } = get();
-        if (realtimeChannel) {
-          console.log("Desconectando do canal Realtime...");
-          supabase.removeChannel(realtimeChannel);
-          set({ realtimeChannel: null });
-        }
-      },
 
       hasPermission: (permission: Permission): boolean => {
         const { permissions } = get();
@@ -75,7 +26,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
       },
 
       login: (payload: AuthSuccessPayload) => {
-        get().disconnectFromRealtime();
         set({
           isAuthenticated: true,
           user: payload.user,
@@ -83,7 +33,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           permissions: payload.permissions || [],
           organization: payload.user.organization || null,
         });
-        get().connectToRealtime();
       },
 
       setToken: (newToken: string) => {
@@ -91,7 +40,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
       },
 
       logout: () => {
-        get().disconnectFromRealtime();
         set({
           isAuthenticated: false,
           user: null,
@@ -122,19 +70,20 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         set({ organization: organizationData });
       },
 
-      fetchAndSyncUser: async () => {
+      fetchAndSyncUser: async (): Promise<User | null> => {
         const { logout, token, updateUser, isSyncingUser } = get();
 
         if (!token) {
           logout();
-          return;
+          return null;
         }
 
-        if (isSyncingUser) return;
+        if (isSyncingUser) return get().user;
         set({ isSyncingUser: true });
         try {
           const user = await userService.getMe(token);
           updateUser(user);
+          return user;
         } catch (error) {
           if (
             error.name === "AbortError" ||
@@ -151,8 +100,57 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             error
           );
           logout();
+          return null;
         } finally {
           set({ isSyncingUser: false });
+        }
+      },
+
+      connectToOrgChanges: () => {
+        const { token, user, realtimeChannel } = get();
+        if (realtimeChannel || !token || !user?.organization_id) return;
+
+        const channel = supabase
+          .channel(`organization-${user.organization_id}`)
+          // --- 2. REMOVA O <OrganizationOutput> DAQUI ---
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "Organization",
+              filter: `"id"=eq.${user.organization_id}`,
+            },
+            // --- 3. APLIQUE O TIPO DIRETAMENTE NO PAYLOAD ---
+            (payload: RealtimePostgresUpdatePayload<OrganizationOutput>) => {
+              console.log(
+                "✅ Evento de UPDATE na Organização recebido:",
+                payload.new
+              );
+              // Agora 'payload.new' está corretamente tipado como OrganizationOutput
+              set({ organization: payload.new });
+            }
+          )
+          .subscribe((status, err) => {
+            if (status === "SUBSCRIBED") {
+              console.log(
+                `[AuthStore] ✅ Inscrito com sucesso no canal da organização!`
+              );
+            }
+            if (status === "CHANNEL_ERROR") {
+              console.error(
+                `[AuthStore] ❌ Erro ao conectar no canal da organização:`,
+                err
+              );
+            }
+          });
+        set({ realtimeChannel: channel });
+      },
+      disconnectFromOrgChanges: () => {
+        const { realtimeChannel } = get();
+        if (realtimeChannel) {
+          supabase.removeChannel(realtimeChannel);
+          set({ realtimeChannel: null });
         }
       },
     }),
