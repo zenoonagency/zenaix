@@ -8,19 +8,9 @@ import {
   CreateSessionResponse,
   PortalSessionResponse,
 } from "../../types/subscription.ts";
+import { getAuthHeaders } from "../../utils/authHeaders.ts";
 import { APIError } from "../errors/api.errors";
 
-const getAuthHeaders = (token: string): HeadersInit => {
-  if (!token) {
-    throw new APIError(
-      "Token de autenticação é obrigatório para esta operação."
-    );
-  }
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
-};
 
 export const subscriptionService = {
   async createCheckoutSession(

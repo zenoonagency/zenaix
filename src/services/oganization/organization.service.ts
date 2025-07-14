@@ -7,16 +7,8 @@ import {
 } from "../../types/organization";
 import { ApiResponse } from "../../types/api.types";
 import { APIError } from "../errors/api.errors";
+import { getAuthHeaders } from "../../utils/authHeaders";
 
-const getAuthHeaders = (token: string): HeadersInit => {
-  if (!token) {
-    throw new APIError("Token de autenticação é obrigatório.");
-  }
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
-};
 
 export const organizationService = {
   async createCheckoutSessionForNewOrg(

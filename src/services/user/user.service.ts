@@ -3,24 +3,9 @@ import { APIError } from "../errors/api.errors";
 import { API_CONFIG } from "../../config/api.config";
 import { ApiResponse } from "../../types/api.types";
 import { fetchWithAuth } from "../apiClient";
+import { getAuthHeaders } from "../../utils/authHeaders";
 
-const getAuthHeaders = (
-  token: string,
-  contentType = "application/json"
-): HeadersInit => {
-  if (!token) {
-    throw new APIError(
-      "Token de autenticação é obrigatório para esta operação."
-    );
-  }
-  const headers: HeadersInit = {
-    Authorization: `Bearer ${token}`,
-  };
-  if (contentType) {
-    headers["Content-Type"] = contentType;
-  }
-  return headers;
-};
+
 
 export const userService = {
   async updateUser(

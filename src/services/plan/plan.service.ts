@@ -5,18 +5,8 @@ import {
   ApiResponse,
   PlanUpdate,
 } from "../../types/plan";
+import { getAuthHeaders } from "../../utils/authHeaders";
 import { APIError } from "../errors/api.errors";
-
-// Helper para obter os cabeçalhos de autenticação
-const getAuthHeaders = (token: string): HeadersInit => {
-  if (!token) {
-    throw new APIError("Token de autenticação é obrigatório.");
-  }
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
-};
 
 export const planService = {
   async create(token: string, data: PlanInput): Promise<PlanOutput> {
