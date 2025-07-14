@@ -54,6 +54,18 @@ export const API_CONFIG = {
     purchaseOneTime: (organizationId: string) =>
       `/organizations/${organizationId}/subscriptions/purchase-one-time-triggers`,
   },
+  embed: {
+    create: (organizationId: string) =>
+      `/organizations/${organizationId}/embeds/`,
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/embeds/`,
+    findById: (organizationId: string, embedId: string) =>
+      `/organizations/${organizationId}/embeds/`,
+    update: (organizationId: string, embedId: string) =>
+      `/organizations/${organizationId}/embeds/${embedId}`,
+    delete: (organizationId: string, embedId: string) =>
+      `/organizations/${organizationId}/embeds/${embedId}`,
+  },
   whatsapp: {
     getAllMessages: "/todas_messages",
     getMessages: "/messages",
