@@ -43,10 +43,29 @@ export function Register() {
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const navigate = useNavigate();
   const { login, updateUser } = useAuthStore();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const _hasHydrated = useAuthStore((state) => state._hasHydrated);
   const { showToast } = useToast();
   const { notification, showNotification, hideNotification } =
     useNotification();
   const { theme } = useThemeStore();
+
+  // Redireciona se já estiver autenticado
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  if (!_hasHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-900">
+        <span className="text-gray-700 dark:text-gray-200 text-lg">
+          Carregando...
+        </span>
+      </div>
+    );
+  }
 
   const logoUrl =
     theme === "dark"

@@ -36,6 +36,8 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           refresh_token: payload.token,
         });
 
+        supabase.realtime.setAuth(payload.token);
+
         if (error) {
           console.error(
             "[AuthStore] ❌ ERRO ao definir a sessão do Supabase:",

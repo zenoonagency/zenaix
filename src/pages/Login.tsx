@@ -8,7 +8,6 @@ import { useThemeStore } from "../store/themeStore";
 import { ParticlesEffect } from "../components/effects/ParticlesEffect";
 import { authService } from "../services/authService";
 import { useToast } from "../hooks/useToast";
-import { organizationService } from "../services/oganization/organization.service";
 
 interface LoginProps {
   onLoginSuccess?: () => void;
@@ -23,7 +22,26 @@ export function Login({ onLoginSuccess }: LoginProps) {
   const { theme } = useThemeStore();
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const _hasHydrated = useAuthStore((state) => state._hasHydrated);
   const { showToast } = useToast();
+
+  // Redireciona se já estiver autenticado
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  if (!_hasHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-900">
+        <span className="text-gray-700 dark:text-gray-200 text-lg">
+          Carregando...
+        </span>
+      </div>
+    );
+  }
 
   const logoUrl =
     theme === "dark"
@@ -43,10 +61,9 @@ export function Login({ onLoginSuccess }: LoginProps) {
       login(response);
 
       showToast("Login realizado com sucesso!", "success");
-      navigate("/dashboard");
+      // Removido o navigate("/dashboard") daqui
 
       if (onLoginSuccess) {
-        console.log('teste')
         onLoginSuccess();
       }
     } catch (error) {
