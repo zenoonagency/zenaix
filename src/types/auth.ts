@@ -50,8 +50,12 @@ export interface AuthState {
   permissions: string[];
   _hasHydrated: boolean;
   realtimeChannel: RealtimeChannel | null;
+  orgRealtimeChannel: RealtimeChannel | null;
+  userRealtimeChannel: RealtimeChannel | null;
   isSyncingUser: boolean;
 
+  connectToUserChanges: (userId: string) => void;
+  disconnectFromUserChanges: () => void;
   connectToOrgChanges: () => void;
   disconnectFromOrgChanges: () => void;
   hasPermission: (permission: string) => boolean;

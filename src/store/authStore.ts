@@ -14,18 +14,40 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
       isAuthenticated: false,
       user: null,
       token: null,
+      refreshToken: null,
       organization: null,
       permissions: [],
       realtimeChannel: null,
       _hasHydrated: false,
       isSyncingUser: false,
+      orgRealtimeChannel: null,
+      userRealtimeChannel: null,
 
       hasPermission: (permission: Permission): boolean => {
         const { permissions } = get();
         return permissions.includes(permission);
       },
 
-      login: (payload: AuthSuccessPayload) => {
+      login: async (payload: AuthSuccessPayload) => {
+        console.log("---------------------PAYLOAD=------");
+        console.log(payload);
+        const { data, error } = await supabase.auth.setSession({
+          access_token: payload.token,
+          refresh_token: payload.token,
+        });
+
+        if (error) {
+          console.error(
+            "[AuthStore] ❌ ERRO ao definir a sessão do Supabase:",
+            error
+          );
+        } else {
+          console.log(
+            "[AuthStore] ✅ Sessão do cliente Supabase definida COM SUCESSO. Dados da sessão:",
+            data.session
+          );
+        }
+
         set({
           isAuthenticated: true,
           user: payload.user,
@@ -53,8 +75,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         const currentUser = get().user;
         if (currentUser) {
           const newUser = { ...currentUser, ...userData };
-
-          console.log(newUser);
 
           set({
             user: newUser,
@@ -106,28 +126,63 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         }
       },
 
+      connectToUserChanges: (userId: string) => {
+        if (get().userRealtimeChannel) return;
+
+        console.log(
+          `[AuthStore] 📢 Conectando ao Realtime do Utilizador ${userId}...`
+        );
+        const channel = supabase
+          .channel(`user-${userId}`)
+          .on<User>(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "User",
+              filter: `id=eq.${userId}`,
+            },
+            (payload) => {
+              console.log(
+                "📢 Evento de UPDATE no Utilizador recebido!",
+                payload
+              );
+              // Atualiza a store com os novos dados do utilizador, o que irá disparar outros efeitos
+              get().updateUser(payload.new);
+            }
+          )
+          .subscribe((status) => {
+            if (status === "SUBSCRIBED") {
+              console.log(
+                `[AuthStore] ✅ Inscrito com sucesso no canal do utilizador!`
+              );
+            }
+          });
+        set({ userRealtimeChannel: channel });
+      },
+
+      disconnectFromUserChanges: () => {
+        const { userRealtimeChannel } = get();
+        if (userRealtimeChannel) {
+          supabase.removeChannel(userRealtimeChannel);
+          set({ userRealtimeChannel: null });
+        }
+      },
       connectToOrgChanges: () => {
         const { token, user, realtimeChannel } = get();
         if (realtimeChannel || !token || !user?.organization_id) return;
 
         const channel = supabase
           .channel(`organization-${user.organization_id}`)
-          // --- 2. REMOVA O <OrganizationOutput> DAQUI ---
           .on(
             "postgres_changes",
             {
               event: "UPDATE",
               schema: "public",
               table: "Organization",
-              filter: `"id"=eq.${user.organization_id}`,
+              // filter: `id=eq.${user.organization_id}`,
             },
-            // --- 3. APLIQUE O TIPO DIRETAMENTE NO PAYLOAD ---
             (payload: RealtimePostgresUpdatePayload<OrganizationOutput>) => {
-              console.log(
-                "✅ Evento de UPDATE na Organização recebido:",
-                payload.new
-              );
-              // Agora 'payload.new' está corretamente tipado como OrganizationOutput
               set({ organization: payload.new });
             }
           )

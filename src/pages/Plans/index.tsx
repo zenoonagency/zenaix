@@ -36,9 +36,9 @@ export function Plans() {
   const [orgForm, setOrgForm] = useState({
     name: organization?.name || "",
     document: organization?.document || "",
-    extraTeamMembers: organization?.extraTeamMembers || 0,
-    extraBoards: organization?.extraBoards || 0,
-    extraTriggers: organization?.extraTriggers || 0,
+    extra_team_members: organization?.extra_team_members || 0,
+    extra_boards: organization?.extra_boards || 0,
+    extra_triggers: organization?.extra_triggers || 0,
   });
   const [orgLoading, setOrgLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"planos" | "recursos">("planos");
@@ -79,10 +79,10 @@ export function Plans() {
     try {
       if (organization) {
         const data: InputCreateSubscriptionDTO = {
-          planId: selectedPlan,
-          extraBoards: orgForm.extraBoards,
-          extraTeamMembers: orgForm.extraTeamMembers,
-          extraTriggers: orgForm.extraTriggers,
+          plan_id: selectedPlan,
+          extra_boards: orgForm.extra_boards,
+          extra_team_members: orgForm.extra_team_members,
+          extra_triggers: orgForm.extra_triggers,
         };
 
         const res = await subscriptionService.createCheckoutSession(
@@ -92,16 +92,16 @@ export function Plans() {
         );
 
         setShowOrgModal(false);
-        setPaymentLink(res.checkoutUrl);
+        setPaymentLink(res.checkout_url);
         setShowPaymentModal(true);
       } else {
         const data: InputCreateOrgAndSubscribeDTO = {
           name: orgForm.name,
           document: orgForm.document,
-          planId: selectedPlan,
-          extraBoards: orgForm.extraBoards,
-          extraTeamMembers: orgForm.extraTeamMembers,
-          extraTriggers: orgForm.extraTriggers,
+          plan_id: selectedPlan, // Corrigido para camelCase pois o tipo exige assim
+          extra_boards: orgForm.extra_boards,
+          extra_team_members: orgForm.extra_team_members,
+          extra_triggers: orgForm.extra_triggers,
         };
         const res = await organizationService.createCheckoutSessionForNewOrg(
           data,
@@ -109,7 +109,7 @@ export function Plans() {
         );
 
         setShowOrgModal(false);
-        setPaymentLink(res.checkoutUrl);
+        setPaymentLink(res.checkout_url);
         setShowPaymentModal(true);
       }
     } catch (err: any) {
@@ -147,25 +147,25 @@ export function Plans() {
       addOns.find((p) => p.name.includes("Membro"))?.price || 0;
     const triggerAddOnPrice =
       addOns.find((p) => p.name.includes("Disparo"))?.price || 0;
-    const extraBoardsCost = (organization.extraBoards || 0) * boardAddOnPrice;
+    const extraBoardsCost = (organization.extra_boards || 0) * boardAddOnPrice;
     const extraMembersCost =
-      (organization.extraTeamMembers || 0) * memberAddOnPrice;
+      (organization.extra_team_members || 0) * memberAddOnPrice;
     const extraTriggersCost =
-      (organization.extraTriggers || 0) * triggerAddOnPrice;
+      (organization.extra_triggers || 0) * triggerAddOnPrice;
     return basePrice + extraBoardsCost + extraMembersCost + extraTriggersCost;
   })();
   // Valor novo
   const valorNovo =
-    (memberAddOn?.price || 0) * orgForm.extraTeamMembers +
-    (boardAddOn?.price || 0) * orgForm.extraBoards +
-    (triggerAddOn?.price || 0) * orgForm.extraTriggers +
+    (memberAddOn?.price || 0) * orgForm.extra_team_members +
+    (boardAddOn?.price || 0) * orgForm.extra_boards +
+    (triggerAddOn?.price || 0) * orgForm.extra_triggers +
     (organization?.plan?.price || 0);
 
   // Só mostra o botão se houver alteração
   const recursosAlterados =
-    orgForm.extraBoards > 0 ||
-    orgForm.extraTeamMembers > 0 ||
-    orgForm.extraTriggers > 0;
+    orgForm.extra_boards > 0 ||
+    orgForm.extra_team_members > 0 ||
+    orgForm.extra_triggers > 0;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900">
@@ -237,17 +237,17 @@ export function Plans() {
                         price={plan.price}
                         billingPeriod={billingPeriod}
                         features={[
-                          `Até ${plan.maxContacts} contatos`,
+                          `Até ${plan.max_contacts} contatos`,
                           "Disparo em massa padrão",
                           "Suporte 24/7 por whatsapp",
                           "Controle financeiro e contratual",
                           "CRM avançado",
-                          `Até ${plan.maxBoards} Kanbans`,
-                          `Até ${plan.maxTriggers} Disparos por mês`,
+                          `Até ${plan.max_boards} Kanbans`,
+                          `Até ${plan.max_triggers} Disparos por mês`,
                         ]}
                         isPopular={true}
                         gradient={"from-purple-500 to-indigo-600"}
-                        baseUsers={plan.maxTeamMembers}
+                        baseUsers={plan.max_team_members}
                         isSelected={selectedPlan === plan.id}
                         onClick={() => {
                           if (!isCurrentPlan) setSelectedPlan(plan.id);
@@ -291,7 +291,7 @@ export function Plans() {
                             {formatPrice(
                               billingPeriod === "monthly"
                                 ? selectedPlanData?.price || 0
-                                : selectedPlanData?.pricePerYear || 0
+                                : selectedPlanData?.price || 0
                             )}
                           </span>
                         </div>
@@ -438,34 +438,34 @@ export function Plans() {
                     </p>
                     {/* Resumo dos adicionais em lista vertical com ícones */}
                     <div className="flex flex-col gap-1 mb-1">
-                      {orgForm.extraTeamMembers > 0 && (
+                      {orgForm.extra_team_members > 0 && (
                         <span className="flex items-center text-xs text-gray-700 dark:text-gray-300 gap-1">
                           <User
                             size={14}
                             className="text-purple-600 dark:text-purple-400"
                           />
-                          +{orgForm.extraTeamMembers} membro
-                          {orgForm.extraTeamMembers > 1 ? "s" : ""}
+                          +{orgForm.extra_team_members} membro
+                          {orgForm.extra_team_members > 1 ? "s" : ""}
                         </span>
                       )}
-                      {orgForm.extraBoards > 0 && (
+                      {orgForm.extra_boards > 0 && (
                         <span className="flex items-center text-xs text-gray-700 dark:text-gray-300 gap-1">
                           <KanbanSquare
                             size={14}
                             className="text-purple-600 dark:text-purple-400"
                           />
-                          +{orgForm.extraBoards} board
-                          {orgForm.extraBoards > 1 ? "s" : ""}
+                          +{orgForm.extra_boards} board
+                          {orgForm.extra_boards > 1 ? "s" : ""}
                         </span>
                       )}
-                      {orgForm.extraTriggers > 0 && (
+                      {orgForm.extra_triggers > 0 && (
                         <span className="flex items-center text-xs text-gray-700 dark:text-gray-300 gap-1">
                           <Zap
                             size={14}
                             className="text-purple-600 dark:text-purple-400"
                           />
-                          +{orgForm.extraTriggers} disparo
-                          {orgForm.extraTriggers > 1 ? "s" : ""}
+                          +{orgForm.extra_triggers} disparo
+                          {orgForm.extra_triggers > 1 ? "s" : ""}
                         </span>
                       )}
                     </div>
@@ -477,9 +477,9 @@ export function Plans() {
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
                     {formatPrice(
                       (selectedPlanData?.price || 0) +
-                        orgForm.extraTeamMembers * (memberAddOn?.price || 0) +
-                        orgForm.extraBoards * (boardAddOn?.price || 0) +
-                        orgForm.extraTriggers * (triggerAddOn?.price || 0)
+                        orgForm.extra_team_members * (memberAddOn?.price || 0) +
+                        orgForm.extra_boards * (boardAddOn?.price || 0) +
+                        orgForm.extra_triggers * (triggerAddOn?.price || 0)
                     )}
                   </div>
                 </div>
@@ -544,9 +544,9 @@ export function Plans() {
               <div className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white flex items-end gap-2">
                 {formatPrice(
                   (selectedPlanData?.price || 0) +
-                    orgForm.extraTeamMembers * (memberAddOn?.price || 0) +
-                    orgForm.extraBoards * (boardAddOn?.price || 0) +
-                    orgForm.extraTriggers * (triggerAddOn?.price || 0)
+                    orgForm.extra_team_members * (memberAddOn?.price || 0) +
+                    orgForm.extra_boards * (boardAddOn?.price || 0) +
+                    orgForm.extra_triggers * (triggerAddOn?.price || 0)
                 )}
                 <span className="text-base font-normal text-gray-500 mb-1">
                   /mês
@@ -554,37 +554,37 @@ export function Plans() {
               </div>
               <ul className="mb-6 text-base text-gray-700 dark:text-gray-200 space-y-2">
                 <li>
-                  <b>{selectedPlanData?.maxTeamMembers ?? "-"}</b>
-                  {orgForm.extraTeamMembers > 0 && (
+                  <b>{selectedPlanData?.max_team_members ?? "-"}</b>
+                  {orgForm.extra_team_members > 0 && (
                     <span className="text-purple-600 dark:text-purple-300 font-bold">
                       {" "}
-                      + {orgForm.extraTeamMembers}
+                      + {orgForm.extra_team_members}
                     </span>
                   )}{" "}
                   membros
                 </li>
                 <li>
-                  <b>{selectedPlanData?.maxBoards ?? "-"}</b>
-                  {orgForm.extraBoards > 0 && (
+                  <b>{selectedPlanData?.max_boards ?? "-"}</b>
+                  {orgForm.extra_boards > 0 && (
                     <span className="text-purple-600 dark:text-purple-300 font-bold">
                       {" "}
-                      + {orgForm.extraBoards}
+                      + {orgForm.extra_boards}
                     </span>
                   )}{" "}
                   boards
                 </li>
                 <li>
-                  <b>{selectedPlanData?.maxTriggers ?? "-"}</b>
-                  {orgForm.extraTriggers > 0 && (
+                  <b>{selectedPlanData?.max_triggers ?? "-"}</b>
+                  {orgForm.extra_triggers > 0 && (
                     <span className="text-purple-600 dark:text-purple-300 font-bold">
                       {" "}
-                      + {orgForm.extraTriggers}
+                      + {orgForm.extra_triggers}
                     </span>
                   )}{" "}
                   disparos
                 </li>
                 <li>
-                  <b>{selectedPlanData?.maxContacts ?? "-"}</b> contatos
+                  <b>{selectedPlanData?.max_contacts ?? "-"}</b> contatos
                 </li>
                 <li>Disparo em massa padrão</li>
                 <li>Suporte 24/7 por whatsapp</li>
@@ -641,11 +641,11 @@ export function Plans() {
                   <input
                     type="number"
                     min={0}
-                    value={orgForm.extraTeamMembers}
+                    value={orgForm.extra_team_members}
                     onChange={(e) =>
                       setOrgForm((f) => ({
                         ...f,
-                        extraTeamMembers: Number(e.target.value),
+                        extra_team_members: Number(e.target.value),
                       }))
                     }
                     className="w-full px-3 py-2 rounded border"
@@ -663,11 +663,11 @@ export function Plans() {
                   <input
                     type="number"
                     min={0}
-                    value={orgForm.extraBoards}
+                    value={orgForm.extra_boards}
                     onChange={(e) =>
                       setOrgForm((f) => ({
                         ...f,
-                        extraBoards: Number(e.target.value),
+                        extra_boards: Number(e.target.value),
                       }))
                     }
                     className="w-full px-3 py-2 rounded border"
@@ -685,11 +685,11 @@ export function Plans() {
                   <input
                     type="number"
                     min={0}
-                    value={orgForm.extraTriggers}
+                    value={orgForm.extra_triggers}
                     onChange={(e) =>
                       setOrgForm((f) => ({
                         ...f,
-                        extraTriggers: Number(e.target.value),
+                        extra_triggers: Number(e.target.value),
                       }))
                     }
                     className="w-full px-3 py-2 rounded border"
@@ -732,26 +732,26 @@ export function Plans() {
             Você confirma a compra de:
           </p>
           <ul className="text-base text-gray-700 dark:text-gray-300 space-y-1 font-medium">
-            {pendingAddonsForm?.extraTeamMembers > 0 && (
+            {pendingAddonsForm?.extra_team_members > 0 && (
               <li>
                 <span className="text-purple-600 dark:text-purple-400 font-bold">
-                  +{pendingAddonsForm.extraTeamMembers}
+                  +{pendingAddonsForm.extra_team_members}
                 </span>{" "}
                 membros
               </li>
             )}
-            {pendingAddonsForm?.extraBoards > 0 && (
+            {pendingAddonsForm?.extra_boards > 0 && (
               <li>
                 <span className="text-purple-600 dark:text-purple-400 font-bold">
-                  +{pendingAddonsForm.extraBoards}
+                  +{pendingAddonsForm.extra_boards}
                 </span>{" "}
                 boards
               </li>
             )}
-            {pendingAddonsForm?.extraTriggers > 0 && (
+            {pendingAddonsForm?.extra_triggers > 0 && (
               <li>
                 <span className="text-purple-600 dark:text-purple-400 font-bold">
-                  +{pendingAddonsForm.extraTriggers}
+                  +{pendingAddonsForm.extra_triggers}
                 </span>{" "}
                 disparos/mês
               </li>
@@ -770,11 +770,11 @@ export function Plans() {
               const triggerAddOnPrice =
                 addOns.find((p) => p.name.includes("Disparo"))?.price || 0;
               const extraBoardsCost =
-                (organization.extraBoards || 0) * boardAddOnPrice;
+                (organization.extra_boards || 0) * boardAddOnPrice;
               const extraMembersCost =
-                (organization.extraTeamMembers || 0) * memberAddOnPrice;
+                (organization.extra_team_members || 0) * memberAddOnPrice;
               const extraTriggersCost =
-                (organization.extraTriggers || 0) * triggerAddOnPrice;
+                (organization.extra_triggers || 0) * triggerAddOnPrice;
               return (
                 basePrice +
                 extraBoardsCost +
@@ -785,10 +785,11 @@ export function Plans() {
             // Valor dos recursos adicionais (apenas o que está sendo comprado agora)
             const valorAdicionais =
               (memberAddOn?.price || 0) *
-                (pendingAddonsForm?.extraTeamMembers || 0) +
-              (boardAddOn?.price || 0) * (pendingAddonsForm?.extraBoards || 0) +
+                (pendingAddonsForm?.extra_team_members || 0) +
+              (boardAddOn?.price || 0) *
+                (pendingAddonsForm?.extra_boards || 0) +
               (triggerAddOn?.price || 0) *
-                (pendingAddonsForm?.extraTriggers || 0);
+                (pendingAddonsForm?.extra_triggers || 0);
             return (
               <div className="flex flex-col gap-1 mt-4">
                 {/* <span className="text-gray-500 line-through text-base">
@@ -815,27 +816,27 @@ export function Plans() {
                 try {
                   // Para cada recurso adicional comprado, chama a service separadamente
                   const promises = [];
-                  if (pendingAddonsForm.extraBoards > 0) {
+                  if (pendingAddonsForm.extra_boards > 0) {
                     promises.push(
                       subscriptionService.addSlots(token, organization.id, {
-                        slotType: "board",
-                        quantity: pendingAddonsForm.extraBoards,
+                        slot_type: "board",
+                        quantity: pendingAddonsForm.extra_boards,
                       })
                     );
                   }
-                  if (pendingAddonsForm.extraTeamMembers > 0) {
+                  if (pendingAddonsForm.extra_team_members > 0) {
                     promises.push(
                       subscriptionService.addSlots(token, organization.id, {
-                        slotType: "member",
-                        quantity: pendingAddonsForm.extraTeamMembers,
+                        slot_type: "member",
+                        quantity: pendingAddonsForm.extra_team_members,
                       })
                     );
                   }
-                  if (pendingAddonsForm.extraTriggers > 0) {
+                  if (pendingAddonsForm.extra_triggers > 0) {
                     promises.push(
                       subscriptionService.addSlots(token, organization.id, {
-                        slotType: "trigger",
-                        quantity: pendingAddonsForm.extraTriggers,
+                        slot_type: "trigger",
+                        quantity: pendingAddonsForm.extra_triggers,
                       })
                     );
                   }
@@ -859,9 +860,9 @@ export function Plans() {
               disabled={
                 loadingAddons ||
                 !(
-                  pendingAddonsForm?.extraBoards > 0 ||
-                  pendingAddonsForm?.extraTeamMembers > 0 ||
-                  pendingAddonsForm?.extraTriggers > 0
+                  pendingAddonsForm?.extra_boards > 0 ||
+                  pendingAddonsForm?.extra_team_members > 0 ||
+                  pendingAddonsForm?.extra_triggers > 0
                 )
               }
             >

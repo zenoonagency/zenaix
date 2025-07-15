@@ -586,7 +586,8 @@ function ProfileMenuModal({
   if (!isOpen) return null;
 
   const totalDisparos =
-    (organization?.extraTriggers || 0) + (organization?.oneTimeTriggers || 0);
+    (organization?.extra_triggers || 0) +
+    (organization?.one_time_triggers || 0);
 
   return (
     <>

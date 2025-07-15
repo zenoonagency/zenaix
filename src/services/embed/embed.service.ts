@@ -10,10 +10,13 @@ import { fetchWithAuth } from "../apiClient";
 import { APIError } from "../errors/api.errors";
 
 export const embedService = {
-  async findAll(token: string, organizationId: string): Promise<EmbedOutput[]> {
+  async findAll(
+    token: string,
+    organization_id: string
+  ): Promise<EmbedOutput[]> {
     try {
       const response = await fetchWithAuth(
-        `${API_CONFIG.baseUrl}${API_CONFIG.embed.findAll(organizationId)}`,
+        `${API_CONFIG.baseUrl}${API_CONFIG.embed.findAll(organization_id)}`,
         {
           method: "GET",
           headers: getAuthHeaders(token),
@@ -38,14 +41,14 @@ export const embedService = {
 
   async findById(
     token: string,
-    organizationId: string,
-    embedId: string
+    organization_id: string,
+    embed_id: string
   ): Promise<EmbedOutput> {
     try {
       const response = await fetchWithAuth(
         `${API_CONFIG.baseUrl}${API_CONFIG.embed.findById(
-          organizationId,
-          embedId
+          organization_id,
+          embed_id
         )}`,
         {
           method: "GET",
@@ -73,12 +76,12 @@ export const embedService = {
 
   async create(
     token: string,
-    organizationId: string,
+    organization_id: string,
     input: InputCreateEmbedDTO
   ): Promise<EmbedOutput> {
     try {
       const response = await fetchWithAuth(
-        `${API_CONFIG.baseUrl}${API_CONFIG.embed.create(organizationId)}`,
+        `${API_CONFIG.baseUrl}${API_CONFIG.embed.create(organization_id)}`,
         {
           method: "POST",
           headers: getAuthHeaders(token),
@@ -102,15 +105,15 @@ export const embedService = {
 
   async update(
     token: string,
-    organizationId: string,
-    embedId: string,
+    organization_id: string,
+    embed_id: string,
     input: InputUpdateEmbedDTO
   ): Promise<EmbedOutput> {
     try {
       const response = await fetchWithAuth(
         `${API_CONFIG.baseUrl}${API_CONFIG.embed.update(
-          organizationId,
-          embedId
+          organization_id,
+          embed_id
         )}`,
         {
           method: "PATCH",
@@ -135,14 +138,14 @@ export const embedService = {
 
   async delete(
     token: string,
-    organizationId: string,
-    embedId: string
+    organization_id: string,
+    embed_id: string
   ): Promise<void> {
     try {
       const response = await fetchWithAuth(
         `${API_CONFIG.baseUrl}${API_CONFIG.embed.delete(
-          organizationId,
-          embedId
+          organization_id,
+          embed_id
         )}`,
         {
           method: "DELETE",

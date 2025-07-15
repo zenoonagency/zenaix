@@ -3,7 +3,7 @@ import { PlanOutput } from "./plan";
 export interface InputCreateOrgAndSubscribeDTO {
   name: string;
   document: string;
-  planId: string;
+  plan_id: string;
   extra_boards?: number;
   extra_team_members?: number;
   extra_triggers?: number;

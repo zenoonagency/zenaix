@@ -33,11 +33,11 @@ export function SubscriptionTab() {
     const triggerAddOnPrice =
       addOns.find((p) => p.name.includes("Disparo"))?.price || 0;
 
-    const extraBoardsCost = (organization.extraBoards || 0) * boardAddOnPrice;
+    const extraBoardsCost = (organization.extra_boards || 0) * boardAddOnPrice;
     const extraMembersCost =
-      (organization.extraTeamMembers || 0) * memberAddOnPrice;
+      (organization.extra_team_members || 0) * memberAddOnPrice;
     const extraTriggersCost =
-      (organization.extraTriggers || 0) * triggerAddOnPrice;
+      (organization.extra_triggers || 0) * triggerAddOnPrice;
 
     return basePrice + extraBoardsCost + extraMembersCost + extraTriggersCost;
   }, [plan, organization, addOns]);
@@ -105,10 +105,10 @@ export function SubscriptionTab() {
   const renderManagementButton = () => {
     if (!organization) return null;
 
-    switch (organization.subscriptionStatus) {
+    switch (organization.subscription_status) {
       case "ACTIVE":
       case "TRIALING":
-        if (organization.subscriptionEndsAt) {
+        if (organization.subscription_ends_at) {
           return (
             <>
               <button
@@ -123,8 +123,8 @@ export function SubscriptionTab() {
               </button>
               <p>
                 Sua assinatura encerra em:{" "}
-                {formatDateTimeGeneral(organization.subscriptionEndsAt)} ás{" "}
-                {formatMessageTime(organization.subscriptionEndsAt)}
+                {formatDateTimeGeneral(organization.subscription_ends_at)} ás{" "}
+                {formatMessageTime(organization.subscription_ends_at)}
               </p>
             </>
           );
@@ -220,8 +220,8 @@ export function SubscriptionTab() {
   return (
     <div className="max-w-2xl mx-auto mt-8 mb-8">
       {/* Título de seção: Assinatura ativa */}
-      {(organization?.subscriptionStatus === "ACTIVE" ||
-        organization?.subscriptionStatus === "TRIALING") && (
+      {(organization?.subscription_status === "ACTIVE" ||
+        organization?.subscription_status === "TRIALING") && (
         <h2 className="text-2xl font-bold text-[#7f00ff] mb-6">
           Assinatura ativa
         </h2>
@@ -233,12 +233,12 @@ export function SubscriptionTab() {
           </h2>
           <span
             className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
-              organization?.subscriptionStatus === "ACTIVE"
+              organization?.subscription_status === "ACTIVE"
                 ? "bg-green-100 text-green-700"
                 : "bg-red-100 text-red-700"
             }`}
           >
-            {organization?.subscriptionStatus === "ACTIVE"
+            {organization?.subscription_status === "ACTIVE"
               ? "Ativo"
               : "Inativo"}
           </span>
@@ -252,19 +252,19 @@ export function SubscriptionTab() {
             <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#7f00ff] text-white">
               <Check size={16} />
             </span>{" "}
-            Até {plan?.maxContacts} contatos
+            Até {plan?.max_contacts} contatos
           </li>
           <li className="flex items-center gap-2 text-gray-800 dark:text-gray-100">
             <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#7f00ff] text-white">
               <Check size={16} />
             </span>{" "}
-            Até {plan?.maxTriggers} disparos por mês
+            Até {plan?.max_triggers} disparos por mês
           </li>
           <li className="flex items-center gap-2 text-gray-800 dark:text-gray-100">
             <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#7f00ff] text-white">
               <Check size={16} />
             </span>{" "}
-            Até {plan?.maxBoards} Kanbans
+            Até {plan?.max_boards} Kanbans
           </li>
           <li className="flex items-center gap-2 text-gray-800 dark:text-gray-100">
             <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#7f00ff] text-white">
@@ -287,13 +287,13 @@ export function SubscriptionTab() {
         </ul>
         <div className="flex flex-wrap gap-4 my-3 text-sm">
           <span>
-            Quadros Kanban adicionais: <b>{organization?.extraBoards}</b>
+            Quadros Kanban adicionais: <b>{organization?.extra_boards}</b>
           </span>
           <span>
-            Membros adicionais: <b>{organization?.extraTeamMembers}</b>
+            Membros adicionais: <b>{organization?.extra_team_members}</b>
           </span>
           <span>
-            Disparos adicionais: <b>{organization?.extraTriggers}</b>
+            Disparos adicionais: <b>{organization?.extra_triggers}</b>
           </span>
         </div>
         <div className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">
@@ -309,8 +309,8 @@ export function SubscriptionTab() {
         </div>
       </div>
       {/* Seção de cancelamento, só aparece se assinatura ativa ou trialing */}
-      {(organization?.subscriptionStatus === "ACTIVE" ||
-        organization?.subscriptionStatus === "TRIALING") && (
+      {(organization?.subscription_status === "ACTIVE" ||
+        organization?.subscription_status === "TRIALING") && (
         <div className="border-t border-gray-200 mt-8 pt-6 max-w-2xl mx-auto">
           <h3 className="text-xl font-bold text-[#7f00ff] mb-4">
             Cancelamento de assinatura

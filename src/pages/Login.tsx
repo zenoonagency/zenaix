@@ -46,6 +46,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
       navigate("/dashboard");
 
       if (onLoginSuccess) {
+        console.log('teste')
         onLoginSuccess();
       }
     } catch (error) {

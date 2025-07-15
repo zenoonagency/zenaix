@@ -36,6 +36,8 @@ export function Header() {
     }
   };
 
+  // Snake_case: destructuring já está correto pois os nomes dos stores refletem os tipos
+  // Conferir todos os usos abaixo
   const planName = user?.organization?.plan?.name || "Plano Básico";
 
   return (
@@ -83,6 +85,7 @@ export function Header() {
             className="flex items-center gap-3 px-3 py-1.5 text-sm font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-800 rounded-lg transition-colors"
           >
             <div className="flex items-center gap-3">
+              {/* Snake_case: avatar_url */}
               {user?.avatar_url ? (
                 <img
                   src={user.avatar_url}

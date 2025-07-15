@@ -12,9 +12,9 @@ export function ManageResourcesForm({
   onClose,
   fetchAndSyncUser,
 }) {
-  const [kanbans, setKanbans] = useState(organization?.extraBoards || 0);
-  const [members, setMembers] = useState(organization?.extraTeamMembers || 0);
-  const [triggers, setTriggers] = useState(organization?.extraTriggers || 0);
+  const [kanbans, setKanbans] = useState(organization?.extra_boards || 0);
+  const [members, setMembers] = useState(organization?.extra_team_members || 0);
+  const [triggers, setTriggers] = useState(organization?.extra_triggers || 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState([]);
   const { token } = useAuthStore();
@@ -25,9 +25,9 @@ export function ManageResourcesForm({
   const minTriggers = 0;
 
   // Valores atuais
-  const currentKanbans = organization?.extraBoards || 0;
-  const currentMembers = organization?.extraTeamMembers || 0;
-  const currentTriggers = organization?.extraTriggers || 0;
+  const currentKanbans = organization?.extra_boards || 0;
+  const currentMembers = organization?.extra_team_members || 0;
+  const currentTriggers = organization?.extra_triggers || 0;
 
   // Detecta se está aumentando ou diminuindo
   const isAdding =
@@ -88,38 +88,38 @@ export function ManageResourcesForm({
       // Adicionar recursos
       if (kanbans > currentKanbans) {
         await subscriptionService.addSlots(token, organization.id, {
-          slotType: "board",
+          slot_type: "board",
           quantity: kanbans - currentKanbans,
         });
       }
       if (members > currentMembers) {
         await subscriptionService.addSlots(token, organization.id, {
-          slotType: "member",
+          slot_type: "member",
           quantity: members - currentMembers,
         });
       }
       if (triggers > currentTriggers) {
         await subscriptionService.addSlots(token, organization.id, {
-          slotType: "trigger",
+          slot_type: "trigger",
           quantity: triggers - currentTriggers,
         });
       }
       // Remover recursos
       if (kanbans < currentKanbans) {
         await subscriptionService.removeSlots(token, organization.id, {
-          slotType: "board",
+          slot_type: "board",
           quantityToRemove: currentKanbans - kanbans,
         });
       }
       if (members < currentMembers) {
         await subscriptionService.removeSlots(token, organization.id, {
-          slotType: "member",
+          slot_type: "member",
           quantityToRemove: currentMembers - members,
         });
       }
       if (triggers < currentTriggers) {
         await subscriptionService.removeSlots(token, organization.id, {
-          slotType: "trigger",
+          slot_type: "trigger",
           quantityToRemove: currentTriggers - triggers,
         });
       }
@@ -145,7 +145,7 @@ export function ManageResourcesForm({
       setValue: setKanbans,
       min: minKanbans,
       current: currentKanbans,
-      planValue: plan?.maxBoards,
+      planValue: plan?.max_boards,
     },
     {
       key: "members",
@@ -155,7 +155,7 @@ export function ManageResourcesForm({
       setValue: setMembers,
       min: minMembers,
       current: currentMembers,
-      planValue: plan?.maxTeamMembers,
+      planValue: plan?.max_team_members,
     },
     {
       key: "triggers",
@@ -165,7 +165,7 @@ export function ManageResourcesForm({
       setValue: setTriggers,
       min: minTriggers,
       current: currentTriggers,
-      planValue: plan?.maxTriggers,
+      planValue: plan?.max_triggers,
     },
   ];
 

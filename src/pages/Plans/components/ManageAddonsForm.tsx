@@ -33,17 +33,17 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
   ref: ForwardedRef<{ resetForm: () => void }>
 ) {
   const [form, setForm] = useState({
-    extraBoards: 0,
-    extraTeamMembers: 0,
-    extraTriggers: 0,
+    extra_boards: 0,
+    extra_team_members: 0,
+    extra_triggers: 0,
   });
 
   // Função para zerar o formulário
   const resetForm = () => {
     setForm({
-      extraBoards: 0,
-      extraTeamMembers: 0,
-      extraTriggers: 0,
+      extra_boards: 0,
+      extra_team_members: 0,
+      extra_triggers: 0,
     });
     if (onResetForm) onResetForm();
   };
@@ -63,22 +63,24 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
       addOns.find((p) => p.name.includes("Membro"))?.price || 0;
     const triggerAddOnPrice =
       addOns.find((p) => p.name.includes("Disparo"))?.price || 0;
-    const extraBoardsCost = (organization.extraBoards || 0) * boardAddOnPrice;
+    const extraBoardsCost = (organization.extra_boards || 0) * boardAddOnPrice;
     const extraMembersCost =
-      (organization.extraTeamMembers || 0) * memberAddOnPrice;
+      (organization.extra_team_members || 0) * memberAddOnPrice;
     const extraTriggersCost =
-      (organization.extraTriggers || 0) * triggerAddOnPrice;
+      (organization.extra_triggers || 0) * triggerAddOnPrice;
     return basePrice + extraBoardsCost + extraMembersCost + extraTriggersCost;
   })();
   const valorNovo =
-    (memberAddOn?.price || 0) * form.extraTeamMembers +
-    (boardAddOn?.price || 0) * form.extraBoards +
-    (triggerAddOn?.price || 0) * form.extraTriggers +
+    (memberAddOn?.price || 0) * form.extra_team_members +
+    (boardAddOn?.price || 0) * form.extra_boards +
+    (triggerAddOn?.price || 0) * form.extra_triggers +
     (organization?.plan?.price || 0);
 
   // Corrigir lógica do botão: liberar se qualquer campo > 0
   const recursosAlterados =
-    form.extraBoards > 0 || form.extraTeamMembers > 0 || form.extraTriggers > 0;
+    form.extra_boards > 0 ||
+    form.extra_team_members > 0 ||
+    form.extra_triggers > 0;
 
   // Disparo único
   const [oneTimeTriggers, setOneTimeTriggers] = useState(0);
@@ -92,30 +94,30 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
 
   const valorNovosRecursos =
     (memberAddOn?.price || 0) *
-      (form.extraTeamMembers > 0 ? form.extraTeamMembers : 0) +
-    (boardAddOn?.price || 0) * (form.extraBoards > 0 ? form.extraBoards : 0) +
+      (form.extra_team_members > 0 ? form.extra_team_members : 0) +
+    (boardAddOn?.price || 0) * (form.extra_boards > 0 ? form.extra_boards : 0) +
     (triggerAddOn?.price || 0) *
-      (form.extraTriggers > 0 ? form.extraTriggers : 0);
+      (form.extra_triggers > 0 ? form.extra_triggers : 0);
 
   // Valor total atual (plano + extras já existentes)
   const valorTotalAtual =
     (organization?.plan?.price || 0) +
-    (memberAddOn?.price || 0) * (organization?.extraTeamMembers || 0) +
-    (boardAddOn?.price || 0) * (organization?.extraBoards || 0) +
-    (triggerAddOn?.price || 0) * (organization?.extraTriggers || 0);
+    (memberAddOn?.price || 0) * (organization?.extra_team_members || 0) +
+    (boardAddOn?.price || 0) * (organization?.extra_boards || 0) +
+    (triggerAddOn?.price || 0) * (organization?.extra_triggers || 0);
 
   // Novo valor total após compra
   const valorTotalNovo =
     (organization?.plan?.price || 0) +
     (memberAddOn?.price || 0) *
-      ((organization?.extraTeamMembers || 0) +
-        (form.extraTeamMembers > 0 ? form.extraTeamMembers : 0)) +
+      ((organization?.extra_team_members || 0) +
+        (form.extra_team_members > 0 ? form.extra_team_members : 0)) +
     (boardAddOn?.price || 0) *
-      ((organization?.extraBoards || 0) +
-        (form.extraBoards > 0 ? form.extraBoards : 0)) +
+      ((organization?.extra_boards || 0) +
+        (form.extra_boards > 0 ? form.extra_boards : 0)) +
     (triggerAddOn?.price || 0) *
-      ((organization?.extraTriggers || 0) +
-        (form.extraTriggers > 0 ? form.extraTriggers : 0));
+      ((organization?.extra_triggers || 0) +
+        (form.extra_triggers > 0 ? form.extra_triggers : 0));
 
   // Resumo do card selecionado
   const resumoCardSelecionado =
@@ -154,46 +156,46 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
         <ul className="text-base text-gray-700 dark:text-gray-300 space-y-1 font-medium">
           <li>
             <span className="text-black dark:text-white font-bold">
-              {organization?.extraTeamMembers || 0}
+              {organization?.extra_team_members || 0}
             </span>
-            {form.extraTeamMembers > 0 && (
+            {form.extra_team_members > 0 && (
               <span className="text-purple-600 dark:text-purple-400 font-bold">
                 {" + "}
-                {form.extraTeamMembers}
+                {form.extra_team_members}
               </span>
             )}{" "}
             <span className="text-gray-500 font-normal">membros</span>
           </li>
           <li>
             <span className="text-black dark:text-white font-bold">
-              {organization?.extraBoards || 0}
+              {organization?.extra_boards || 0}
             </span>
-            {form.extraBoards > 0 && (
+            {form.extra_boards > 0 && (
               <span className="text-purple-600 dark:text-purple-400 font-bold">
                 {" + "}
-                {form.extraBoards}
+                {form.extra_boards}
               </span>
             )}{" "}
             <span className="text-gray-500 font-normal">kanbans</span>
           </li>
           <li>
             <span className="text-black dark:text-white font-bold">
-              {organization?.extraTriggers || 0}
+              {organization?.extra_triggers || 0}
             </span>
-            {form.extraTriggers > 0 && (
+            {form.extra_triggers > 0 && (
               <span className="text-purple-600 dark:text-purple-400 font-bold">
                 {" + "}
-                {form.extraTriggers}
+                {form.extra_triggers}
               </span>
             )}{" "}
             <span className="text-gray-500 font-normal">disparos</span>
           </li>
-          {form.extraBoards === 0 &&
-            form.extraTeamMembers === 0 &&
-            form.extraTriggers === 0 &&
-            (organization?.extraBoards || 0) === 0 &&
-            (organization?.extraTeamMembers || 0) === 0 &&
-            (organization?.extraTriggers || 0) === 0 && (
+          {form.extra_boards === 0 &&
+            form.extra_team_members === 0 &&
+            form.extra_triggers === 0 &&
+            (organization?.extra_boards || 0) === 0 &&
+            (organization?.extra_team_members || 0) === 0 &&
+            (organization?.extra_triggers || 0) === 0 && (
               <li className="text-gray-400">
                 Nenhum recurso adicional selecionado.
               </li>
@@ -252,12 +254,12 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
                 <input
                   type="number"
                   min={0}
-                  value={form.extraBoards}
+                  value={form.extra_boards}
                   onFocus={() => setSelectedCard("addons")}
                   onChange={(e) =>
                     setForm((f) => ({
                       ...f,
-                      extraBoards: Number(e.target.value),
+                      extra_boards: Number(e.target.value),
                     }))
                   }
                   className="w-full px-3 py-2 rounded border"
@@ -275,12 +277,12 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
                 <input
                   type="number"
                   min={0}
-                  value={form.extraTeamMembers}
+                  value={form.extra_team_members}
                   onFocus={() => setSelectedCard("addons")}
                   onChange={(e) =>
                     setForm((f) => ({
                       ...f,
-                      extraTeamMembers: Number(e.target.value),
+                      extra_team_members: Number(e.target.value),
                     }))
                   }
                   className="w-full px-3 py-2 rounded border"
@@ -299,12 +301,12 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
                 <input
                   type="number"
                   min={0}
-                  value={form.extraTriggers}
+                  value={form.extra_triggers}
                   onFocus={() => setSelectedCard("addons")}
                   onChange={(e) =>
                     setForm((f) => ({
                       ...f,
-                      extraTriggers: Number(e.target.value),
+                      extra_triggers: Number(e.target.value),
                     }))
                   }
                   className="w-full px-3 py-2 rounded border"
@@ -390,7 +392,7 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
                       );
                     // Chama o onSubmit passando o link para abrir a modal de pagamento
                     onSubmit &&
-                      onSubmit({ oneTimePaymentUrl: res.checkoutUrl });
+                      onSubmit({ oneTimePaymentUrl: res.checkout_url });
                   } catch (err) {
                     alert(
                       "Erro ao gerar link de pagamento para disparo único."

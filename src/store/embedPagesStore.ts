@@ -110,7 +110,7 @@ export const useEmbedPagesStore = create<EmbedPagesState>()(
               event: "*",
               schema: "public",
               table: "EmbedPage",
-              filter: `"organizationId"=eq.${organization_id}`,
+              // filter: `organization_id=eq.${organization_id}`,
             },
             (payload: RealtimePostgresChangesPayload<EmbedOutput>) => {
               console.log(
