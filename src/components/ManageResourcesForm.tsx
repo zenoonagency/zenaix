@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useAuthStore } from "../store/authStore";
 import { subscriptionService } from "../services/subscription/subscription.service";
+import { formatCurrency } from "../utils/formatters";
 
 export function ManageResourcesForm({
   plan,
@@ -108,22 +109,21 @@ export function ManageResourcesForm({
       if (kanbans < currentKanbans) {
         await subscriptionService.removeSlots(token, organization.id, {
           slot_type: "board",
-          quantityToRemove: currentKanbans - kanbans,
+          quantity_to_remove: currentKanbans - kanbans,
         });
       }
       if (members < currentMembers) {
         await subscriptionService.removeSlots(token, organization.id, {
           slot_type: "member",
-          quantityToRemove: currentMembers - members,
+          quantity_to_remove: currentMembers - members,
         });
       }
       if (triggers < currentTriggers) {
         await subscriptionService.removeSlots(token, organization.id, {
           slot_type: "trigger",
-          quantityToRemove: currentTriggers - triggers,
+          quantity_to_remove: currentTriggers - triggers,
         });
       }
-      await fetchAndSyncUser();
       toast.success("Recursos atualizados com sucesso!");
       onClose();
     } catch (error) {
@@ -221,16 +221,14 @@ export function ManageResourcesForm({
         <span className="text-base text-gray-700 dark:text-gray-200">
           Valor final da assinatura:
         </span>
-        <div className="flex items-center gap-4 justify-center mt-1">
+        <div className="flex items-center gap-1 justify-center mt-1">
           {valorAtual !== finalValue ? (
             <span className="text-xl font-semibold text-gray-400 line-through decoration-dashed">
-              R${" "}
-              {valorAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              {formatCurrency(valorAtual)}
             </span>
           ) : null}
           <span className="text-3xl font-bold text-purple-700 dark:text-purple-300">
-            R${" "}
-            {finalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            {formatCurrency(finalValue)}
           </span>
           <span className="text-base font-medium text-gray-500">/mês</span>
         </div>

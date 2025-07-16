@@ -5,13 +5,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 const PLAN_MODAL_SESSION_KEY = "plan-modal-shown";
 
-function hasActivePlan(organization: any): boolean {
-  return (
-    !!organization &&
-    String(organization.subscriptionStatus).toLowerCase() === "active"
-  );
-}
-
 export function PlanModalGlobal() {
   const { isAuthenticated, user, organization } = useAuthStore();
   const [show, setShow] = useState(false);
@@ -22,8 +15,9 @@ export function PlanModalGlobal() {
     const alreadyShown =
       sessionStorage.getItem(PLAN_MODAL_SESSION_KEY) === "true";
 
-    const shouldShowModal =
-      isAuthenticated && !alreadyShown && user && !hasActivePlan(organization);
+    const hasPlanActive = organization.subscription_status === "ACTIVE";
+
+    const shouldShowModal = isAuthenticated && !alreadyShown && !hasPlanActive;
 
     setShow(shouldShowModal);
   }, [isAuthenticated, user, organization]);

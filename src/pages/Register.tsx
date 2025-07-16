@@ -91,7 +91,7 @@ export function Register() {
           result.compressedSize &&
           result.compressedSize < result.originalSize
         ) {
-          showToast("Imagem comprimida com sucesso!", "success");
+          showToast("Imagem processada com sucesso!", "success");
         }
       } else {
         showToast(result.error || "Erro ao processar imagem", "error");
