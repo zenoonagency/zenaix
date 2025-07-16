@@ -48,21 +48,14 @@ export const useEmbedPagesStore = create<EmbedPagesState>()(
         })),
 
       fetchAllEmbedPages: async (token: string, organizationId: string) => {
-        const { pages, isLoading, lastFetched } = get();
-        const now = Date.now();
+        const { pages, isLoading } = get();
 
-        if (
-          lastFetched &&
-          now - lastFetched < CACHE_DURATION &&
-          pages.length > 0
-        ) {
-          console.log("EmbedPagesStore: A usar páginas do cache.");
-          return;
+        if (pages.length === 0) {
+          set({ isLoading: true });
         }
 
         if (isLoading) return;
 
-        set({ isLoading: true, error: null });
         try {
           const fetchedPages = await embedService.findAll(
             token,

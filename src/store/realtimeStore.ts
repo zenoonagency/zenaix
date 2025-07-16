@@ -6,6 +6,7 @@ import { useEmbedPagesStore } from "./embedPagesStore";
 import { RealtimeEventPayload } from "../types/realtime.types";
 import { EmbedOutput } from "../types/embed";
 import { useTagStore } from "./tagStore";
+import { useContractStore } from "./contractStore";
 
 interface RealtimeState {
   userChannel: RealtimeChannel | null;
@@ -57,11 +58,6 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
           );
 
           switch (eventData.event) {
-            case "EMBED_PAGE_CREATED":
-              useEmbedPagesStore
-                .getState()
-                .addPage(eventData.data as EmbedOutput);
-              break;
             case "ORGANIZATION_UPDATED":
               useAuthStore.getState().setOrganization(eventData.data);
               break;
@@ -75,6 +71,26 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
               break;
             case "TAG_DELETED":
               useTagStore.getState().deleteTag(eventData.data.id);
+              break;
+            case "CONTRACT_CREATED":
+              useContractStore.getState().addContract(eventData.data);
+              break;
+            case "CONTRACT_UPDATE":
+            case "CONTRACT_FILE_UPDATE":
+            case "CONTRACT_FILE_DELETED":
+              useContractStore.getState().updateContract(eventData.data);
+              break;
+            case "CONTRACT_DELETED":
+              useContractStore.getState().deleteContract(eventData.data.id);
+              break;
+            case "EMBED_PAGE_CREATED":
+              useEmbedPagesStore.getState().addPage(eventData.data);
+              break;
+            case "EMBED_PAGE_UPDATED":
+              useEmbedPagesStore.getState().updatePage(eventData.data);
+              break;
+            case "EMBED_PAGE_DELETED":
+              useEmbedPagesStore.getState().deletePage(eventData.data.id);
               break;
           }
         })

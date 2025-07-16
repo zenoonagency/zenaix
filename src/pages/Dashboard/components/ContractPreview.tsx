@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { FileText, X, Eye } from 'lucide-react';
-import { Contract } from '../../Contracts/types';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { formatCurrency } from '../../../utils/formatters';
-import { PDFViewer } from '../../../components/PDFViewer';
-import { DummyPDF } from '../../../components/DummyPDF';
-import { isPdfUrl } from '../../../utils/pdfUtils';
+import React, { useState } from "react";
+import { FileText, X, Eye } from "lucide-react";
+import { Contract } from "../../Contracts/types";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { formatCurrency } from "../../../utils/formatters";
+import { PDFViewer } from "../../../components/PDFViewer";
+import { DummyPDF } from "../../../components/DummyPDF";
+import { isPdfUrl } from "../../../utils/pdfUtils";
+import { formatContractExpirationDate } from "../../../utils/dateUtils";
 
 interface ContractPreviewProps {
   contracts: Contract[];
@@ -27,15 +28,17 @@ export function ContractPreview({ contracts }: ContractPreviewProps) {
     <>
       <div className="space-y-3">
         {contracts.map((contract) => (
-          <div 
-            key={contract.id} 
+          <div
+            key={contract.id}
             className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
             onClick={() => contract.file && setViewingContract(contract)}
           >
             <div className="flex items-center space-x-3">
               <FileText className="w-5 h-5 text-[#7f00ff]" />
               <div>
-                <p className="font-medium text-gray-800 dark:text-gray-200">{contract.title}</p>
+                <p className="font-medium text-gray-800 dark:text-gray-200">
+                  {contract.title}
+                </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {contract.clientName} • {formatCurrency(contract.value)}
                 </p>
@@ -43,11 +46,9 @@ export function ContractPreview({ contracts }: ContractPreviewProps) {
             </div>
             <div className="flex items-center space-x-2">
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                Expires {format(new Date(contract.expirationDate), "d 'de' MMM", { locale: ptBR })}
+                Expira {formatContractExpirationDate(contract.expirationDate)}
               </div>
-              {contract.file && (
-                <Eye className="w-4 h-4 text-[#7f00ff]" />
-              )}
+              {contract.file && <Eye className="w-4 h-4 text-[#7f00ff]" />}
             </div>
           </div>
         ))}
@@ -68,18 +69,18 @@ export function ContractPreview({ contracts }: ContractPreviewProps) {
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="flex-1 overflow-hidden">
               {viewingContract.file && isPdfUrl(viewingContract.file) ? (
-                <PDFViewer 
+                <PDFViewer
                   fileUrl={viewingContract.file}
                   height="calc(100vh - 200px)"
                   className="rounded-md w-full"
                   showControls={true}
                 />
               ) : (
-                <DummyPDF 
-                  message="Este contrato não possui um arquivo PDF ou o arquivo não está em um formato válido." 
+                <DummyPDF
+                  message="Este contrato não possui um arquivo PDF ou o arquivo não está em um formato válido."
                   height="calc(100vh - 200px)"
                 />
               )}

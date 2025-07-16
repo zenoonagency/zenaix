@@ -36,26 +36,23 @@ export const useTagStore = create<TagState>()(
         })),
 
       fetchAllTags: async (token: string, organizationId: string) => {
-        const { tags, isLoading, lastFetched } = get();
-        const now = Date.now();
+        const { isLoading, tags } = get();
+        if (isLoading) return;
 
-        if (
-          lastFetched &&
-          now - lastFetched < CACHE_DURATION &&
-          tags.length > 0
-        ) {
-          return;
+        if (tags.length === 0) {
+          set({ isLoading: true });
         }
 
         if (isLoading) return;
 
-        set({ isLoading: true, error: null });
         try {
           const fetchedTags = await tagService.findAll(token, organizationId);
+
           set({
             tags: fetchedTags,
             isLoading: false,
             lastFetched: Date.now(),
+            error: null,
           });
         } catch (err: any) {
           console.error("[TagStore] Erro ao buscar tags:", err);

@@ -10,7 +10,7 @@ import { useFinancialStore } from "../../store/financialStore";
 import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ptBR } from "date-fns/locale";
-import { useContractStore } from "../Contracts/store/contractStore";
+import { useContractStore } from "../../store/contractStore";
 import { useTeamStore } from "../Team/store/teamStore";
 import {
   Download,

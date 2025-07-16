@@ -27,12 +27,6 @@ export function TagList() {
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [deletingTagId, setDeletingTagId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (token && organizationId) {
-      fetchAllTags(token, organizationId);
-    }
-  }, [token, organizationId, fetchAllTags]);
-
   const handleSave = async (tagData: { name: string; color: string }) => {
     if (!token || !organizationId) {
       toast.error("Autenticação inválida.");

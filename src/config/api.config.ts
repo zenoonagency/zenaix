@@ -81,6 +81,24 @@ export const API_CONFIG = {
     getAllMessages: "/todas_messages",
     getMessages: "/messages",
   },
+  contracts: {
+    create: (organizationId: string) =>
+      `/organizations/${organizationId}/contracts`,
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/contracts`,
+    findById: (organizationId: string, contractId: string) =>
+      `/organizations/${organizationId}/contracts/${contractId}`,
+    update: (organizationId: string, contractId: string) =>
+      `/organizations/${organizationId}/contracts/${contractId}`,
+    delete: (organizationId: string, contractId: string) =>
+      `/organizations/${organizationId}/contracts/${contractId}`,
+    uploadFile: (organizationId: string, contractId: string) =>
+      `/organizations/${organizationId}/contracts/${contractId}/file`,
+    downloadFile: (organizationId: string, contractId: string) =>
+      `/organizations/${organizationId}/contracts/${contractId}/file`,
+    deleteFile: (organizationId: string, contractId: string) =>
+      `/organizations/${organizationId}/contracts/${contractId}/file`,
+  },
   timeouts: {
     default: 30000,
     upload: 60000,

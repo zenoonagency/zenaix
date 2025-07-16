@@ -289,3 +289,18 @@ export function formatCompactDate(date: string | Date): string {
     return "??/??/????";
   }
 }
+
+/**
+ * Formata data de expiração de contrato (sempre UTC, formato brasileiro)
+ * @param date Data como string ISO ou Date
+ * @returns Data formatada como dd/MM/yyyy (UTC)
+ */
+export function formatContractExpirationDate(date: string | Date): string {
+  try {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+    return dateObj.toLocaleDateString("pt-BR", { timeZone: "UTC" });
+  } catch (error) {
+    console.error("Erro ao formatar data de expiração do contrato:", error);
+    return "??/??/????";
+  }
+}

@@ -11,6 +11,7 @@ import { usePlanStore } from "./store/planStore";
 import { useEmbedPagesStore } from "./store/embedPagesStore";
 import { useRealtimeStore } from "./store/realtimeStore";
 import { useTagStore } from "./store/tagStore";
+import { useContractStore } from "./store/contractStore";
 
 export function App() {
   const {
@@ -35,6 +36,7 @@ export function App() {
   );
 
   const fetchAllTags = useTagStore((state) => state.fetchAllTags);
+  const fetchAllContracts = useContractStore((state) => state.fetchAllContracts);
 
   const { connect: connectToRealtime, disconnect: disconnectFromRealtime } =
     useRealtimeStore((state) => ({
@@ -52,6 +54,7 @@ export function App() {
       if (organizationId) {
         fetchAllEmbedPages(token, organizationId);
         fetchAllTags(token, organizationId);
+        fetchAllContracts(token, organizationId);
       }
 
       if (userId) {
