@@ -31,6 +31,7 @@ export function ContractsList({ itensFiltrados }: ContractsListProps) {
     null
   );
   const { contracts } = useContractStore();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const contratosParaExibir =
     itensFiltrados !== null && itensFiltrados !== undefined
@@ -135,11 +136,13 @@ export function ContractsList({ itensFiltrados }: ContractsListProps) {
       "Tem certeza de que deseja excluir este contrato?"
     );
     if (confirmed) {
+      setDeletingId(contractId);
       try {
         await contractService.delete(token, organizationId, contractId);
       } catch (error) {
         console.error("Erro ao excluir contrato", error);
       }
+      setDeletingId(null);
     }
   };
 
@@ -175,7 +178,11 @@ export function ContractsList({ itensFiltrados }: ContractsListProps) {
               {contratosParaExibir.map((contract) => (
                 <tr
                   key={contract.id}
-                  className="hover:bg-gray-50 dark:hover:bg-dark-700"
+                  className={`hover:bg-gray-50 dark:hover:bg-dark-700 ${
+                    deletingId === contract.id
+                      ? "opacity-80 pointer-events-none"
+                      : ""
+                  }`}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -237,8 +244,30 @@ export function ContractsList({ itensFiltrados }: ContractsListProps) {
                         onClick={() => handleDeleteContract(contract.id)}
                         className="text-red-500 hover:text-red-400 transition-colors"
                         title="Excluir"
+                        disabled={deletingId === contract.id}
                       >
-                        <Trash2 className="h-5 w-5" />
+                        {deletingId === contract.id ? (
+                          <svg
+                            className="animate-spin h-5 w-5"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v8z"
+                            ></path>
+                          </svg>
+                        ) : (
+                          <Trash2 className="h-5 w-5" />
+                        )}
                       </button>
                     </div>
                   </td>
