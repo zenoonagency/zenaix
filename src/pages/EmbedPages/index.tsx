@@ -10,7 +10,6 @@ import { useEmbedPagesStore } from "../../store/embedPagesStore";
 import { EmbedOutput } from "../../types/embed";
 
 export function EmbedPages() {
-  const isInitialLoading = useEmbedPagesStore((state) => state.isLoading);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -25,7 +24,7 @@ export function EmbedPages() {
     hasPermission: state.hasPermission,
   }));
 
-  const { pages, addPage, updatePage, deletePage } = useEmbedPagesStore();
+  const { pages } = useEmbedPagesStore();
 
   useEffect(() => {
     if (!activePage && pages.length > 0) {
@@ -46,7 +45,6 @@ export function EmbedPages() {
         url: formData.url,
       };
       const newPage = await embedService.create(token, organizationId, input);
-      addPage(newPage);
       setActivePage(newPage);
       toast.success("Página embed criada com sucesso!");
       setFormData({ name: "", url: "" });
@@ -77,8 +75,6 @@ export function EmbedPages() {
         activePage.id,
         input
       );
-
-      updatePage(updatedPageData);
       setActivePage(updatedPageData);
       toast.success("Página embed atualizada com sucesso!");
       setFormData({ name: "", url: "" });
@@ -104,8 +100,6 @@ export function EmbedPages() {
       const remainingPages = pages.filter((p) => p.id !== pageIdToDelete);
       setActivePage(remainingPages.length > 0 ? remainingPages[0] : null);
 
-      deletePage(pageIdToDelete);
-
       toast.success("Página embed excluída com sucesso!");
       setShowDeleteModal(false);
     } catch (error: any) {
@@ -129,7 +123,7 @@ export function EmbedPages() {
         </h1>
         <button
           onClick={() => {
-            setFormData({ name: "", url: "" }); // Limpa o formulário ao abrir
+            setFormData({ name: "", url: "" });
             setShowCreateModal(true);
           }}
           disabled={!hasPermission(PERMISSIONS.EMBED_CREATE)}
