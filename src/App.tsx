@@ -9,10 +9,10 @@ import "react-toastify/dist/ReactToastify.css";
 import { useAuthStore } from "./store/authStore";
 import { usePlanStore } from "./store/planStore";
 import { useEmbedPagesStore } from "./store/embedPagesStore";
+import { useRealtimeStore } from "./store/realtimeStore";
+import { useTagStore } from "./store/tagStore";
 
 export function App() {
-  // --- Seletores das Stores ---
-  // Seleciona cada valor/função individualmente para garantir referências estáveis.
   const {
     isAuthenticated,
     _hasHydrated,
@@ -20,10 +20,6 @@ export function App() {
     userId,
     organizationId,
     fetchAndSyncUser,
-    connectToUserChanges,
-    disconnectFromUserChanges,
-    connectToOrgChanges,
-    disconnectFromOrgChanges,
   } = useAuthStore((state) => ({
     isAuthenticated: state.isAuthenticated,
     _hasHydrated: state._hasHydrated,
@@ -31,82 +27,54 @@ export function App() {
     userId: state.user?.id,
     organizationId: state.user?.organization_id,
     fetchAndSyncUser: state.fetchAndSyncUser,
-    connectToUserChanges: state.connectToUserChanges,
-    disconnectFromUserChanges: state.disconnectFromUserChanges,
-    connectToOrgChanges: state.connectToOrgChanges,
-    disconnectFromOrgChanges: state.disconnectFromOrgChanges,
   }));
 
   const fetchAllPlans = usePlanStore((state) => state.fetchAllPlans);
+  const fetchAllEmbedPages = useEmbedPagesStore(
+    (state) => state.fetchAllEmbedPages
+  );
 
-  const {
-    fetchAllEmbedPages,
-    connectToEmbedChanges,
-    disconnectFromEmbedChanges,
-  } = useEmbedPagesStore((state) => ({
-    fetchAllEmbedPages: state.fetchAllEmbedPages,
-    connectToEmbedChanges: state.connectToEmbedChanges,
-    disconnectFromEmbedChanges: state.disconnectFromEmbedChanges,
-  }));
+  const fetchAllTags = useTagStore((state) => state.fetchAllTags);
 
-  // --- EFEITO 1: Sincronização Inicial do Utilizador e Planos ---
-  // Responsabilidade: Buscar dados que só dependem do token.
+  const { connect: connectToRealtime, disconnect: disconnectFromRealtime } =
+    useRealtimeStore((state) => ({
+      connect: state.connect,
+      disconnect: state.disconnect,
+    }));
+
   useEffect(() => {
     if (isAuthenticated && _hasHydrated && token) {
-      console.log("✅ Efeito 1: Sincronizando utilizador e planos...");
+      console.log("✅ Efeito Principal: Sincronizando dados e conexões...");
+
       fetchAndSyncUser();
       fetchAllPlans(token);
-    }
-  }, [isAuthenticated, _hasHydrated, token, fetchAndSyncUser, fetchAllPlans]);
 
-  // --- EFEITO 2: Listener de Mudanças no Utilizador ---
-  // Responsabilidade: Ouvir o próprio registo do utilizador para detetar quando uma organização é atribuída.
-  useEffect(() => {
-    // Só conecta se tivermos um ID de utilizador.
-    if (userId) {
-      console.log(
-        `✅ Efeito 2: Conectando ao canal do utilizador ${userId}...`
-      );
-      connectToUserChanges(userId);
-      // A limpeza é feita quando o utilizador desloga e o userId se torna nulo.
+      if (organizationId) {
+        fetchAllEmbedPages(token, organizationId);
+        fetchAllTags(token, organizationId);
+      }
+
+      if (userId) {
+        connectToRealtime(userId, organizationId);
+      }
+
       return () => {
-        console.log("🧹 Limpando conexão do canal do utilizador...");
-        disconnectFromUserChanges();
-      };
-    }
-  }, [userId, connectToUserChanges, disconnectFromUserChanges]);
-
-  // --- EFEITO 3: Sincronização da Organização ---
-  // Responsabilidade: Reagir à existência de um organizationId.
-  useEffect(() => {
-    // Só executa se tivermos um token E um organizationId.
-    if (token && organizationId) {
-      console.log(
-        `✅ Efeito 3: Buscando dados e conectando ao Realtime para a organização ${organizationId}...`
-      );
-
-      // Busca os dados que dependem da organização.
-      fetchAllEmbedPages(token, organizationId);
-
-      // Conecta aos canais de Realtime da organização.
-      connectToOrgChanges();
-      connectToEmbedChanges(organizationId);
-
-      // A limpeza é feita quando o utilizador desloga e o organizationId se torna nulo.
-      return () => {
-        console.log("🧹 Limpando conexões da Organização...");
-        disconnectFromOrgChanges();
-        disconnectFromEmbedChanges();
+        console.log("🧹 Limpando conexões de Realtime...");
+        disconnectFromRealtime();
       };
     }
   }, [
+    isAuthenticated,
+    _hasHydrated,
     token,
-    organizationId, // A dependência chave que orquestra este efeito.
+    userId,
+    organizationId,
+    fetchAndSyncUser,
+    fetchAllPlans,
+    fetchAllTags,
     fetchAllEmbedPages,
-    connectToOrgChanges,
-    connectToEmbedChanges,
-    disconnectFromOrgChanges,
-    disconnectFromEmbedChanges,
+    connectToRealtime,
+    disconnectFromRealtime,
   ]);
 
   return (

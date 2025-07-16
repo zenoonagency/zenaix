@@ -66,6 +66,17 @@ export const API_CONFIG = {
     delete: (organizationId: string, embedId: string) =>
       `/organizations/${organizationId}/embeds/${embedId}`,
   },
+  tags: {
+    create: (organizationId: string) => `/organizations/${organizationId}/tags`,
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/tags`,
+    findById: (organizationId: string, tagId: string) =>
+      `/organizations/${organizationId}/tags/${tagId}`,
+    update: (organizationId: string, tagId: string) =>
+      `/organizations/${organizationId}/tags/${tagId}`,
+    delete: (organizationId: string, tagId: string) =>
+      `/organizations/${organizationId}/tags/${tagId}`,
+  },
   whatsapp: {
     getAllMessages: "/todas_messages",
     getMessages: "/messages",
