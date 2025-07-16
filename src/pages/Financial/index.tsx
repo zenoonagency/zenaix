@@ -1,28 +1,43 @@
-import React, { useState, useEffect } from 'react';
-import { BanknotesIcon } from '@heroicons/react/24/outline';
-import { useFinancialStore } from '../../store/financialStore';
-import { useSettingsStore } from '../../store/settingsStore';
-import { NewTransactionModal } from './components/NewTransactionModal';
-import { EditTransactionModal } from './components/EditTransactionModal';
-import { CustomModal } from '../../components/CustomModal';
-import { Trash2, Plus, Filter, Calendar, Edit, Trash, ListFilter, RefreshCw, AlertCircle, Bug } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Box } from '../../components/Box';
+import React, { useState, useEffect } from "react";
+import { BanknotesIcon } from "@heroicons/react/24/outline";
+import { useFinancialStore } from "../../store/financialStore";
+import { useSettingsStore } from "../../store/settingsStore";
+import { NewTransactionModal } from "./components/NewTransactionModal";
+import { EditTransactionModal } from "./components/EditTransactionModal";
+import { CustomModal } from "../../components/CustomModal";
+import {
+  Trash2,
+  Plus,
+  Filter,
+  Calendar,
+  Edit,
+  Trash,
+  ListFilter,
+  RefreshCw,
+  AlertCircle,
+  Bug,
+} from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Box } from "../../components/Box";
+import { formatCurrency } from "../../utils/formatters";
 
 export function Financial() {
   const [showNewTransactionModal, setShowNewTransactionModal] = useState(false);
-  const [showEditTransactionModal, setShowEditTransactionModal] = useState(false);
+  const [showEditTransactionModal, setShowEditTransactionModal] =
+    useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
-  const [filterDate, setFilterDate] = useState<string>(format(new Date(), 'yyyy-MM'));
-  
-  const { 
-    transactions, 
-    totalIncome, 
-    totalExpenses, 
-    netIncome, 
+  const [filterDate, setFilterDate] = useState<string>(
+    format(new Date(), "yyyy-MM")
+  );
+
+  const {
+    transactions,
+    totalIncome,
+    totalExpenses,
+    netIncome,
     clearTransactions,
     deleteTransaction,
     setSelectedDate,
@@ -30,13 +45,10 @@ export function Financial() {
     getFilteredTransactions,
     updateTransaction,
     viewMode,
-    setViewMode
+    setViewMode,
   } = useFinancialStore();
 
-  const {
-    asaas,
-    checkAsaasBalance
-  } = useSettingsStore();
+  const { asaas, checkAsaasBalance } = useSettingsStore();
 
   useEffect(() => {
     // Inicializar os totais quando o componente montar
@@ -46,14 +58,15 @@ export function Financial() {
 
   // Corrigir a transação com problema
   useEffect(() => {
-    const transactionToFix = transactions.find(t => 
-      t.description === 'ArrudaCred' && 
-      t.category === 'agente de IA' && 
-      t.type === 'expense'
+    const transactionToFix = transactions.find(
+      (t) =>
+        t.description === "ArrudaCred" &&
+        t.category === "agente de IA" &&
+        t.type === "expense"
     );
-    
+
     if (transactionToFix) {
-      updateTransaction(transactionToFix.id, { type: 'income' });
+      updateTransaction(transactionToFix.id, { type: "income" });
     }
   }, [transactions, updateTransaction]);
 
@@ -75,16 +88,9 @@ export function Financial() {
     return () => clearInterval(intervalId);
   }, [asaas.apiKey, checkAsaasBalance]);
 
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    });
-  };
-
   const handleRefreshAsaasBalance = () => {
-    checkAsaasBalance().catch(error => {
-      console.error('Erro ao atualizar saldo:', error);
+    checkAsaasBalance().catch((error) => {
+      console.error("Erro ao atualizar saldo:", error);
     });
   };
 
@@ -92,27 +98,27 @@ export function Financial() {
   const handleDebug = () => {
     // Obter o estado atual do store
     const currentState = useSettingsStore.getState();
-    console.log('Estado atual do store:', currentState);
-    
+    console.log("Estado atual do store:", currentState);
+
     // Forçar a atualização do saldo diretamente
-    useSettingsStore.setState(state => ({
+    useSettingsStore.setState((state) => ({
       ...state,
       asaas: {
         ...state.asaas,
         balance: 1621.14,
-        lastUpdated: new Date().toISOString()
-      }
+        lastUpdated: new Date().toISOString(),
+      },
     }));
-    
-    console.log('Saldo atualizado manualmente para 1621.14');
-    
+
+    console.log("Saldo atualizado manualmente para 1621.14");
+
     // Verificar o estado após a atualização
     const updatedState = useSettingsStore.getState();
-    console.log('Estado após atualização manual:', updatedState);
+    console.log("Estado após atualização manual:", updatedState);
   };
 
   const formatLastUpdated = (dateString: string | null) => {
-    if (!dateString) return 'Nunca atualizado';
+    if (!dateString) return "Nunca atualizado";
     const date = new Date(dateString);
     return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
   };
@@ -143,36 +149,36 @@ export function Financial() {
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = e.target.value;
     setFilterDate(newDate);
-    
+
     // Extrair ano e mês do valor do input (formato YYYY-MM)
-    const [year, month] = newDate.split('-').map(Number);
-    
+    const [year, month] = newDate.split("-").map(Number);
+
     // Criar uma data no primeiro dia do mês selecionado
     // Mês em JavaScript é 0-indexed, então subtraímos 1
     // Definimos a hora como 00:00:00 para evitar problemas com fuso horário
     const selectedDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
-    
+
     // Converter para ISO string e passar para o store
-    console.log('Data selecionada:', selectedDate.toISOString());
+    console.log("Data selecionada:", selectedDate.toISOString());
     setSelectedDate(selectedDate.toISOString());
   };
 
   // Função para obter o título do período atual
   const getPeriodTitle = () => {
-    if (viewMode === 'all') {
-      return 'Todas as Transações';
-    } else if (viewMode === 'year') {
+    if (viewMode === "all") {
+      return "Todas as Transações";
+    } else if (viewMode === "year") {
       return `Transações de ${new Date(filterDate).getFullYear()}`;
     } else {
       // Extrair ano e mês do valor do input (formato YYYY-MM)
-      const [year, month] = filterDate.split('-').map(Number);
-      
+      const [year, month] = filterDate.split("-").map(Number);
+
       // Criar uma data no primeiro dia do mês selecionado
       // Mês em JavaScript é 0-indexed, então subtraímos 1
       const date = new Date(year, month - 1, 1);
-      
+
       // Formatar o mês e ano para exibição
-      return format(date, 'MMMM yyyy', { locale: ptBR });
+      return format(date, "MMMM yyyy", { locale: ptBR });
     }
   };
 
@@ -180,15 +186,15 @@ export function Financial() {
     <div className="min-h-screen">
       {/* Cabeçalho alinhado à esquerda e colado na borda */}
       <div className="p-8 pb-0">
-  <div className="flex items-center gap-2 mb-4">
-    <div className="p-2 border border-purple-500 rounded-lg">
-      <BanknotesIcon className="w-5 h-5 text-purple-600" />
-    </div>
-    <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-purple-700 text-transparent bg-clip-text">
-      Financeiro
-    </h1>
-  </div>
-</div>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-2 border border-purple-500 rounded-lg">
+            <BanknotesIcon className="w-5 h-5 text-purple-600" />
+          </div>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-purple-700 text-transparent bg-clip-text">
+            Financeiro
+          </h1>
+        </div>
+      </div>
 
       {/* Conteúdo */}
       <div className="px-8 pb-8">
@@ -201,38 +207,38 @@ export function Financial() {
                 value={filterDate}
                 onChange={handleFilterChange}
                 className="pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-800 text-gray-600 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-                disabled={viewMode === 'all'}
+                disabled={viewMode === "all"}
               />
             </div>
-            
+
             {/* Botões de modo de visualização */}
             <div className="flex items-center gap-2 ml-2">
               <button
-                onClick={() => setViewMode('month')}
+                onClick={() => setViewMode("month")}
                 className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                  viewMode === 'month'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-100 text-gray-700 dark:bg-dark-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-600'
+                  viewMode === "month"
+                    ? "bg-purple-600 text-white"
+                    : "bg-gray-100 text-gray-700 dark:bg-dark-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-600"
                 }`}
               >
                 Mensal
               </button>
               <button
-                onClick={() => setViewMode('year')}
+                onClick={() => setViewMode("year")}
                 className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                  viewMode === 'year'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-100 text-gray-700 dark:bg-dark-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-600'
+                  viewMode === "year"
+                    ? "bg-purple-600 text-white"
+                    : "bg-gray-100 text-gray-700 dark:bg-dark-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-600"
                 }`}
               >
                 Anual
               </button>
               <button
-                onClick={() => setViewMode('all')}
+                onClick={() => setViewMode("all")}
                 className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                  viewMode === 'all'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-100 text-gray-700 dark:bg-dark-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-600'
+                  viewMode === "all"
+                    ? "bg-purple-600 text-white"
+                    : "bg-gray-100 text-gray-700 dark:bg-dark-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-600"
                 }`}
               >
                 Tudo
@@ -283,7 +289,11 @@ export function Financial() {
               <div className="w-2 h-2 rounded-full bg-purple-500" />
               <span className="text-sm">Saldo</span>
             </div>
-            <span className={`text-2xl font-semibold ${netIncome >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <span
+              className={`text-2xl font-semibold ${
+                netIncome >= 0 ? "text-green-500" : "text-red-500"
+              }`}
+            >
               {formatCurrency(netIncome)}
             </span>
           </Box>
@@ -295,20 +305,24 @@ export function Financial() {
                 <span className="text-sm">Saldo Asaas</span>
               </div>
               <div className="flex items-center gap-1">
-                <button 
+                <button
                   onClick={handleDebug}
                   className="p-1 text-gray-500 hover:text-purple-500 transition-colors"
                   title="Depurar"
                 >
                   <Bug className="w-4 h-4" />
                 </button>
-                <button 
+                <button
                   onClick={handleRefreshAsaasBalance}
                   disabled={asaas.isLoading || !asaas.apiKey}
                   className="p-1 text-gray-500 hover:text-blue-500 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
                   title="Atualizar saldo"
                 >
-                  <RefreshCw className={`w-4 h-4 ${asaas.isLoading ? 'animate-spin' : ''}`} />
+                  <RefreshCw
+                    className={`w-4 h-4 ${
+                      asaas.isLoading ? "animate-spin" : ""
+                    }`}
+                  />
                 </button>
               </div>
             </div>
@@ -359,9 +373,12 @@ export function Financial() {
               </thead>
               <tbody>
                 {getFilteredTransactions().map((transaction) => (
-                  <tr key={transaction.id} className="border-b border-gray-200 dark:border-dark-700 last:border-0">
+                  <tr
+                    key={transaction.id}
+                    className="border-b border-gray-200 dark:border-dark-700 last:border-0"
+                  >
                     <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
-                      {new Date(transaction.date).toLocaleDateString('pt-BR')}
+                      {new Date(transaction.date).toLocaleDateString("pt-BR")}
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
                       {transaction.description}
@@ -369,20 +386,28 @@ export function Financial() {
                     <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
                       {transaction.category}
                     </td>
-                    <td className={`py-3 px-4 text-sm text-right ${
-                      transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
-                    }`}>
-                      {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount)}
+                    <td
+                      className={`py-3 px-4 text-sm text-right ${
+                        transaction.type === "income"
+                          ? "text-green-500"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {transaction.type === "income" ? "+" : "-"}{" "}
+                      {formatCurrency(transaction.amount)}
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        transaction.status === 'concluido'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                          : transaction.status === 'pendente'
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                      }`}>
-                        {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          transaction.status === "concluido"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                            : transaction.status === "pendente"
+                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+                            : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                        }`}
+                      >
+                        {transaction.status.charAt(0).toUpperCase() +
+                          transaction.status.slice(1)}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center text-sm">
