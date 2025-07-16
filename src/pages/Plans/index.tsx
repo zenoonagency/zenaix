@@ -17,6 +17,7 @@ import { usePlanStore } from "../../store/planStore";
 import { subscriptionService } from "../../services/subscription/subscription.service";
 import { InputCreateSubscriptionDTO } from "../../types/subscription";
 import { ManageAddonsForm } from "./components/ManageAddonsForm";
+import { formatCurrency } from "../../utils/formatters";
 
 export function Plans() {
   const { token, organization, fetchAndSyncUser } = useAuthStore();
@@ -49,15 +50,6 @@ export function Plans() {
 
   // Ref para o ManageAddonsForm
   const manageAddonsFormRef = useRef(null);
-
-  const formatPrice = (value: number) => {
-    return value.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
 
   const memberAddOn = addOns.find((p) =>
     p.name.toLowerCase().includes("membro")
@@ -98,7 +90,7 @@ export function Plans() {
         const data: InputCreateOrgAndSubscribeDTO = {
           name: orgForm.name,
           document: orgForm.document,
-          plan_id: selectedPlan, // Corrigido para camelCase pois o tipo exige assim
+          plan_id: selectedPlan,
           extra_boards: orgForm.extra_boards,
           extra_team_members: orgForm.extra_team_members,
           extra_triggers: orgForm.extra_triggers,
@@ -288,7 +280,7 @@ export function Plans() {
                             {billingPeriod === "monthly" ? "mensal" : "anual"}
                           </span>
                           <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {formatPrice(
+                            {formatCurrency(
                               billingPeriod === "monthly"
                                 ? selectedPlanData?.price || 0
                                 : selectedPlanData?.price || 0
@@ -356,7 +348,6 @@ export function Plans() {
                 memberAddOn={memberAddOn}
                 boardAddOn={boardAddOn}
                 triggerAddOn={triggerAddOn}
-                formatPrice={formatPrice}
                 onSubmit={(form) => {
                   // Se for compra de disparo único, abrir modal direto com o link
                   if (form && form.oneTimePaymentUrl) {
@@ -475,7 +466,7 @@ export function Plans() {
                     </p>
                   </div>
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {formatPrice(
+                    {formatCurrency(
                       (selectedPlanData?.price || 0) +
                         orgForm.extra_team_members * (memberAddOn?.price || 0) +
                         orgForm.extra_boards * (boardAddOn?.price || 0) +
@@ -542,7 +533,7 @@ export function Plans() {
                 {selectedPlanData?.description || "Descrição do plano."}
               </div>
               <div className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white flex items-end gap-2">
-                {formatPrice(
+                {formatCurrency(
                   (selectedPlanData?.price || 0) +
                     orgForm.extra_team_members * (memberAddOn?.price || 0) +
                     orgForm.extra_boards * (boardAddOn?.price || 0) +
@@ -652,7 +643,7 @@ export function Plans() {
                   />
                   {memberAddOn && (
                     <span className="text-xs text-gray-500">
-                      R$ {memberAddOn.price.toFixed(2)} cada
+                      {formatCurrency(memberAddOn.price)} cada
                     </span>
                   )}
                 </div>
@@ -674,7 +665,7 @@ export function Plans() {
                   />
                   {boardAddOn && (
                     <span className="text-xs text-gray-500">
-                      R$ {boardAddOn.price.toFixed(2)} cada
+                      {formatCurrency(boardAddOn.price)} cada
                     </span>
                   )}
                 </div>
@@ -696,7 +687,7 @@ export function Plans() {
                   />
                   {triggerAddOn && (
                     <span className="text-xs text-gray-500">
-                      R$ {triggerAddOn.price.toFixed(2)} cada
+                      {formatCurrency(triggerAddOn.price)} cada
                     </span>
                   )}
                 </div>
@@ -796,7 +787,7 @@ export function Plans() {
                   Valor atual: {formatPrice(valorAtual)}
                 </span> */}
                 <span className="text-lg font-bold">
-                  Valor dos recursos: {formatPrice(valorAdicionais)}
+                  Valor dos recursos: {formatCurrency(valorAdicionais)}
                 </span>
               </div>
             );

@@ -7,6 +7,7 @@ import React, {
 import { useAuthStore } from "../../../store/authStore";
 import { subscriptionService } from "../../../services/subscription/subscription.service";
 import { usePlanStore } from "../../../store/planStore";
+import { formatCurrency } from "../../../utils/formatters";
 
 type Props = {
   organization: any;
@@ -14,7 +15,6 @@ type Props = {
   memberAddOn: any;
   boardAddOn: any;
   triggerAddOn: any;
-  formatPrice: any;
   onSubmit: any;
   onResetForm?: () => void;
 };
@@ -26,7 +26,6 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
     memberAddOn,
     boardAddOn,
     triggerAddOn,
-    formatPrice,
     onSubmit,
     onResetForm,
   }: Props,
@@ -130,23 +129,23 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
           {recursosAlterados ? (
             <>
               <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                {formatPrice(valorNovosRecursos)}
+                {formatCurrency(valorNovosRecursos)}
                 <span className="text-base font-normal text-gray-500 mb-1">
                   /mês
                 </span>
               </span>
               <div className="flex flex-col mt-2">
                 <span className="text-xs text-gray-500 line-through decoration-dashed">
-                  {formatPrice(valorTotalAtual)}
+                  {formatCurrency(valorTotalAtual)}
                 </span>
                 <span className="text-base font-bold text-gray-900 dark:text-white">
-                  {formatPrice(valorTotalNovo)}
+                  {formatCurrency(valorTotalNovo)}
                 </span>
               </div>
             </>
           ) : (
             <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
-              {formatPrice(0)}
+              {formatCurrency(0)}
               <span className="text-base font-normal text-gray-500 mb-1">
                 /mês
               </span>
@@ -210,8 +209,8 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
         <div className="flex items-center gap-2 mb-2">
           <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
             {oneTimeTriggerPlan && oneTimeTriggerPlan.price > 0
-              ? formatPrice(valorDisparoUnico)
-              : formatPrice(0)}
+              ? formatCurrency(valorDisparoUnico)
+              : formatCurrency(0)}
           </span>
           <span className="text-base font-normal text-gray-500 mb-0">
             total
@@ -266,7 +265,7 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
                 />
                 {boardAddOn && (
                   <span className="text-xs text-gray-500">
-                    R$ {boardAddOn.price.toFixed(2)} cada
+                    {formatCurrency(boardAddOn.price)} cada
                   </span>
                 )}
               </div>
@@ -289,7 +288,7 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
                 />
                 {memberAddOn && (
                   <span className="text-xs text-gray-500">
-                    R$ {memberAddOn.price.toFixed(2)} cada
+                    {formatCurrency(memberAddOn.price)} cada
                   </span>
                 )}
               </div>
@@ -313,7 +312,7 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
                 />
                 {triggerAddOn && (
                   <span className="text-xs text-gray-500">
-                    R$ {triggerAddOn.price.toFixed(2)} cada
+                    {formatCurrency(triggerAddOn.price)} cada
                   </span>
                 )}
               </div>
@@ -352,7 +351,7 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
                 />
                 {oneTimeTriggerPlan && (
                   <span className="text-xs text-gray-500">
-                    R$ {oneTimeTriggerPlan?.price?.toFixed(2)} cada
+                    {formatCurrency(oneTimeTriggerPlan?.price || 0)} cada
                   </span>
                 )}
               </div>

@@ -1,5 +1,6 @@
 import React from "react";
 import { Check } from "lucide-react";
+import { formatCurrency } from "../../../utils/formatters";
 
 interface PlanCardProps {
   title: string;
@@ -28,15 +29,6 @@ export function PlanCard({
   onClick,
   className,
 }: PlanCardProps) {
-  const formatPrice = (value: number) => {
-    return value.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
   // Extrair as cores do gradiente para usar no círculo
   const gradientColor = gradient.split(" ")[1].replace("from-", "");
 
@@ -82,7 +74,7 @@ export function PlanCard({
         <div className="mb-6">
           <div className="flex items-baseline">
             <span className="text-3xl font-bold text-gray-900 dark:text-white">
-              {formatPrice(price)}
+              {formatCurrency(price)}
             </span>
             <span className="ml-1 text-sm text-gray-600 dark:text-gray-300">
               /{billingPeriod === "monthly" ? "mês" : "ano"}
