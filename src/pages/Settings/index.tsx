@@ -16,6 +16,7 @@ import { PerformanceTab } from "./PerformanceTab";
 import { ProfileTab } from "./ProfileTab";
 import { SubscriptionTab } from "./SubscriptionTab";
 import { useAuthStore } from "../../store/authStore";
+import { formatCurrency } from "../../utils/formatters";
 
 export function Settings() {
   const { ai, asaas, openai, updateAI, updateAsaas, updateOpenAI } =
@@ -26,7 +27,7 @@ export function Settings() {
   >("general");
 
   const { user, organization } = useAuthStore();
-  const isMaster = organization?.masterUserId === user?.id;
+  const isMaster = organization?.master_user_id === user?.id;
 
   const handleSave = () => {
     toast.success("Configurações salvas com sucesso!");
@@ -236,10 +237,7 @@ export function Settings() {
                           Saldo Atual
                         </span>
                         <span className="text-sm text-green-600 dark:text-green-400 font-medium">
-                          {asaas.balance.toLocaleString("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          })}
+                          {formatCurrency(asaas.balance)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">

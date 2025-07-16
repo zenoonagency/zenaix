@@ -79,7 +79,7 @@ export function ProfileTab() {
         result.compressedSize &&
         result.compressedSize < result.originalSize
       ) {
-        toast.success("Imagem comprimida com sucesso!");
+        toast.success("Imagem processada com sucesso!");
       }
       toast.success("Avatar atualizado com sucesso!");
     } catch (error) {

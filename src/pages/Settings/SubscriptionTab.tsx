@@ -10,6 +10,7 @@ import { formatDateTimeGeneral } from "../../utils/dateUtils";
 import { formatMessageTime } from "../../utils/dateUtils";
 import { Modal } from "../../components/Modal";
 import { ManageResourcesForm } from "../../components/ManageResourcesForm";
+import { formatCurrency } from "../../utils/formatters";
 
 export function SubscriptionTab() {
   const { organization, token, fetchAndSyncUser } = useAuthStore();
@@ -297,10 +298,7 @@ export function SubscriptionTab() {
           </span>
         </div>
         <div className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">
-          R${" "}
-          {totalMonthlyCost.toLocaleString("pt-BR", {
-            minimumFractionDigits: 2,
-          })}{" "}
+          {formatCurrency(totalMonthlyCost)}
           <span className="text-base font-medium text-gray-500">/mês</span>
         </div>
 
