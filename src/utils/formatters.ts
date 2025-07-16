@@ -28,14 +28,8 @@ export function formatApiError(
   let errorMessage = errorData.message || fallback;
 
   if (errorData.errors && typeof errorData.errors === "object") {
-    const details = Object.entries(errorData.errors)
-      .map(
-        ([field, messages]) =>
-          `${formatFieldName(field)}: ${messages.join(", ")}`
-      )
-      .join(" | ");
-
-    errorMessage += ` (${details})`;
+    const details = Object.values(errorData.errors).flat().join(" | ");
+    errorMessage = details || errorMessage;
   }
 
   return errorMessage;
