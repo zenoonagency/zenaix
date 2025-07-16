@@ -6,6 +6,7 @@ import {
   PlanUpdate,
 } from "../../types/plan";
 import { getAuthHeaders } from "../../utils/authHeaders";
+import { formatApiError } from "../../utils/formatters";
 import { APIError } from "../errors/api.errors";
 
 export const planService = {
@@ -21,7 +22,7 @@ export const planService = {
       );
       const responseData: ApiResponse<PlanOutput> = await response.json();
       if (!response.ok) {
-        throw new APIError(responseData.message || "Falha ao criar o plano.");
+        throw formatApiError(responseData, "Falha ao criar o plano.");
       }
       return responseData.data;
     } catch (error) {
@@ -45,9 +46,7 @@ export const planService = {
       });
       const responseData: ApiResponse<PlanOutput> = await response.json();
       if (!response.ok) {
-        throw new APIError(
-          responseData.message || "Falha ao atualizar o plano."
-        );
+        throw formatApiError(responseData, "Falha ao atualizar o plano.");
       }
       return responseData.data;
     } catch (error) {
@@ -67,7 +66,7 @@ export const planService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new APIError(errorData?.message || "Falha ao deletar o plano.");
+        throw formatApiError(errorData, "Falha ao deletar o plano.");
       }
     } catch (error) {
       console.error("Erro ao deletar o plano:", error);
@@ -90,9 +89,7 @@ export const planService = {
       });
       const responseData: ApiResponse<PlanOutput[]> = await response.json();
       if (!response.ok) {
-        throw new APIError(
-          responseData.message || "Falha ao buscar os planos."
-        );
+        throw formatApiError(responseData, "Falha ao buscar os planos.");
       }
       return responseData.data;
     } catch (error) {
@@ -111,7 +108,7 @@ export const planService = {
       });
       const responseData: ApiResponse<PlanOutput> = await response.json();
       if (!response.ok) {
-        throw new APIError(responseData.message || "Falha ao buscar o plano.");
+        throw formatApiError(responseData, "Falha ao buscar o plano.");
       }
       return responseData.data;
     } catch (error) {

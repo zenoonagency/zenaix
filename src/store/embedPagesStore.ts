@@ -3,26 +3,18 @@ import { persist } from "zustand/middleware";
 import { EmbedOutput } from "../types/embed";
 import { embedService } from "../services/embed/embed.service";
 import { APIError } from "../services/errors/api.errors";
-import {
-  RealtimeChannel,
-  RealtimePostgresChangesPayload,
-} from "@supabase/supabase-js";
-import { supabase } from "../lib/supabaseClient";
 
 export interface EmbedPagesState {
   pages: EmbedOutput[];
   isLoading: boolean;
   error: string | null;
   lastFetched: number | null;
-  realtimeChannel: RealtimeChannel | null;
 
   setPages: (pages: EmbedOutput[]) => void;
   addPage: (page: EmbedOutput) => void;
   updatePage: (page: EmbedOutput) => void;
   deletePage: (pageId: string) => void;
   fetchAllEmbedPages: (token: string, organizationId: string) => Promise<void>;
-  connectToEmbedChanges: (organizationId: string) => void;
-  disconnectFromEmbedChanges: () => void;
 }
 
 const CACHE_DURATION = 60 * 60 * 1000;
@@ -88,72 +80,6 @@ export const useEmbedPagesStore = create<EmbedPagesState>()(
               ? err.message
               : "Não foi possível carregar as páginas embed.";
           set({ error: errorMessage, isLoading: false });
-        }
-      },
-      connectToEmbedChanges: (organization_id: string) => {
-        const { addPage, updatePage, deletePage } = get();
-
-        // Previne múltiplas conexões
-        if (get().realtimeChannel) {
-          return;
-        }
-
-        console.log(
-          `[EmbedPagesStore] 📢 Conectando ao Realtime de Embeds para a org: ${organization_id}`
-        );
-
-        const channel = supabase
-          .channel(`embed-pages-${organization_id}`)
-          .on(
-            "postgres_changes",
-            {
-              event: "*",
-              schema: "public",
-              table: "EmbedPage",
-              // filter: `organization_id=eq.${organization_id}`,
-            },
-            (payload: RealtimePostgresChangesPayload<EmbedOutput>) => {
-              console.log(
-                "📢 Evento de Realtime recebido para Embeds:",
-                payload
-              );
-
-              switch (payload.eventType) {
-                case "INSERT":
-                  addPage(payload.new);
-                  break;
-                case "UPDATE":
-                  updatePage(payload.new);
-                  break;
-                case "DELETE":
-                  if (payload.old.id) {
-                    deletePage(payload.old.id);
-                  }
-                  break;
-              }
-            }
-          )
-          .subscribe((status, err) => {
-            if (status === "SUBSCRIBED") {
-              console.log(
-                `[EmbedPagesStore] ✅ Inscrito com sucesso no canal de embeds!`
-              );
-            }
-            if (status === "CHANNEL_ERROR") {
-              console.error(
-                `[EmbedPagesStore] ❌ Erro ao conectar no canal de embeds:`,
-                err
-              );
-            }
-          });
-
-        set({ realtimeChannel: channel });
-      },
-      disconnectFromEmbedChanges: () => {
-        const { realtimeChannel } = get();
-        if (realtimeChannel) {
-          supabase.removeChannel(realtimeChannel);
-          set({ realtimeChannel: null });
         }
       },
     }),

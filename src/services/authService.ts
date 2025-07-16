@@ -18,14 +18,16 @@ export const authService = {
       const responseData = await response.json();
 
       if (!response.ok) {
-        throw new APIError(responseData.message || "Email ou senha inválidos.");
+        throw formatApiError(
+          responseData.message || "Email ou senha inválidos."
+        );
       }
 
       const userPayload = responseData.data;
 
       return {
         user: userPayload,
-        token: responseData.token, 
+        token: responseData.token,
         organization: userPayload.organization || null,
         permissions: userPayload.permissions || [],
       };
@@ -59,13 +61,13 @@ export const authService = {
         );
       }
 
-      const apiPayload = responseData.data;
+      const apiPayload = responseData;
 
       return {
-        user: apiPayload.user,
+        user: apiPayload,
         token: apiPayload.token,
-        organization: apiPayload.user.organization || null,
-        permissions: apiPayload.user.permissions || [],
+        organization: apiPayload.data.organization || null,
+        permissions: apiPayload.data.permissions || [],
       };
     } catch (error) {
       console.error("Register Error:", error);

@@ -4,8 +4,7 @@ import { API_CONFIG } from "../../config/api.config";
 import { ApiResponse } from "../../types/api.types";
 import { fetchWithAuth } from "../apiClient";
 import { getAuthHeaders } from "../../utils/authHeaders";
-
-
+import { formatApiError } from "../../utils/formatters";
 
 export const userService = {
   async updateUser(
@@ -27,17 +26,14 @@ export const userService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new APIError(
-          errorData?.message || "Falha ao atualizar utilizador."
-        );
+        throw formatApiError(errorData || "Falha ao atualizar utilizador.");
       }
 
       const responseData: ApiResponse<User> = await response.json();
-      console.log("responseData");
-      console.log(responseData);
       return responseData.data;
     } catch (error) {
       console.error("Update User Error:", error);
+
       if (error instanceof APIError) throw error;
       throw new APIError(
         "Ocorreu um erro inesperado ao atualizar o utilizador."
@@ -65,9 +61,7 @@ export const userService = {
       if (!response.ok) {
         if (contentType && contentType.includes("application/json")) {
           const errorData = await response.json().catch(() => null);
-          throw new APIError(
-            errorData?.message || "Falha ao atualizar avatar."
-          );
+          throw formatApiError(errorData || "Falha ao atualizar avatar.");
         } else {
           const errorText = await response.text();
           throw new APIError(errorText || "Falha ao atualizar avatar.");
@@ -101,7 +95,7 @@ export const userService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new APIError(errorData.message || "Falha ao remover avatar.");
+        throw formatApiError(errorData || "Falha ao remover avatar.");
       }
     } catch (error) {
       console.error("Remove Avatar Error:", error);
@@ -145,9 +139,9 @@ export const userService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new APIError(
-          errorData?.message ||
-            `Erro ${response.status}: Falha ao buscar dados do utilizador.`
+        throw formatApiError(
+          errorData,
+          `Erro ${response.status}: Falha ao buscar dados do utilizador.`
         );
       }
 
@@ -161,7 +155,7 @@ export const userService = {
         console.log(
           "Serviço: Requisição cancelada pelo cliente (AbortError ou TypeError). Relançando para ser ignorado."
         );
-        throw error; 
+        throw error;
       }
 
       if (error instanceof APIError) {

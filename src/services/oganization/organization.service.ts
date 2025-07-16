@@ -8,7 +8,7 @@ import {
 import { ApiResponse } from "../../types/api.types";
 import { APIError } from "../errors/api.errors";
 import { getAuthHeaders } from "../../utils/authHeaders";
-
+import { formatApiError } from "../../utils/formatters";
 
 export const organizationService = {
   async createCheckoutSessionForNewOrg(
@@ -28,16 +28,14 @@ export const organizationService = {
       const responseData = await response.json();
 
       if (!response.ok) {
-        throw new APIError(
-          responseData.message || "Erro ao criar sessão de checkout."
-        );
+        throw formatApiError(responseData, "Erro ao criar sessão de checkout.");
       }
 
       return responseData.data;
     } catch (error) {
       console.error("Erro ao criar sessão de checkout:", error);
       if (error instanceof APIError) throw error;
-      throw new APIError("Ocorreu um erro inesperado.");
+      throw new APIError(error);
     }
   },
 
@@ -56,9 +54,7 @@ export const organizationService = {
       const responseData: ApiResponse<OrganizationOutput[]> =
         await response.json();
       if (!response.ok) {
-        throw new APIError(
-          responseData.message || "Falha ao buscar organizações."
-        );
+        throw formatApiError(responseData, "Falha ao buscar organizações.");
       }
       return responseData.data;
     } catch (error) {
@@ -84,9 +80,7 @@ export const organizationService = {
       const responseData: ApiResponse<OrganizationOutput> =
         await response.json();
       if (!response.ok) {
-        throw new APIError(
-          responseData.message || "Falha ao buscar a organização."
-        );
+        throw formatApiError(responseData, "Falha ao buscar a organização.");
       }
       return responseData.data;
     } catch (error) {
@@ -114,9 +108,7 @@ export const organizationService = {
       const responseData: ApiResponse<OrganizationOutput> =
         await response.json();
       if (!response.ok) {
-        throw new APIError(
-          responseData.message || "Falha ao atualizar a organização."
-        );
+        throw formatApiError(responseData, "Falha ao atualizar a organização.");
       }
       return responseData.data;
     } catch (error) {
@@ -138,9 +130,7 @@ export const organizationService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new APIError(
-          errorData?.message || "Falha ao deletar a organização."
-        );
+        throw formatApiError(errorData, "Falha ao deletar a organização.");
       }
     } catch (error) {
       console.error("Erro ao deletar a organização:", error);

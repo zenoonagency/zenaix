@@ -9,8 +9,8 @@ import {
   PortalSessionResponse,
 } from "../../types/subscription.ts";
 import { getAuthHeaders } from "../../utils/authHeaders.ts";
+import { formatApiError } from "../../utils/formatters.ts";
 import { APIError } from "../errors/api.errors";
-
 
 export const subscriptionService = {
   async createCheckoutSession(
@@ -29,8 +29,9 @@ export const subscriptionService = {
       });
       const responseData = await response.json();
       if (!response.ok) {
-        throw new APIError(
-          responseData.message || "Falha ao criar sessão de checkout."
+        throw formatApiError(
+          responseData,
+          "Falha ao criar sessão de checkout."
         );
       }
       return responseData.data;
@@ -74,9 +75,7 @@ export const subscriptionService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new APIError(
-          errorData?.message || "Falha ao cancelar assinatura."
-        );
+        throw formatApiError(errorData, "Falha ao cancelar assinatura.");
       }
     } catch (error) {
       console.error("Erro ao cancelar assinatura:", error);
@@ -96,9 +95,7 @@ export const subscriptionService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new APIError(
-          errorData?.message || "Falha ao reativar assinatura."
-        );
+        throw formatApiError(errorData, "Falha ao reativar assinatura.");
       }
     } catch (error) {
       console.error("Erro ao reativar assinatura:", error);
@@ -123,7 +120,7 @@ export const subscriptionService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new APIError(errorData?.message || "Falha ao alterar o plano.");
+        throw formatApiError(errorData, "Falha ao alterar o plano.");
       }
     } catch (error) {
       console.error("Erro ao alterar o plano:", error);
@@ -148,7 +145,7 @@ export const subscriptionService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new APIError(errorData?.message || "Falha ao adicionar slots.");
+        throw formatApiError(errorData, "Falha ao adicionar slots.");
       }
     } catch (error) {
       console.error("Erro ao adicionar slots:", error);
@@ -173,7 +170,7 @@ export const subscriptionService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new APIError(errorData?.message || "Falha ao remover slots.");
+        throw formatApiError(errorData, "Falha ao remover slots.");
       }
     } catch (error) {
       console.error("Erro ao remover slots:", error);
@@ -198,7 +195,7 @@ export const subscriptionService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new APIError(errorData?.message || "Falha ao comprar disparos.");
+        throw formatApiError(errorData, "Falha ao comprar disparos.");
       }
 
       const responseData = await response.json();
