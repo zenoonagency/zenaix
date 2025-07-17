@@ -1,51 +1,74 @@
-import React, { useState, useEffect } from 'react';
-import { useFinancialStore, Transaction } from '../../../store/financialStore';
-import { Modal } from '../../../components/Modal';
+import React, { useState, useEffect } from "react";
+import { useTransactionStore } from "../../../store/transactionStore";
+import {
+  OutputTransactionDTO,
+  TransactionType,
+  TransactionStatus,
+} from "../../../types/transaction";
+import { Modal } from "../../../components/Modal";
+import { transactionService } from "../../../services/transaction/transaction.service";
+import { useAuthStore } from "../../../store/authStore";
 
 interface EditTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  transaction: Transaction;
+  transaction: OutputTransactionDTO;
 }
 
-export function EditTransactionModal({ isOpen, onClose, transaction }: EditTransactionModalProps) {
-  const [type, setType] = useState<'income' | 'expense'>('income');
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('');
-  const [date, setDate] = useState('');
-  const [status, setStatus] = useState<'pendente' | 'concluido' | 'cancelado'>('concluido');
-  
-  const { updateTransaction } = useFinancialStore();
+export function EditTransactionModal({
+  isOpen,
+  onClose,
+  transaction,
+}: EditTransactionModalProps) {
+  const [type, setType] = useState<TransactionType>("INCOME");
+  const [description, setDescription] = useState("");
+  const [value, setValue] = useState("");
+  const [category, setCategory] = useState("");
+  const [date, setDate] = useState("");
+  const [status, setStatus] = useState<TransactionStatus>("COMPLETED");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const { updateTransaction } = useTransactionStore();
 
   useEffect(() => {
     if (transaction) {
       setType(transaction.type);
-      setDescription(transaction.description);
-      setAmount(transaction.amount.toString());
-      setCategory(transaction.category);
-      setDate(transaction.date.split('T')[0]);
+      setDescription(transaction.description || "");
+      setValue(
+        transaction.value !== undefined && transaction.value !== null
+          ? transaction.value.toString()
+          : ""
+      );
+      setCategory(transaction.category || "");
+      setDate(transaction.date ? transaction.date.split("T")[0] : "");
       setStatus(transaction.status);
     }
   }, [transaction]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Garantir que a data seja tratada corretamente
-    // Criar a data a partir do valor do input, que está no formato YYYY-MM-DD
-    const selectedDate = new Date(date + 'T12:00:00'); // Adicionar meio-dia para evitar problemas de fuso horário
-    
+    setIsSaving(true);
+    const { token, user } = useAuthStore.getState();
+    if (!token || !user?.organization_id) {
+      setIsSaving(false);
+      return;
+    }
+    const selectedDate = new Date(date + "T12:00:00");
     const updatedTransaction = {
-      type,
       description,
-      amount: Number(amount),
-      date: selectedDate.toISOString(), // Usar a data corrigida
+      value: Number(value),
       category,
-      status
+      type,
+      status,
+      date: selectedDate.toISOString(),
     };
-
-    updateTransaction(transaction.id, updatedTransaction);
+    await transactionService.update(
+      token,
+      user.organization_id,
+      transaction.id,
+      updatedTransaction
+    );
+    setIsSaving(false);
     onClose();
   };
 
@@ -59,22 +82,22 @@ export function EditTransactionModal({ isOpen, onClose, transaction }: EditTrans
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setType('income')}
+              onClick={() => setType("INCOME")}
               className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
-                type === 'income'
-                  ? 'bg-green-100 border-green-500 text-green-700 dark:bg-green-900/20 dark:border-green-500 dark:text-green-400'
-                  : 'border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700'
+                type === "INCOME"
+                  ? "bg-green-100 border-green-500 text-green-700 dark:bg-green-900/20 dark:border-green-500 dark:text-green-400"
+                  : "border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700"
               }`}
             >
               Entrada
             </button>
             <button
               type="button"
-              onClick={() => setType('expense')}
+              onClick={() => setType("EXPENSE")}
               className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
-                type === 'expense'
-                  ? 'bg-red-100 border-red-500 text-red-700 dark:bg-red-900/20 dark:border-red-500 dark:text-red-400'
-                  : 'border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700'
+                type === "EXPENSE"
+                  ? "bg-red-100 border-red-500 text-red-700 dark:bg-red-900/20 dark:border-red-500 dark:text-red-400"
+                  : "border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700"
               }`}
             >
               Saída
@@ -101,8 +124,8 @@ export function EditTransactionModal({ isOpen, onClose, transaction }: EditTrans
           </label>
           <input
             type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
             className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-dark-700 border border-gray-300 dark:border-dark-600 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-colors"
             min="0"
             step="0.01"
@@ -142,13 +165,13 @@ export function EditTransactionModal({ isOpen, onClose, transaction }: EditTrans
           </label>
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value as 'pendente' | 'concluido' | 'cancelado')}
+            onChange={(e) => setStatus(e.target.value as TransactionStatus)}
             className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-dark-700 border border-gray-300 dark:border-dark-600 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-colors"
             required
           >
-            <option value="pendente">Pendente</option>
-            <option value="concluido">Concluído</option>
-            <option value="cancelado">Cancelado</option>
+            <option value="PENDING">Pendente</option>
+            <option value="COMPLETED">Concluído</option>
+            <option value="CANCELED">Cancelado</option>
           </select>
         </div>
 
@@ -163,11 +186,34 @@ export function EditTransactionModal({ isOpen, onClose, transaction }: EditTrans
           <button
             type="submit"
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            disabled={isSaving}
           >
-            Salvar Alterações
+            {isSaving ? (
+              <span className="flex items-center">
+                <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8z"
+                  />
+                </svg>
+                Salvando...
+              </span>
+            ) : (
+              "Salvar Alterações"
+            )}
           </button>
         </div>
       </form>
     </Modal>
   );
-} 
+}
