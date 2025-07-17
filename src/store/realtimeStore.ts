@@ -7,6 +7,8 @@ import { RealtimeEventPayload } from "../types/realtime.types";
 import { EmbedOutput } from "../types/embed";
 import { useTagStore } from "./tagStore";
 import { useContractStore } from "./contractStore";
+import { useTransactionStore } from "./transactionStore";
+import { TransactionType } from "../types/transaction";
 
 interface RealtimeState {
   userChannel: RealtimeChannel | null;
@@ -57,6 +59,23 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
             eventData
           );
 
+          const refreshSummaryForDate = (dateString: string) => {
+            const { token, organization } = useAuthStore.getState();
+            if (token && organization.id && dateString) {
+              const transactionDate = new Date(dateString);
+              const year = transactionDate.getFullYear();
+              const month = transactionDate.getMonth() + 1; // getMonth() é 0-11
+
+              console.log(
+                `[RealtimeStore] A acionar uma nova busca do resumo para`,
+                { year, month }
+              );
+              useTransactionStore
+                .getState()
+                .fetchSummary(token, organization.id, { year, month });
+            }
+          };
+
           switch (eventData.event) {
             case "ORGANIZATION_UPDATED":
               useAuthStore.getState().setOrganization(eventData.data);
@@ -91,6 +110,26 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
               break;
             case "EMBED_PAGE_DELETED":
               useEmbedPagesStore.getState().deletePage(eventData.data.id);
+              break;
+            case "TRANSACTION_CREATED":
+              useTransactionStore.getState().addTransaction(eventData.data);
+              console.log(eventData.data);
+              refreshSummaryForDate(eventData.data.date);
+              break;
+            case "TRANSACTION_UPDATED":
+              useTransactionStore.getState().updateTransaction(eventData.data);
+
+              refreshSummaryForDate(eventData.data.date);
+              break;
+            case "TRANSACTION_DELETED":
+              useTransactionStore
+                .getState()
+                .deleteTransaction(eventData.data.id);
+
+              refreshSummaryForDate(eventData.data.date); 
+              break;
+            case "TRANSACTIONS_DELETED_ALL":
+              // useTransactionStore.getState().(eventData.data);
               break;
           }
         })

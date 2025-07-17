@@ -4,7 +4,7 @@ export const API_CONFIG = {
   supabaseAnonKey:
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhbWlxcWV1bWtocGZnd2RranZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4MTM3NTYsImV4cCI6MjA2NzM4OTc1Nn0.tKy_PaZetxDfHqLH626SWPk6fWu8HQvhZCQG-4zXbUM",
   endpoints: {
-    startAI: "/liga",
+    startAI: "/liga", 
     stopAI: "/desliga",
     uploadDocument: "/arquivo",
     register: "/register",
@@ -98,6 +98,22 @@ export const API_CONFIG = {
       `/organizations/${organizationId}/contracts/${contractId}/file`,
     deleteFile: (organizationId: string, contractId: string) =>
       `/organizations/${organizationId}/contracts/${contractId}/file`,
+  },
+  finance: {
+    create: (organizationId: string) =>
+      `/organizations/${organizationId}/transactions`,
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/transactions`,
+    findById: (organizationId: string, transactionId: string) =>
+      `/organizations/${organizationId}/transactions/${transactionId}`,
+    getSummary: (organizationId: string) =>
+      `/organizations/${organizationId}/transactions/summary`,
+    update: (organizationId: string, transactionId: string) =>
+      `/organizations/${organizationId}/transactions/${transactionId}`,
+    delete: (organizationId: string, transactionId: string) =>
+      `/organizations/${organizationId}/transactions/${transactionId}`,
+    deleteAll: (organizationId: string) =>
+      `/organizations/${organizationId}/transactions/transactions`,
   },
   timeouts: {
     default: 30000,

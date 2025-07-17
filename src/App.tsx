@@ -12,6 +12,8 @@ import { useEmbedPagesStore } from "./store/embedPagesStore";
 import { useRealtimeStore } from "./store/realtimeStore";
 import { useTagStore } from "./store/tagStore";
 import { useContractStore } from "./store/contractStore";
+import { useTransactionStore } from "./store/transactionStore";
+import { supabase } from "./lib/supabaseClient";
 
 export function App() {
   const {
@@ -31,18 +33,20 @@ export function App() {
   }));
 
   const fetchAllPlans = usePlanStore((state) => state.fetchAllPlans);
+  const fetchAllTransactions = useTransactionStore(
+    (state) => state.fetchAllTransactions
+  );
   const fetchAllEmbedPages = useEmbedPagesStore(
     (state) => state.fetchAllEmbedPages
   );
 
   const fetchAllTags = useTagStore((state) => state.fetchAllTags);
-  const fetchAllContracts = useContractStore((state) => state.fetchAllContracts);
+  const fetchAllContracts = useContractStore(
+    (state) => state.fetchAllContracts
+  );
 
-  const { connect: connectToRealtime, disconnect: disconnectFromRealtime } =
-    useRealtimeStore((state) => ({
-      connect: state.connect,
-      disconnect: state.disconnect,
-    }));
+  const connectToRealtime = useRealtimeStore((state) => state.connect);
+  const disconnectFromRealtime = useRealtimeStore((state) => state.disconnect);
 
   useEffect(() => {
     if (isAuthenticated && _hasHydrated && token) {
@@ -55,6 +59,7 @@ export function App() {
         fetchAllEmbedPages(token, organizationId);
         fetchAllTags(token, organizationId);
         fetchAllContracts(token, organizationId);
+        fetchAllTransactions(token, organizationId);
       }
 
       if (userId) {
@@ -79,6 +84,23 @@ export function App() {
     connectToRealtime,
     disconnectFromRealtime,
   ]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log(
+          "👀 Aba tornou-se visível. A verificar o estado do Realtime..."
+        );
+        supabase.realtime.connect();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   return (
     <>

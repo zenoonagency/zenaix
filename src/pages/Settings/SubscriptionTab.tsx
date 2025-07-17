@@ -84,7 +84,7 @@ export function SubscriptionTab() {
     setIsSubmittingManage(true);
     try {
       const data = await subscriptionService.managePlan(token, organization.id);
-      setCheckoutUrl(data.portalUrl);
+      setCheckoutUrl(data.portal_url);
       setShowManageModal(true);
     } catch (error) {
       const message =

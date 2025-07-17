@@ -931,12 +931,6 @@ h-[calc(100%-2.5rem)]
                 collapsed={collapsed}
                 isNew
               />
-              <SidebarLink
-                to="/dashboard/webhook-tester"
-                icon={<MessageSquare size={22} />}
-                label="Testador de Webhook"
-                collapsed={collapsed}
-              />
             </SidebarSection>
           </nav>
 
@@ -960,7 +954,7 @@ h-[calc(100%-2.5rem)]
                     />
                   </button>
                   {showTags && (
-                    <div className="mt-2 ml-8 space-y-2">
+                    <div className="mt-2 space-y-2">
                       <TagList />
                     </div>
                   )}

@@ -15,7 +15,11 @@ export function PlanModalGlobal() {
     const alreadyShown =
       sessionStorage.getItem(PLAN_MODAL_SESSION_KEY) === "true";
 
-    const hasPlanActive = organization.subscription_status === "ACTIVE";
+    let hasPlanActive = false;
+
+    if (organization) {
+      hasPlanActive = organization.subscription_status === "ACTIVE";
+    }
 
     const shouldShowModal = isAuthenticated && !alreadyShown && !hasPlanActive;
 

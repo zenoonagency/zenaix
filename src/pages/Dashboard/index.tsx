@@ -6,7 +6,6 @@ import React, {
   useMemo,
 } from "react";
 import { useKanbanStore } from "../Clients/store/kanbanStore";
-import { useFinancialStore } from "../../store/financialStore";
 import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ptBR } from "date-fns/locale";
@@ -111,15 +110,12 @@ export function Dashboard() {
     };
   }, [showAllSellersModal, showExportModal, showBoardSelector]);
 
-  // Usar todos os stores necessários
   const kanbanStore = useKanbanStore();
-  const financialStore = useFinancialStore();
   const contractStore = useContractStore();
   const { members } = useTeamStore();
 
-  // Extrair os dados necessários de cada store
   const boards = kanbanStore?.boards ?? [];
-  const transactions = financialStore?.transactions ?? [];
+  const transactions = [];
   const contracts = contractStore?.contracts ?? [];
   const getCompletedListId = kanbanStore?.getCompletedListId;
 
@@ -130,20 +126,15 @@ export function Dashboard() {
       setError(null);
 
       // Garantir que os stores estão inicializados
-      if (
-        !kanbanStore?.initialized ||
-        !financialStore?.initialized ||
-        !contractStore?.initialized
-      ) {
+      if (!kanbanStore?.initialized || !contractStore?.initialized) {
         await Promise.all([
           kanbanStore?.initialize?.(),
-          financialStore?.initialize?.(),
           contractStore?.initialize?.(),
         ]);
       }
 
       // Verificar se os stores estão disponíveis
-      if (!kanbanStore || !financialStore || !contractStore) {
+      if (!kanbanStore || !contractStore) {
         throw new Error("Falha ao carregar dados dos stores");
       }
 
@@ -180,7 +171,6 @@ export function Dashboard() {
     }
   }, [
     kanbanStore,
-    financialStore,
     contractStore,
     retryCount,
     boards,
