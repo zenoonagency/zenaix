@@ -15,6 +15,8 @@ interface CustomModalProps {
   confirmText?: string;
   cancelText?: string;
   hideDefaultButton?: boolean;
+  confirmLoading?: boolean;
+  confirmDisabled?: boolean;
 }
 
 export function CustomModal({
@@ -27,6 +29,8 @@ export function CustomModal({
   confirmText = "Confirmar",
   cancelText = "Cancelar",
   hideDefaultButton = false,
+  confirmLoading = false,
+  confirmDisabled = false,
 }: CustomModalProps) {
   if (!isOpen) return null;
 
@@ -54,8 +58,38 @@ export function CustomModal({
                   ? "bg-red-600 hover:bg-red-700"
                   : "bg-purple-600 hover:bg-purple-700"
               }`}
+              disabled={confirmDisabled || confirmLoading}
             >
-              {type === "confirm" ? confirmText : "OK"}
+              {confirmLoading ? (
+                <span className="flex items-center">
+                  <svg
+                    className="animate-spin h-4 w-4 mr-2"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8z"
+                    />
+                  </svg>
+                  {type === "confirm" && confirmText === "Excluir"
+                    ? "Excluindo..."
+                    : "Salvando..."}
+                </span>
+              ) : type === "confirm" ? (
+                confirmText
+              ) : (
+                "OK"
+              )}
             </button>
           )}
         </div>
@@ -72,11 +106,11 @@ export function useCustomModal() {
   >({
     title: "",
     type: "alert",
+    message: "",
   });
   const [resolvePromise, setResolvePromise] = React.useState<
     ((value: any) => void) | null
   >(null);
-  const [inputValue, setInputValue] = React.useState("");
 
   const showModal = (config: Omit<CustomModalProps, "isOpen" | "onClose">) => {
     return new Promise((resolve) => {
@@ -90,15 +124,10 @@ export function useCustomModal() {
     setIsOpen(false);
     resolvePromise?.(null);
     setResolvePromise(null);
-    setInputValue("");
   };
 
   const handleConfirm = () => {
-    if (modalConfig.type === "prompt") {
-      resolvePromise?.(inputValue);
-    } else {
-      resolvePromise?.(true);
-    }
+    resolvePromise?.(true);
     handleClose();
   };
 
@@ -113,25 +142,18 @@ export function useCustomModal() {
       onClose={handleClose}
       {...modalConfig}
       onConfirm={handleConfirm}
-      onCancel={handleCancel}
-      inputValue={inputValue}
-      onInputChange={setInputValue}
     />
   );
 
-  const customAlert = (title: string, message?: string) =>
+  const customAlert = (title: string, message: string = "") =>
     showModal({ title, message, type: "alert" });
 
-  const customConfirm = (title: string, message?: string) =>
+  const customConfirm = (title: string, message: string = "") =>
     showModal({ title, message, type: "confirm" });
-
-  const customPrompt = (title: string, message?: string) =>
-    showModal({ title, message, type: "prompt" });
 
   return {
     modal,
     customAlert,
     customConfirm,
-    customPrompt,
   };
 }
