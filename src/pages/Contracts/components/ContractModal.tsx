@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import {
   ContractStatus,
@@ -41,6 +41,7 @@ export function ContractModal({
       new Date().toISOString().split("T")[0]
   );
   const [file, setFile] = useState<File | null>(null);
+  const [selectFile, setSelectFile] = useState<File | null>(null);
   useEffect(() => {
     if (contract) {
       setTitle(contract.title || "");
@@ -53,6 +54,7 @@ export function ContractModal({
           new Date().toISOString().split("T")[0]
       );
       setFile(null);
+      setSelectFile(null);
     }
   }, [contract]);
   const { token, organizationId } = useAuthStore((state) => ({
@@ -102,6 +104,7 @@ export function ContractModal({
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
+    setSelectFile(selectedFile);
     if (selectedFile && selectedFile.type !== "application/pdf") {
       alert("Por favor, selecione um arquivo PDF válido.");
       e.target.value = "";
@@ -129,6 +132,17 @@ export function ContractModal({
       setUploading(false);
     }
   };
+
+  // Adiciona função para remover arquivo selecionado antes de salvar
+  const handleRemoveSelectedFile = () => {
+    setFile(null);
+    setSelectFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
@@ -231,17 +245,27 @@ export function ContractModal({
               Arquivo PDF
             </label>
             {contract?.pdf_file_name && !file && (
-              <div className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                Arquivo atual: {contract.pdf_file_name}
+              <div className="mb-2 flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                Arquivo atual: {contract.pdf_file_name}{" "}
+                <button
+                  type="button"
+                  className="flex items-center justify-center px-1 py-2 bg-red-100 dark:bg-red-900 text-red-600 hover:bg-red-200 dark:hover:bg-red-800 rounded-md  ml-1"
+                  style={{ height: "10px" }}
+                  title="Remover arquivo"
+                  onClick={handleRemoveFile}
+                >
+                  <X size={15} />
+                </button>
               </div>
             )}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center my-3">
               <input
                 type="file"
                 onChange={handleFileUpload}
                 accept=".pdf,application/pdf"
                 className="hidden"
                 id="file-upload"
+                ref={fileInputRef}
               />
               <label
                 htmlFor="file-upload"
@@ -279,18 +303,22 @@ export function ContractModal({
                 ) : null}
                 Escolher arquivo
               </label>
-              {contract?.pdf_file_name && !file && (
+            </div>
+            {selectFile && (
+              <div className="flex">
+                {selectFile.name}{" "}
                 <button
                   type="button"
-                  className="flex items-center justify-center px-3 py-2 bg-red-100 dark:bg-red-900 text-red-600 hover:bg-red-200 dark:hover:bg-red-800 rounded-md ml-1"
-                  style={{ height: "40px" }}
+                  className="flex items-center justify-center px-1 py-2  text-red-600   rounded-md  ml-1"
+                  style={{ height: "10px" }}
                   title="Remover arquivo"
-                  onClick={handleRemoveFile}
+                  onClick={handleRemoveSelectedFile}
                 >
-                  <X size={18} />
+                  <X size={15} />
                 </button>
-              )}
-            </div>
+              </div>
+            )}
+
             {customModalElement}
           </div>
 

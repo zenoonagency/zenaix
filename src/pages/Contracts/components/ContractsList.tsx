@@ -26,6 +26,7 @@ export function ContractsList({ itensFiltrados }: ContractsListProps) {
     organizationId: state.user?.organization_id,
   }));
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfOriginalUrl, setPdfOriginalUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [selectedContractId, setSelectedContractId] = useState<string | null>(
     null
@@ -95,13 +96,26 @@ export function ContractsList({ itensFiltrados }: ContractsListProps) {
     setViewingContract(contract);
     setLoadingPdf(true);
     setPdfUrl(null);
+    setPdfOriginalUrl(null);
     try {
       const pdfUrlResult = await contractService.downloadFile(
         token,
         organizationId,
         contract.id
       );
-      setPdfUrl(pdfUrlResult);
+      setPdfOriginalUrl(pdfUrlResult);
+      // Se não for blob/data, faz fetch e converte para blob
+      let safeUrl = pdfUrlResult;
+      if (
+        pdfUrlResult &&
+        !pdfUrlResult.startsWith("blob:") &&
+        !pdfUrlResult.startsWith("data:")
+      ) {
+        const response = await fetch(pdfUrlResult);
+        const blob = await response.blob();
+        safeUrl = URL.createObjectURL(blob);
+      }
+      setPdfUrl(safeUrl);
     } catch (e) {
       alert("Erro ao carregar PDF");
     }
@@ -321,16 +335,9 @@ export function ContractsList({ itensFiltrados }: ContractsListProps) {
               ) : pdfUrl ? (
                 <PDFViewer
                   fileUrl={pdfUrl}
+                  fileName={viewingContract?.pdf_file_name}
                   height="calc(100vh - 200px)"
                   className="rounded-md w-full"
-                  showControls={true}
-                  contractId={viewingContract.id}
-                  organizationId={organizationId}
-                  onFileDeleted={() => {
-                    setViewingContract(null);
-                    setPdfUrl(null);
-                    // Se quiser atualizar a lista, faça via estado aqui
-                  }}
                 />
               ) : (
                 <DummyPDF
