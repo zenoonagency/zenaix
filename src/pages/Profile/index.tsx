@@ -1,13 +1,11 @@
 import React, { useState, useRef } from "react";
 import { User, Camera, Trash2, QrCode, X, LogOut } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
-import { useSettingsStore } from "../../store/settingsStore";
 import { useNavigate } from "react-router-dom";
 
 export function Profile() {
   const { user, logout, updateUser } = useAuthStore();
   const navigate = useNavigate();
-  const { webhookAgent } = useSettingsStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
@@ -43,47 +41,6 @@ export function Profile() {
   const handleLogout = () => {
     logout();
     navigate("/login");
-  };
-
-  const handleGenerateQRCode = async () => {
-    if (!webhookAgent) {
-      alert("Webhook não configurado");
-      return;
-    }
-
-    setIsGeneratingQR(true);
-    setQrCodeImage(null);
-
-    try {
-      const response = await fetch(webhookAgent, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          photo: formData.photo,
-          plan: user?.plan || "Plano Básico",
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao gerar QR Code");
-      }
-
-      const data = await response.json();
-      if (data.qrcode) {
-        // Assumindo que o webhook retorna { qrcode: 'base64string' }
-        setQrCodeImage(data.qrcode);
-      } else {
-        throw new Error("QR Code não recebido");
-      }
-    } catch (error) {
-      console.error("Erro:", error);
-      alert("Erro ao gerar QR Code");
-    } finally {
-      setIsGeneratingQR(false);
-    }
   };
 
   return (
@@ -179,7 +136,6 @@ export function Profile() {
                 </div>
 
                 <button
-                  onClick={handleGenerateQRCode}
                   disabled={isGeneratingQR}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >

@@ -126,10 +126,19 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
                 .getState()
                 .deleteTransaction(eventData.data.id);
 
-              refreshSummaryForDate(eventData.data.date); 
+              refreshSummaryForDate(eventData.data.date);
               break;
             case "TRANSACTIONS_DELETED_ALL":
-              // useTransactionStore.getState().(eventData.data);
+              useTransactionStore
+                .getState()
+                .setTransactions(eventData.data.transactions);
+
+              if (eventData.data.filters) {
+                useTransactionStore
+                  .getState()
+                  .setSummary({ income: 0, expenses: 0, balance: 0 });
+              }
+
               break;
           }
         })

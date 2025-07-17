@@ -3,7 +3,6 @@ import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Dashboard } from '../pages/Dashboard';
 import { Financial } from '../pages/Financial';
 import { Conversations } from '../pages/Conversations';
-import { AIAgent } from '../pages/AIAgent';
 import { Clients } from '../pages/Clients';
 import { Contacts } from '../pages/Contacts';
 import { Contracts } from '../pages/Contracts';
@@ -53,10 +52,6 @@ export const router = createBrowserRouter([
               {
                 path: 'conversations',
                 element: <PageTransition><Conversations /></PageTransition>,
-              },
-              {
-                path: 'ai-agent',
-                element: <PageTransition><AIAgent /></PageTransition>,
               },
               {
                 path: 'clients',

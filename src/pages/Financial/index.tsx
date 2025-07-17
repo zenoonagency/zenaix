@@ -2,27 +2,17 @@ import React, { useState, useEffect } from "react";
 import { BanknotesIcon } from "@heroicons/react/24/outline";
 import { useTransactionStore } from "../../store/transactionStore";
 import { useAuthStore } from "../../store/authStore";
-import { useSettingsStore } from "../../store/settingsStore";
 import { NewTransactionModal } from "./components/NewTransactionModal";
 import { EditTransactionModal } from "./components/EditTransactionModal";
 import { CustomModal } from "../../components/CustomModal";
-import {
-  Trash2,
-  Plus,
-  Filter,
-  Calendar,
-  Edit,
-  Trash,
-  ListFilter,
-  RefreshCw,
-  AlertCircle,
-  Bug,
-} from "lucide-react";
+import { Trash2, Plus, Calendar, Edit, Trash } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Box } from "../../components/Box";
 import { formatCurrency } from "../../utils/formatters";
+import { convertUTCToUserTimezone } from "../../utils/dateUtils";
 import { transactionService } from "../../services/transaction/transaction.service";
+import { useState as useLocalState } from "react";
 
 export function Financial() {
   const [showNewTransactionModal, setShowNewTransactionModal] = useState(false);
@@ -31,11 +21,15 @@ export function Financial() {
   const [showClearModal, setShowClearModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
-  const [filterDate, setFilterDate] = useState<string>(
-    format(new Date(), "yyyy-MM")
-  );
+  const [filterDate, setFilterDate] = useState<string>(() => {
+    const now = new Date();
+    return format(now, "yyyy-MM");
+  });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const [viewMode, setViewMode] = useState<"month" | "year" | "all">("month");
+  const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
   const { token, organizationId } = useAuthStore((state) => ({
     token: state.token,
     organizationId: state.user?.organization_id,
@@ -50,61 +44,43 @@ export function Financial() {
     setSummary,
   } = useTransactionStore();
 
-  const { asaas, checkAsaasBalance } = useSettingsStore();
+  useEffect(() => {
+    const now = new Date();
+    if (viewMode === "year") {
+      const year = now.getFullYear().toString();
+      if (filterDate !== year) setFilterDate(year);
+    } else if (viewMode === "month") {
+      const month = format(now, "yyyy-MM");
+      if (filterDate !== month) setFilterDate(month);
+    }
+  }, [viewMode]);
 
   useEffect(() => {
     if (token && organizationId) {
       setIsFetching(true);
-      const [year, month] = filterDate.split("-").map(Number);
-      Promise.all([
-        fetchAllTransactions(token, organizationId, { year, month }),
-        fetchSummary(token, organizationId, { year, month }),
-      ]).finally(() => setIsFetching(false));
-    }
-  }, [token, organizationId, filterDate, fetchAllTransactions, fetchSummary]);
+      let filters: any = {};
 
-  useEffect(() => {
-    if (asaas.apiKey) {
-      checkAsaasBalance().catch(console.error);
-    }
-
-    const intervalId = setInterval(() => {
-      if (asaas.apiKey) {
-        checkAsaasBalance().catch(console.error);
+      if (viewMode === "month") {
+        const [year, month] = filterDate.split("-").map(Number);
+        filters = { year, month };
+      } else if (viewMode === "year") {
+        const year = parseInt(filterDate);
+        filters = { year };
       }
-    }, 60 * 60 * 1000);
-
-    return () => clearInterval(intervalId);
-  }, [asaas.apiKey, checkAsaasBalance]);
-
-  const handleRefreshAsaasBalance = () => {
-    checkAsaasBalance().catch((error) => {
-      console.error("Erro ao atualizar saldo:", error);
-    });
-  };
-
-  // Função para depuração
-  const handleDebug = () => {
-    // Obter o estado atual do store
-    const currentState = useSettingsStore.getState();
-    console.log("Estado atual do store:", currentState);
-
-    // Forçar a atualização do saldo diretamente
-    useSettingsStore.setState((state) => ({
-      ...state,
-      asaas: {
-        ...state.asaas,
-        balance: 1621.14,
-        lastUpdated: new Date().toISOString(),
-      },
-    }));
-
-    console.log("Saldo atualizado manualmente para 1621.14");
-
-    // Verificar o estado após a atualização
-    const updatedState = useSettingsStore.getState();
-    console.log("Estado após atualização manual:", updatedState);
-  };
+      if (
+        (viewMode === "month" && filterDate.match(/^\d{4}-\d{2}$/)) ||
+        (viewMode === "year" && filterDate.match(/^\d{4}$/)) ||
+        viewMode === "all"
+      ) {
+        Promise.all([
+          fetchAllTransactions(token, organizationId, filters),
+          fetchSummary(token, organizationId, filters),
+        ]).finally(() => setIsFetching(false));
+      } else {
+        setIsFetching(false);
+      }
+    }
+  }, [token, organizationId, filterDate, viewMode]);
 
   const formatLastUpdated = (dateString: string | null) => {
     if (!dateString) return "Nunca atualizado";
@@ -113,14 +89,24 @@ export function Financial() {
   };
 
   const handleClearTransactions = async () => {
-    const { token, user } = useAuthStore.getState();
-    if (!token || !user?.organization_id) return;
-    const [year, month] = filterDate.split("-").map(Number);
-    await transactionService.deleteAll(token, user.organization_id, {
-      year,
-      month,
-    });
-    setShowClearModal(false);
+    setIsClearing(true);
+    try {
+      const { token, user } = useAuthStore.getState();
+      if (!token || !user?.organization_id) {
+        setIsClearing(false);
+        return;
+      }
+      const [year, month] = filterDate.split("-").map(Number);
+      await transactionService.deleteAll(token, user.organization_id, {
+        year,
+        month,
+      });
+    } catch (error) {
+      console.error("Erro ao limpar transações:", error);
+    } finally {
+      setShowClearModal(false);
+      setIsClearing(false);
+    }
   };
 
   const handleDeleteTransaction = async () => {
@@ -157,28 +143,24 @@ export function Financial() {
     setShowDeleteModal(true);
   };
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = e.target.value;
-    setFilterDate(newDate);
-
-    const [year, month] = newDate.split("-").map(Number);
-
-    const selectedDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
-
-    // Converter para ISO string e passar para o store
-    console.log("Data selecionada:", selectedDate.toISOString());
+  const handleFilterChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const newValue = e.target.value;
+    if (viewMode === "year") {
+      setFilterDate(newValue);
+    } else {
+      setFilterDate(newValue);
+    }
   };
 
-  const getPeriodTitle = () => {
-    const [year, month] = filterDate.split("-").map(Number);
-
-    // Criar uma data no primeiro dia do mês selecionado
-    // Mês em JavaScript é 0-indexed, então subtraímos 1
-    const date = new Date(year, month - 1, 1);
-
-    // Formatar o mês e ano para exibição
-    return format(date, "MMMM yyyy", { locale: ptBR });
-    // } // This line was removed from useTransactionStore
+  const handleTransactionDateChange = (transactionDate: string) => {
+    if (viewMode === "month") {
+      const transactionMonth = transactionDate.substring(0, 7);
+      if (transactionMonth !== filterDate) {
+        setFilterDate(transactionMonth);
+      }
+    }
   };
 
   return (
@@ -197,23 +179,97 @@ export function Financial() {
 
       {/* Conteúdo */}
       <div className="px-8 pb-8">
-        <div className="flex items-center justify-between mb-6">
+        {/* Filtros de data e modo */}
+        <div
+          className={`flex items-center justify-between mb-6 ${
+            isFetching ? "opacity-50 pointer-events-none" : ""
+          }`}
+        >
           <div className="flex items-center gap-3">
             <div className="relative flex items-center">
-              <Calendar className="absolute left-3 w-4 h-4 text-gray-400" />
-              <input
-                type="month"
-                value={filterDate}
-                onChange={handleFilterChange}
-                className="pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-800 text-gray-600 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-                disabled={isLoading} // Changed from viewMode === "all"
-              />
+              {viewMode === "all" ? (
+                <div className="w-[180px] h-[40px] flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-800 text-gray-400 text-sm opacity-80 select-none">
+                  Todas as transações
+                </div>
+              ) : (
+                <>
+                  <Calendar className="absolute left-3 w-4 h-4 text-gray-400" />
+                  {viewMode === "year" ? (
+                    <div
+                      className="relative flex items-center"
+                      style={{ width: 120, height: 40 }}
+                    >
+                      <Calendar
+                        className="absolute left-3 w-4 h-4 text-gray-400 pointer-events-none"
+                        style={{ zIndex: 2 }}
+                      />
+                      <select
+                        value={filterDate}
+                        onChange={handleFilterChange}
+                        onFocus={() => setYearDropdownOpen(true)}
+                        onBlur={() => setYearDropdownOpen(false)}
+                        className="pl-10 pr-8 py-2 h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-800 text-gray-600 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 appearance-none w-full cursor-pointer"
+                        disabled={isLoading || isFetching}
+                        style={{ zIndex: 1 }}
+                      >
+                        {Array.from(
+                          { length: new Date().getFullYear() - 2020 + 1 },
+                          (_, i) => new Date().getFullYear() - i
+                        ).map((year) => (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        {yearDropdownOpen ? (
+                          <svg
+                            width="16"
+                            height="16"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              d="M7 14l5-5 5 5"
+                              stroke="#888"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        ) : (
+                          <svg
+                            width="16"
+                            height="16"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              d="M7 10l5 5 5-5"
+                              stroke="#888"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        )}
+                      </span>
+                    </div>
+                  ) : (
+                    <input
+                      type="month"
+                      value={filterDate}
+                      onChange={handleFilterChange}
+                      className="pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-800 text-gray-600 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                      disabled={isLoading || isFetching}
+                    />
+                  )}
+                </>
+              )}
             </div>
 
-            {/* Botões de modo de visualização */}
             <div className="flex items-center gap-2 ml-2">
-              {/* Removed view mode buttons as they are not directly managed by useTransactionStore */}
-              {/* <button
+              <button
                 onClick={() => setViewMode("month")}
                 className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
                   viewMode === "month"
@@ -242,14 +298,14 @@ export function Financial() {
                 }`}
               >
                 Tudo
-              </button> */}
+              </button>
             </div>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => setShowClearModal(true)}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
-              disabled={isLoading} // Changed from viewMode === "all"
+              disabled={isLoading}
             >
               <Trash2 className="w-4 h-4" />
               Limpar Transações
@@ -312,55 +368,6 @@ export function Financial() {
               </span>
             )}
           </Box>
-
-          <Box className="p-6 rounded-xl flex-1">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2 text-blue-500">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <span className="text-sm">Saldo Asaas</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={handleDebug}
-                  className="p-1 text-gray-500 hover:text-purple-500 transition-colors"
-                  title="Depurar"
-                >
-                  <Bug className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleRefreshAsaasBalance}
-                  disabled={asaas.isLoading || !asaas.apiKey}
-                  className="p-1 text-gray-500 hover:text-blue-500 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
-                  title="Atualizar saldo"
-                >
-                  <RefreshCw
-                    className={`w-4 h-4 ${
-                      asaas.isLoading ? "animate-spin" : ""
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-            {asaas.apiKey ? (
-              isFetching ? (
-                <div className="h-8 w-24 bg-gray-200 dark:bg-dark-700 rounded animate-pulse" />
-              ) : (
-                <span className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  {formatCurrency(asaas.balance)}
-                </span>
-              )
-            ) : (
-              <div className="flex items-center gap-2 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                <AlertCircle className="w-4 h-4" />
-                <span>Configure a API do Asaas</span>
-              </div>
-            )}
-            {asaas.apiKey && asaas.lastUpdated && !isFetching && (
-              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Atualizado: {formatLastUpdated(asaas.lastUpdated)}
-              </div>
-            )}
-          </Box>
         </div>
 
         <Box className="rounded-xl overflow-hidden">
@@ -419,7 +426,7 @@ export function Financial() {
                       className="border-b border-gray-200 dark:border-dark-700 last:border-0"
                     >
                       <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
-                        {new Date(transaction.date).toLocaleDateString("pt-BR")}
+                        {convertUTCToUserTimezone(transaction.date)}
                       </td>
                       <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
                         {transaction.description}
@@ -480,6 +487,7 @@ export function Financial() {
         isOpen={showNewTransactionModal}
         onClose={() => setShowNewTransactionModal(false)}
         filterDate={filterDate}
+        onTransactionCreated={handleTransactionDateChange}
       />
 
       {selectedTransaction && (
@@ -490,6 +498,7 @@ export function Financial() {
             setSelectedTransaction(null);
           }}
           transaction={selectedTransaction}
+          onTransactionUpdated={handleTransactionDateChange}
         />
       )}
 
@@ -500,6 +509,8 @@ export function Financial() {
         message="Tem certeza que deseja limpar todas as transações? Esta ação não pode ser desfeita."
         type="confirm"
         onConfirm={handleClearTransactions}
+        confirmLoading={isClearing}
+        confirmDisabled={isClearing}
       />
 
       <CustomModal

@@ -13,12 +13,14 @@ interface EditTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   transaction: OutputTransactionDTO;
+  onTransactionUpdated?: (transactionDate: string) => void;
 }
 
 export function EditTransactionModal({
   isOpen,
   onClose,
   transaction,
+  onTransactionUpdated,
 }: EditTransactionModalProps) {
   const [type, setType] = useState<TransactionType>("INCOME");
   const [description, setDescription] = useState("");
@@ -68,6 +70,10 @@ export function EditTransactionModal({
       transaction.id,
       updatedTransaction
     );
+    // Chamar callback para atualizar filtro se a data mudou
+    if (onTransactionUpdated) {
+      onTransactionUpdated(date);
+    }
     setIsSaving(false);
     onClose();
   };

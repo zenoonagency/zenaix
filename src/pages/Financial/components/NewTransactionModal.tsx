@@ -3,17 +3,20 @@ import { Modal } from "../../../components/Modal";
 import { useAuthStore } from "../../../store/authStore";
 import { transactionService } from "../../../services/transaction/transaction.service";
 import { InputCreateTransactionDTO } from "../../../types/transaction";
+import { convertFormDateToUTC } from "../../../utils/dateUtils";
 
 interface NewTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   filterDate: string;
+  onTransactionCreated?: (transactionDate: string) => void;
 }
 
 export function NewTransactionModal({
   isOpen,
   onClose,
   filterDate,
+  onTransactionCreated,
 }: NewTransactionModalProps) {
   const [type, setType] = useState<"income" | "expense">("income");
   const [description, setDescription] = useState("");
@@ -21,12 +24,22 @@ export function NewTransactionModal({
   const [category, setCategory] = useState("");
   // Função utilitária para pegar a data inicial baseada no filtro
   function getInitialDate() {
-    if (!filterDate) return new Date().toISOString().split("T")[0];
+    if (!filterDate) {
+      // Usar toLocaleDateString para evitar problemas de fuso horário
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
     const [year, month] = filterDate.split("-").map(Number);
     const today = new Date();
     // Se o mês/ano do filtro for o atual, retorna hoje
     if (today.getFullYear() === year && today.getMonth() + 1 === month) {
-      return today.toISOString().split("T")[0];
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
     }
     // Senão, retorna o primeiro dia do mês filtrado
     return `${year}-${String(month).padStart(2, "0")}-01`;
@@ -57,11 +70,13 @@ export function NewTransactionModal({
     setIsLoading(true);
     try {
       // Mapear campos para o DTO da API
+      // Converter a data do formulário para UTC, considerando o fuso horário do usuário
+      const dateISO = convertFormDateToUTC(date);
       const dto: InputCreateTransactionDTO = {
         description,
         value: Number(amount),
         type: type === "income" ? "INCOME" : "EXPENSE",
-        date,
+        date: dateISO,
         category: category || undefined,
         status:
           status === "concluido"
@@ -78,6 +93,9 @@ export function NewTransactionModal({
 
       onClose();
       resetForm();
+      if (onTransactionCreated) {
+        onTransactionCreated(dateISO);
+      }
     } catch (err) {
       alert("Erro ao criar transação.");
     } finally {

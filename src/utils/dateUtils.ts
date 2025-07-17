@@ -76,6 +76,85 @@ export function formatDate(date: string | Date): string {
 }
 
 /**
+ * Obtém o fuso horário atual do usuário
+ * @returns String do fuso horário (ex: America/Sao_Paulo")
+ */
+export function getUserTimezone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+/**
+ * Converte uma data do formulário (YYYY-MM-DD) para UTC
+ * Interpreta a data como meio-dia no fuso horário do usuário
+ * @param dateString Data no formato YYYY-MM-DD
+ * @returns String ISO em UTC
+ */
+export function convertFormDateToUTC(dateString: string): string {
+  try {
+    const [year, month, day] = dateString.split("-").map(Number);
+
+    // Criar data como meio-dia no fuso horário do usuário
+    const userDate = new Date(year, month - 1, day, 12);
+    // Converter para UTC
+    const utcDate = new Date(
+      userDate.getTime() - userDate.getTimezoneOffset() * 60000
+    );
+
+    return utcDate.toISOString();
+  } catch (error) {
+    console.error("Erro ao converter data do formulário para UTC:", error);
+    return "";
+  }
+}
+
+/**
+ * Converte uma data UTC para o fuso horário do usuário
+ * @param utcDateString Data UTC em formato ISO
+ * @returns Data formatada no fuso horário do usuário
+ */
+export function convertUTCToUserTimezone(utcDateString: string): string {
+  try {
+    const utcDate = new Date(utcDateString);
+    const userTimezone = getUserTimezone();
+
+    return new Intl.DateTimeFormat("pt-BR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: userTimezone,
+    }).format(utcDate);
+  } catch (error) {
+    console.error("Erro ao converter UTC para fuso do usuário:", error);
+    return "??/??/????";
+  }
+}
+
+/**
+ * Formata uma data de transação, interpretando como meio-dia no fuso horário local
+ * @param date Data como string ISO ou objeto Date
+ * @returns Data formatada como dd/MM/yyyy
+ */
+export function formatTransactionDate(date: string | Date): string {
+  try {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+    // Para transações, interpretamos a data como meio-dia no fuso local
+    // Isso evita problemas de conversão UTC que podem mudar o dia
+    const year = dateObj.getUTCFullYear();
+    const month = dateObj.getUTCMonth();
+    const day = dateObj.getUTCDate();
+    const localDate = new Date(year, month, day, 12);
+    return new Intl.DateTimeFormat("pt-BR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(localDate);
+  } catch (error) {
+    console.error("Erro ao formatar data de transação:", error);
+    return "??/??/????";
+  }
+}
+
+/**
  * Formata data e hora (aceita string ISO ou Date) para formato brasileiro
  * @param date Data como string ISO ou objeto Date
  * @returns Data e hora formatadas
