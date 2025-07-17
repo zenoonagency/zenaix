@@ -96,11 +96,20 @@ export function Financial() {
         setIsClearing(false);
         return;
       }
-      const [year, month] = filterDate.split("-").map(Number);
-      await transactionService.deleteAll(token, user.organization_id, {
-        year,
-        month,
-      });
+      if (viewMode === "all") {
+        await transactionService.deleteAll(token, user.organization_id);
+      } else if (viewMode === "year") {
+        const year = parseInt(filterDate);
+        await transactionService.deleteAll(token, user.organization_id, {
+          year,
+        });
+      } else {
+        const [year, month] = filterDate.split("-").map(Number);
+        await transactionService.deleteAll(token, user.organization_id, {
+          year,
+          month,
+        });
+      }
     } catch (error) {
       console.error("Erro ao limpar transações:", error);
     } finally {
