@@ -111,12 +111,12 @@ export function PDFViewer({
           error=""
         >
           {Array.from(new Array(numPages || 0), (el, index) => (
-            <Page
+            <div
               key={`page_${index + 1}`}
-              pageNumber={index + 1}
-              width={containerWidth}
               style={index === 0 ? { marginTop: 8 } : {}}
-            />
+            >
+              <Page pageNumber={index + 1} width={containerWidth} />
+            </div>
           ))}
         </Document>
       </div>
