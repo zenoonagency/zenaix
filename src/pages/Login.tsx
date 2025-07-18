@@ -60,9 +60,6 @@ export function Login({ onLoginSuccess }: LoginProps) {
 
       login(response);
 
-      showToast("Login realizado com sucesso!", "success");
-      // Removido o navigate("/dashboard") daqui
-
       if (onLoginSuccess) {
         onLoginSuccess();
       }

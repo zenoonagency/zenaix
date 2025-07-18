@@ -1,7 +1,7 @@
-import React from 'react';
-import { Calendar, Check } from 'lucide-react';
-import { useCalendarStore } from '../../../store/calendarStore';
-import { useTeamStore } from '../../../pages/Team/store/teamStore';
+import React from "react";
+import { Calendar, Check } from "lucide-react";
+import { useCalendarStore } from "../../../store/calendarStore";
+import { useTeamMembersStore } from "../../../store/teamMembersStore";
 
 interface CalendarSelectorProps {
   isOpen: boolean;
@@ -10,7 +10,7 @@ interface CalendarSelectorProps {
 
 export function CalendarSelector({ isOpen, onClose }: CalendarSelectorProps) {
   const { visibleCalendars, toggleCalendarVisibility } = useCalendarStore();
-  const { members } = useTeamStore();
+  const { members } = useTeamMembersStore();
 
   if (!isOpen) return null;
 
@@ -20,7 +20,9 @@ export function CalendarSelector({ isOpen, onClose }: CalendarSelectorProps) {
         <div className="p-4 border-b border-gray-200 dark:border-dark-700 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-[#7f00ff]" />
-            <h2 className="text-lg font-semibold dark:text-gray-200">Agendas da Equipe</h2>
+            <h2 className="text-lg font-semibold dark:text-gray-200">
+              Agendas da Equipe
+            </h2>
           </div>
           <button
             onClick={onClose}
@@ -29,7 +31,7 @@ export function CalendarSelector({ isOpen, onClose }: CalendarSelectorProps) {
             ✕
           </button>
         </div>
-        
+
         <div className="p-4">
           {members.map((member) => (
             <div
@@ -37,10 +39,12 @@ export function CalendarSelector({ isOpen, onClose }: CalendarSelectorProps) {
               className="flex items-center gap-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-dark-700 rounded-lg px-2"
               onClick={() => toggleCalendarVisibility(member.id)}
             >
-              <div className={`w-5 h-5 rounded flex items-center justify-center
-                ${visibleCalendars.includes(member.id)
-                  ? 'bg-[#7f00ff] text-white'
-                  : 'border-2 border-gray-300 dark:border-gray-600'
+              <div
+                className={`w-5 h-5 rounded flex items-center justify-center
+                ${
+                  visibleCalendars.includes(member.id)
+                    ? "bg-[#7f00ff] text-white"
+                    : "border-2 border-gray-300 dark:border-gray-600"
                 }`}
               >
                 {visibleCalendars.includes(member.id) && (
@@ -67,4 +71,4 @@ export function CalendarSelector({ isOpen, onClose }: CalendarSelectorProps) {
       </div>
     </div>
   );
-} 
+}

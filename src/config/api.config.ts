@@ -4,7 +4,7 @@ export const API_CONFIG = {
   supabaseAnonKey:
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhbWlxcWV1bWtocGZnd2RranZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4MTM3NTYsImV4cCI6MjA2NzM4OTc1Nn0.tKy_PaZetxDfHqLH626SWPk6fWu8HQvhZCQG-4zXbUM",
   endpoints: {
-    startAI: "/liga", 
+    startAI: "/liga",
     stopAI: "/desliga",
     uploadDocument: "/arquivo",
     register: "/register",
@@ -34,6 +34,17 @@ export const API_CONFIG = {
     readById: (organizationId: string) => `/organizations/${organizationId}`,
     update: (organizationId: string) => `/organizations/${organizationId}`,
     delete: (organizationId: string) => `/organizations/${organizationId}`,
+  },
+  invites: {
+    send: (organizationId: string) =>
+      `/organizations/${organizationId}/invites`,
+    accept: "/invitations/accept",
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/invites`,
+    findById: (organizationId: string, invitationId: string) =>
+      `/organizations/${organizationId}/invites/invitationId/${invitationId}`,
+    revoke: (organizationId: string, invitationId: string) =>
+      `/organizations/${organizationId}/invites/${invitationId}/revoke`,
   },
   subscriptions: {
     create: (organizationId: string) =>
@@ -122,5 +133,23 @@ export const API_CONFIG = {
   retries: {
     count: 2,
     delay: 1000,
+  },
+  teamMembers: {
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/members`,
+    findById: (organizationId: string, memberId: string) =>
+      `/organizations/${organizationId}/members/${memberId}`,
+    updateRole: (organizationId: string, memberId: string) =>
+      `/organizations/${organizationId}/members/${memberId}/role`,
+    remove: (organizationId: string, memberId: string) =>
+      `/organizations/${organizationId}/members/${memberId}`,
+    permissions: {
+      list: (organizationId: string, memberId: string) =>
+        `/organizations/${organizationId}/members/${memberId}/permissions`,
+      grant: (organizationId: string, memberId: string) =>
+        `/organizations/${organizationId}/members/${memberId}/permissions`,
+      revoke: (organizationId: string, memberId: string) =>
+        `/organizations/${organizationId}/members/${memberId}/permissions`,
+    },
   },
 };

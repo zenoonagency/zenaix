@@ -1,5 +1,6 @@
 import { ErrorApiResponse } from "../types/api.types";
 import { ApiResponse } from "../types/plan";
+import { APIError } from "../services/errors/api.errors";
 
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat("pt-BR", {
@@ -32,7 +33,7 @@ export function formatApiError(
     errorMessage = details || errorMessage;
   }
 
-  return errorMessage;
+  throw new APIError(errorMessage);
 }
 
 function formatFieldName(field: string): string {

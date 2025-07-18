@@ -10,7 +10,7 @@ import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ptBR } from "date-fns/locale";
 import { useContractStore } from "../../store/contractStore";
-import { useTeamStore } from "../Team/store/teamStore";
+import { useInviteStore, useTeamStore } from "../../store/inviteStore";
 import {
   Download,
   ChevronDown,
@@ -112,7 +112,7 @@ export function Dashboard() {
 
   const kanbanStore = useKanbanStore();
   const contractStore = useContractStore();
-  const { members } = useTeamStore();
+  const { invites: members } = useInviteStore();
 
   const boards = kanbanStore?.boards ?? [];
   const transactions = [];
@@ -169,14 +169,7 @@ export function Dashboard() {
         }, 2000);
       }
     }
-  }, [
-    kanbanStore,
-    contractStore,
-    retryCount,
-    boards,
-    transactions,
-    contracts,
-  ]);
+  }, [kanbanStore, contractStore, retryCount, boards, transactions, contracts]);
 
   // Usar useEffect para inicialização e cleanup
   useEffect(() => {

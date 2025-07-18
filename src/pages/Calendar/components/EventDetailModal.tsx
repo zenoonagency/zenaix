@@ -1,13 +1,22 @@
-import React from 'react';
-import { X, Calendar, Clock, User, Tag, Info, Pencil, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Dialog, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
-import { Modal } from '../../../components/Modal';
-import { useCalendarStore } from '../../../store/calendarStore';
-import { useTeamStore } from '../../../pages/Team/store/teamStore';
-import { toast } from 'react-hot-toast';
+import React from "react";
+import {
+  X,
+  Calendar,
+  Clock,
+  User,
+  Tag,
+  Info,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment } from "react";
+import { Modal } from "../../../components/Modal";
+import { useCalendarStore } from "../../../store/calendarStore";
+import { useTeamMembersStore } from "../../../store/teamMembersStore";
+import { toast } from "react-hot-toast";
 
 interface EventDetailModalProps {
   isOpen: boolean;
@@ -16,27 +25,32 @@ interface EventDetailModalProps {
   onEdit?: (event: any) => void;
 }
 
-export function EventDetailModal({ isOpen, onClose, event, onEdit }: EventDetailModalProps) {
+export function EventDetailModal({
+  isOpen,
+  onClose,
+  event,
+  onEdit,
+}: EventDetailModalProps) {
   const { deleteEvent } = useCalendarStore();
-  const { members } = useTeamStore();
+  const { members } = useTeamMembersStore();
   const [showConfirmDelete, setShowConfirmDelete] = React.useState(false);
-  
+
   if (!event) return null;
 
   const startDate = new Date(event.start);
   const endDate = new Date(event.end);
-  
+
   const formatDate = (date: Date) => {
     return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
-  
+
   const formatTime = (date: Date) => {
     return format(date, "HH:mm", { locale: ptBR });
   };
 
   // Encontrar o nome do responsável pelo ID
   const getResponsibleName = (id: string) => {
-    const member = members.find(member => member.id === id);
+    const member = members.find((member) => member.id === id);
     return member ? member.name : id;
   };
 
@@ -66,7 +80,7 @@ export function EventDetailModal({ isOpen, onClose, event, onEdit }: EventDetail
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
             {event.title}
           </h2>
-          
+
           {/* Data e hora */}
           <div className="space-y-4">
             <div className="flex items-start">
@@ -80,7 +94,7 @@ export function EventDetailModal({ isOpen, onClose, event, onEdit }: EventDetail
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start">
               <Clock className="w-5 h-5 text-[#7f00ff] mr-3 mt-0.5" />
               <div>
@@ -92,7 +106,7 @@ export function EventDetailModal({ isOpen, onClose, event, onEdit }: EventDetail
                 </p>
               </div>
             </div>
-            
+
             {event.responsible && (
               <div className="flex items-start">
                 <User className="w-5 h-5 text-[#7f00ff] mr-3 mt-0.5" />
@@ -107,7 +121,7 @@ export function EventDetailModal({ isOpen, onClose, event, onEdit }: EventDetail
               </div>
             )}
           </div>
-          
+
           {/* Descrição */}
           {event.description && (
             <div>
@@ -120,7 +134,7 @@ export function EventDetailModal({ isOpen, onClose, event, onEdit }: EventDetail
               </p>
             </div>
           )}
-          
+
           {/* Categorias */}
           {event.categories && event.categories.length > 0 && (
             <div>
@@ -140,7 +154,7 @@ export function EventDetailModal({ isOpen, onClose, event, onEdit }: EventDetail
               </div>
             </div>
           )}
-          
+
           {/* Campos personalizados */}
           {event.customFields && event.customFields.length > 0 && (
             <div>
@@ -161,7 +175,7 @@ export function EventDetailModal({ isOpen, onClose, event, onEdit }: EventDetail
               </div>
             </div>
           )}
-          
+
           {/* Botões de ação */}
           <div className="flex justify-end space-x-3">
             <button
@@ -189,8 +203,8 @@ export function EventDetailModal({ isOpen, onClose, event, onEdit }: EventDetail
       </Modal>
 
       {/* Modal de confirmação de exclusão */}
-      <Modal 
-        isOpen={showConfirmDelete} 
+      <Modal
+        isOpen={showConfirmDelete}
         onClose={() => setShowConfirmDelete(false)}
         title="Confirmar exclusão"
       >
@@ -218,4 +232,4 @@ export function EventDetailModal({ isOpen, onClose, event, onEdit }: EventDetail
       </Modal>
     </>
   );
-} 
+}

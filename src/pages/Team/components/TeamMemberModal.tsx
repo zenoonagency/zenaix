@@ -1,27 +1,33 @@
-import React, { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
-import { TeamMember, TeamRole } from '../types';
-import { useTeamStore } from '../store/teamStore';
+import React, { useState } from "react";
+import { X, Loader2 } from "lucide-react";
+import { InputAddTeamMemberDTO } from "../../../types/invites.types";
+
+// Definir o tipo correto para role
+export type TeamRole = "ADMIN" | "TEAM_MEMBER";
 
 interface TeamMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (member: Omit<TeamMember, 'id'>) => void;
-  member?: TeamMember;
+  onSave: (member: { email: string; role: TeamRole }) => void;
+  member?: { email: string; role: TeamRole };
   isLoading?: boolean;
 }
 
-export function TeamMemberModal({ isOpen, onClose, onSave, member, isLoading = false }: TeamMemberModalProps) {
-  const [name, setName] = useState(member?.name || '');
-  const [email, setEmail] = useState(member?.email || '');
-  const [role, setRole] = useState<TeamRole>(member?.role || 'user');
+export function TeamMemberModal({
+  isOpen,
+  onClose,
+  onSave,
+  member,
+  isLoading = false,
+}: TeamMemberModalProps) {
+  const [email, setEmail] = useState(member?.email || "");
+  const [role, setRole] = useState<TeamRole>(member?.role || "TEAM_MEMBER");
   const [localLoading, setLocalLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLocalLoading(true);
     onSave({
-      name,
       email,
       role,
     });
@@ -30,11 +36,11 @@ export function TeamMemberModal({ isOpen, onClose, onSave, member, isLoading = f
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 !mt-0">
       <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b border-gray-200/10 dark:border-gray-700/10">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            {member ? 'Editar Membro' : 'Adicionar Membro'}
+            {member ? "Editar Membro" : "Adicionar Membro"}
           </h2>
           <button
             onClick={onClose}
@@ -44,26 +50,14 @@ export function TeamMemberModal({ isOpen, onClose, onSave, member, isLoading = f
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-4">
           <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Nome
-              </label>
-              <input
-                type="text"
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300/20 dark:border-gray-600/20 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-dark-700 text-gray-900 dark:text-white"
-                required
-                disabled={isLoading || localLoading}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 E-mail
               </label>
               <input
@@ -76,9 +70,12 @@ export function TeamMemberModal({ isOpen, onClose, onSave, member, isLoading = f
                 disabled={isLoading || localLoading}
               />
             </div>
-            
+
             <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label
+                htmlFor="role"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
                 Função
               </label>
               <select
@@ -88,12 +85,12 @@ export function TeamMemberModal({ isOpen, onClose, onSave, member, isLoading = f
                 className="w-full px-3 py-2 border border-gray-300/20 dark:border-gray-600/20 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-dark-700 text-gray-900 dark:text-white"
                 disabled={isLoading || localLoading}
               >
-                <option value="user">Usuário</option>
-                <option value="admin">Administrador</option>
+                <option value="TEAM_MEMBER">Membro</option>
+                <option value="ADMIN">Administrador</option>
               </select>
             </div>
           </div>
-          
+
           <div className="mt-6 flex justify-end space-x-3">
             <button
               type="button"
@@ -108,8 +105,10 @@ export function TeamMemberModal({ isOpen, onClose, onSave, member, isLoading = f
               disabled={isLoading || localLoading}
               className="px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center"
             >
-              {(isLoading || localLoading) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {member ? 'Salvar' : 'Adicionar'}
+              {(isLoading || localLoading) && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
+              {member ? "Salvar" : "Adicionar"}
             </button>
           </div>
         </form>

@@ -18,9 +18,7 @@ export const authService = {
       const responseData = await response.json();
 
       if (!response.ok) {
-        throw formatApiError(
-          responseData.message || "Email ou senha inválidos."
-        );
+        throw formatApiError(responseData, "Email ou senha inválidos.");
       }
 
       const userPayload = responseData.data;
@@ -56,9 +54,7 @@ export const authService = {
       const responseData = await response.json();
 
       if (!response.ok) {
-        throw new APIError(
-          formatApiError(responseData, "Erro ao registar utilizador.")
-        );
+        throw formatApiError(responseData, "Erro ao registar utilizador.");
       }
 
       const apiPayload = responseData;

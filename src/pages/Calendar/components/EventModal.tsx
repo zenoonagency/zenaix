@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Bell, Hash, Palette, User } from "lucide-react";
 import { useCalendarStore } from "../../../store/calendarStore";
-import { useTeamStore } from "../../../pages/Team/store/teamStore";
+import { useTeamMembersStore } from "../../../store/teamMembersStore";
 import { Input } from "../../../components/ui/Input";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -61,7 +61,7 @@ export function EventModal({
   isEditing,
 }: EventModalProps) {
   const { addEvent, updateEvent } = useCalendarStore();
-  const { members } = useTeamStore();
+  const { members } = useTeamMembersStore();
   const [title, setTitle] = useState(event?.title || "");
   const [description, setDescription] = useState(event?.description || "");
   const [startDate, setStartDate] = useState(

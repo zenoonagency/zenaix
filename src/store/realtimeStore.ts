@@ -9,6 +9,8 @@ import { useTagStore } from "./tagStore";
 import { useContractStore } from "./contractStore";
 import { useTransactionStore } from "./transactionStore";
 import { TransactionType } from "../types/transaction";
+import { useTeamMembersStore } from "./teamMembersStore";
+import { useInviteStore } from "./inviteStore";
 
 interface RealtimeState {
   userChannel: RealtimeChannel | null;
@@ -139,6 +141,20 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
                   .setSummary({ income: 0, expenses: 0, balance: 0 });
               }
 
+              break;
+            case "INVITATION_ACCEPTED":
+              useTeamMembersStore.getState().addMember(eventData.data.user);
+              break;
+            case "INVITATION_SENT":
+              useInviteStore.getState().addInvite(eventData.data);
+              break;
+            case "INVITATION_REVOKED":
+              useInviteStore.getState().deleteInvite(eventData.data.id);
+              break;
+            case "TEAM_MEMBER_REMOVED":
+              useTeamMembersStore
+                .getState()
+                .removeMember(eventData.data.user_id);
               break;
           }
         })

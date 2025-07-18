@@ -1,6 +1,6 @@
-import axios from 'axios';
+import axios from "axios";
 
-const BASE_URL = 'https://zenoon-agency-n8n.htm57w.easypanel.host';
+const BASE_URL = "https://zenoon-agency-n8n.htm57w.easypanel.host";
 
 interface Board {
   id: string;
@@ -52,13 +52,13 @@ export class ZenoonAPI {
     this.api = axios.create({
       baseURL: BASE_URL,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
     // Interceptor para adicionar token de autenticação
     this.api.interceptors.request.use((config) => {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem("auth_token");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -73,38 +73,18 @@ export class ZenoonAPI {
     return ZenoonAPI.instance;
   }
 
-  /**
-   * Faz login na API e obtém o token de autenticação
-   * @param data Dados de login (email e senha)
-   * @returns Promise com o token e dados do usuário
-   * @throws Error se a requisição falhar
-   * 
-   * @example
-   * ```typescript
-   * const api = ZenoonAPI.getInstance();
-   * try {
-   *   const { token, user } = await api.login({
-   *     email: 'seu@email.com',
-   *     password: 'sua-senha'
-   *   });
-   *   console.log('Login realizado:', { token, user });
-   * } catch (error) {
-   *   console.error('Erro ao fazer login:', error);
-   * }
-   * ```
-   */
   public async login(data: LoginRequest): Promise<LoginResponse> {
     try {
-      const response = await this.api.post('/webhook/login', data);
+      const response = await this.api.post("/webhook/login", data);
       const { token, user } = response.data;
-      
+
       // Salva o token no localStorage
-      localStorage.setItem('auth_token', token);
-      
+      localStorage.setItem("auth_token", token);
+
       return { token, user };
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        throw new Error(error.response?.data?.message || 'Erro ao fazer login');
+        throw new Error(error.response?.data?.message || "Erro ao fazer login");
       }
       throw error;
     }
@@ -114,7 +94,7 @@ export class ZenoonAPI {
    * Lista todos os boards do kanban
    * @returns Promise com a lista de boards
    * @throws Error se a requisição falhar
-   * 
+   *
    * @example
    * ```typescript
    * const api = ZenoonAPI.getInstance();
@@ -128,11 +108,13 @@ export class ZenoonAPI {
    */
   public async listBoards(): Promise<Board[]> {
     try {
-      const response = await this.api.get('/webhook/boards/list');
+      const response = await this.api.get("/webhook/boards/list");
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        throw new Error(error.response?.data?.message || 'Erro ao listar boards');
+        throw new Error(
+          error.response?.data?.message || "Erro ao listar boards"
+        );
       }
       throw error;
     }
@@ -143,7 +125,7 @@ export class ZenoonAPI {
    * @param data Dados do board a ser criado
    * @returns Promise com os dados do board criado
    * @throws Error se a requisição falhar
-   * 
+   *
    * @example
    * ```typescript
    * const api = ZenoonAPI.getInstance();
@@ -159,13 +141,15 @@ export class ZenoonAPI {
    * }
    * ```
    */
-  public async createBoard(data: CreateBoardRequest): Promise<CreateBoardResponse> {
+  public async createBoard(
+    data: CreateBoardRequest
+  ): Promise<CreateBoardResponse> {
     try {
-      const response = await this.api.post('/webhook/boards/create', data);
+      const response = await this.api.post("/webhook/boards/create", data);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        throw new Error(error.response?.data?.message || 'Erro ao criar board');
+        throw new Error(error.response?.data?.message || "Erro ao criar board");
       }
       throw error;
     }
@@ -177,7 +161,7 @@ export class ZenoonAPI {
    * @param data Dados a serem atualizados
    * @returns Promise com os dados do board atualizado
    * @throws Error se a requisição falhar
-   * 
+   *
    * @example
    * ```typescript
    * const api = ZenoonAPI.getInstance();
@@ -192,13 +176,18 @@ export class ZenoonAPI {
    * }
    * ```
    */
-  public async updateBoard(id: string, data: UpdateBoardRequest): Promise<UpdateBoardResponse> {
+  public async updateBoard(
+    id: string,
+    data: UpdateBoardRequest
+  ): Promise<UpdateBoardResponse> {
     try {
       const response = await this.api.put(`/webhook/boards/update/${id}`, data);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        throw new Error(error.response?.data?.message || 'Erro ao atualizar board');
+        throw new Error(
+          error.response?.data?.message || "Erro ao atualizar board"
+        );
       }
       throw error;
     }
@@ -209,7 +198,7 @@ export class ZenoonAPI {
    * @param id ID do board a ser deletado
    * @returns Promise void
    * @throws Error se a requisição falhar
-   * 
+   *
    * @example
    * ```typescript
    * const api = ZenoonAPI.getInstance();
@@ -226,9 +215,11 @@ export class ZenoonAPI {
       await this.api.delete(`/webhook/boards/delete/${id}`);
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        throw new Error(error.response?.data?.message || 'Erro ao deletar board');
+        throw new Error(
+          error.response?.data?.message || "Erro ao deletar board"
+        );
       }
       throw error;
     }
   }
-} 
+}
