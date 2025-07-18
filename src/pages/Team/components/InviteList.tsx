@@ -1,13 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { useInviteStore } from "../../../store/inviteStore";
 import { useAuthStore } from "../../../store/authStore";
 import { OutputInvitation } from "../../../types/invites.types";
 
 const InviteList: React.FC = () => {
-  const { invites, revokeInvite } = useInviteStore();
-  const { token, user } = useAuthStore();
-  const organizationId = user?.organization_id;
+  const { invites, revokeInvite, fetchAllInvites } = useInviteStore();
+  const { token, organizationId } = useAuthStore((state) => ({
+    token: state.token,
+    organizationId: state.organization.id,
+  }));
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const handleRevoke = async (inviteId: string) => {
@@ -21,6 +23,12 @@ const InviteList: React.FC = () => {
       setLoadingId(null);
     }
   };
+
+  useEffect(() => {
+    if (token && organizationId) {
+      fetchAllInvites(token, organizationId);
+    }
+  }, []);
 
   return (
     <div className="bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200/10 dark:border-gray-700/10 overflow-hidden">
