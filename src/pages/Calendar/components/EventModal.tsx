@@ -3,6 +3,8 @@ import { X, Bell, Hash, Palette, User } from "lucide-react";
 import { useCalendarStore } from "../../../store/calendarStore";
 import { useTeamMembersStore } from "../../../store/teamMembersStore";
 import { Input } from "../../../components/ui/Input";
+import { Select } from "../../../components/ui/Select";
+import { Textarea } from "../../../components/ui/Textarea";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-hot-toast";
@@ -187,28 +189,27 @@ export function EventModal({
                 Responsável
               </label>
             </div>
-            <select
+            <Select
+              label="Responsável"
               value={responsibleId}
               onChange={(e) => setResponsibleId(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border bg-white dark:bg-dark-900 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
-            >
-              <option value="">Selecione um responsável</option>
-              {members.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "Selecione um responsável" },
+                ...members.map((member) => ({
+                  value: member.id,
+                  label: member.name,
+                })),
+              ]}
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Descrição
             </label>
-            <textarea
+            <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg text-gray-900 dark:text-white border border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
               rows={3}
             />
           </div>
@@ -342,17 +343,12 @@ export function EventModal({
             </label>
             <div className="flex items-center gap-2">
               <Bell size={16} className="text-gray-500" />
-              <select
+              <Select
+                label="Notificação"
                 value={notification}
                 onChange={(e) => setNotification(e.target.value)}
-                className="flex-1 px-3 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg text-gray-900 dark:text-white border border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
-              >
-                {NOTIFICATION_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                options={NOTIFICATION_OPTIONS}
+              />
             </div>
           </div>
 

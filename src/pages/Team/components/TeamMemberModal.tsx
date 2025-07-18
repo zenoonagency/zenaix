@@ -1,16 +1,27 @@
 import React, { useState } from "react";
 import { X, Loader2 } from "lucide-react";
-import { InputAddTeamMemberDTO } from "../../../types/invites.types";
+import { useSystemPermissionsStore } from "../../../store/systemPermissionsStore";
+import { usePermissionsStore } from "../../../store/permissionsStore";
+import { useAuthStore } from "../../../store/authStore";
+import { useEffect } from "react";
+import { TeamMember } from "../../../types/team.types";
+import { permissionsLabels } from "../../../components/ui/permissionsLabels";
 
-// Definir o tipo correto para role
 export type TeamRole = "ADMIN" | "TEAM_MEMBER";
 
 interface TeamMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (member: { email: string; role: TeamRole }) => void;
-  member?: { email: string; role: TeamRole };
+  member?: TeamMember | { email: string; role: TeamRole };
   isLoading?: boolean;
+}
+
+// Type guard para TeamMember
+function isTeamMember(obj: any): obj is TeamMember {
+  return (
+    obj && typeof obj === "object" && "id" in obj && typeof obj.id === "string"
+  );
 }
 
 export function TeamMemberModal({
@@ -21,8 +32,72 @@ export function TeamMemberModal({
   isLoading = false,
 }: TeamMemberModalProps) {
   const [email, setEmail] = useState(member?.email || "");
-  const [role, setRole] = useState<TeamRole>(member?.role || "TEAM_MEMBER");
+  const [role, setRole] = useState<TeamRole>(
+    member &&
+      "role" in member &&
+      (member.role === "ADMIN" || member.role === "TEAM_MEMBER")
+      ? member.role
+      : "TEAM_MEMBER"
+  );
   const [localLoading, setLocalLoading] = useState(false);
+  // Estado local para permissões marcadas
+  const [localPerms, setLocalPerms] = useState<string[]>([]);
+  const [savingPerms, setSavingPerms] = useState(false);
+
+  const { token, user } = useAuthStore();
+  const organizationId = user?.organization_id;
+  const {
+    systemPermissions,
+    fetchAllSystemPermissions,
+    isLoading: isLoadingSystem,
+  } = useSystemPermissionsStore();
+  const {
+    permissions,
+    fetchPermissions,
+    grantPermissions,
+    revokePermissions,
+    isLoading: isLoadingMemberPerms,
+  } = usePermissionsStore();
+
+  useEffect(() => {
+    if (isOpen && token && isTeamMember(member) && organizationId) {
+      console.log(
+        `[TeamMemberModal] Modal aberto. A buscar permissões para o membro ${member.id}`
+      );
+      fetchPermissions(token, organizationId, member.id);
+    }
+  }, [isOpen, token, organizationId, member, fetchPermissions]);
+
+  useEffect(() => {
+    if (isTeamMember(member)) {
+      setLocalPerms(permissions.map((p) => p.name));
+    }
+  }, [permissions, member]);
+
+  const handleTogglePermission = (permName: string, checked: boolean) => {
+    setLocalPerms((prev) =>
+      checked ? [...prev, permName] : prev.filter((p) => p !== permName)
+    );
+  };
+
+  const handleSavePermissions = async () => {
+    if (!token || !organizationId || !isTeamMember(member)) return;
+    setSavingPerms(true);
+    const currentPerms = permissions.map((p) => p.name);
+    const toGrant = localPerms.filter((p) => !currentPerms.includes(p));
+    const toRevoke = currentPerms.filter((p) => !localPerms.includes(p));
+    if (toGrant.length > 0) {
+      await grantPermissions(token, organizationId, member.id, {
+        permission_names: toGrant,
+      });
+    }
+    if (toRevoke.length > 0) {
+      await revokePermissions(token, organizationId, member.id, {
+        permission_names: toRevoke,
+      });
+    }
+    setSavingPerms(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,10 +160,88 @@ export function TeamMemberModal({
                 className="w-full px-3 py-2 border border-gray-300/20 dark:border-gray-600/20 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-dark-700 text-gray-900 dark:text-white"
                 disabled={isLoading || localLoading}
               >
-                <option value="TEAM_MEMBER">Membro</option>
-                <option value="ADMIN">Administrador</option>
+                <option value="TEAM_MEMBER">Usuário</option>
+                <option value="ADMIN">Admin</option>
               </select>
             </div>
+          </div>
+
+          {isTeamMember(member) && (
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Permissões do membro
+              </label>
+              <div
+                className={`max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md p-2 bg-gray-50 dark:bg-dark-700 divide-y divide-gray-100 dark:divide-gray-800 ${
+                  savingPerms ? "opacity-60 pointer-events-none" : ""
+                }`}
+              >
+                {isLoadingSystem || isLoadingMemberPerms ? (
+                  <div className="text-center text-gray-500 text-sm py-4">
+                    Carregando permissões...
+                  </div>
+                ) : (
+                  Object.entries(permissionsLabels).map(
+                    ([categoria, permsObj]) => {
+                      const perms = Object.entries(permsObj).filter(
+                        ([permName]) => permName !== "organization:edit"
+                      );
+                      if (perms.length === 0) return null;
+                      return (
+                        <div
+                          key={categoria}
+                          className="py-2 first:pt-0 last:pb-0"
+                        >
+                          <div className="font-semibold text-xs text-purple-700 dark:text-purple-300 mb-2 uppercase tracking-wide">
+                            {categoria}
+                          </div>
+                          <ul className="space-y-2">
+                            {perms.map(([permName, label]) => (
+                              <li
+                                key={permName}
+                                className="flex items-center gap-2"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={localPerms.includes(permName)}
+                                  onChange={(e) =>
+                                    handleTogglePermission(
+                                      permName,
+                                      e.target.checked
+                                    )
+                                  }
+                                  disabled={isLoading || localLoading}
+                                  id={`perm-${permName}`}
+                                />
+                                <label
+                                  htmlFor={`perm-${permName}`}
+                                  className="text-sm text-gray-700 dark:text-gray-200 cursor-pointer"
+                                >
+                                  {label}
+                                </label>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    }
+                  )
+                )}
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end mt-4">
+            <button
+              type="button"
+              onClick={handleSavePermissions}
+              className="px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center justify-center gap-2"
+              disabled={isLoading || localLoading || savingPerms}
+            >
+              {savingPerms && (
+                <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
+              )}
+              Salvar permissões
+            </button>
           </div>
 
           <div className="mt-6 flex justify-end space-x-3">

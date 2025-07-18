@@ -126,13 +126,8 @@ export const API_CONFIG = {
     deleteAll: (organizationId: string) =>
       `/organizations/${organizationId}/transactions/transactions`,
   },
-  timeouts: {
-    default: 30000,
-    upload: 60000,
-  },
-  retries: {
-    count: 2,
-    delay: 1000,
+  permissions: {
+    listAll: "/permissions",
   },
   teamMembers: {
     findAll: (organizationId: string) =>
@@ -151,5 +146,13 @@ export const API_CONFIG = {
       revoke: (organizationId: string, memberId: string) =>
         `/organizations/${organizationId}/members/${memberId}/permissions`,
     },
+  },
+  timeouts: {
+    default: 30000,
+    upload: 60000,
+  },
+  retries: {
+    count: 2,
+    delay: 1000,
   },
 };

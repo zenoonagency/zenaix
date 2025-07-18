@@ -88,13 +88,11 @@ const InviteList: React.FC = () => {
                           justifyContent: "center",
                         }}
                       >
-                        <X
-                          className={`w-5 h-5 ${
-                            loadingId === invite.id
-                              ? "animate-spin text-red-400"
-                              : "text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
-                          }`}
-                        />
+                        {loadingId === invite.id ? (
+                          <span className="animate-spin inline-block w-5 h-5 border-2 border-red-400 border-t-transparent rounded-full"></span>
+                        ) : (
+                          <X className="w-5 h-5 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200" />
+                        )}
                       </button>
                     ) : null}
                   </td>

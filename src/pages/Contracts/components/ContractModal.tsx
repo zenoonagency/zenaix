@@ -9,6 +9,9 @@ import { contractService } from "../../../services/contract/contract.service";
 import { useCustomModal } from "../../../components/CustomModal";
 import { useContractStore } from "../../../store/contractStore";
 import { useToast } from "../../../hooks/useToast";
+import { Input } from "../../../components/ui/Input";
+import { Select } from "../../../components/ui/Select";
+import { Textarea } from "../../../components/ui/Textarea";
 
 interface ContractModalProps {
   isOpen: boolean;
@@ -164,7 +167,7 @@ export function ContractModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Título
             </label>
-            <input
+            <Input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -177,7 +180,7 @@ export function ContractModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Descrição
             </label>
-            <textarea
+            <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
@@ -189,7 +192,7 @@ export function ContractModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Nome do Cliente
             </label>
-            <input
+            <Input
               type="text"
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
@@ -202,7 +205,7 @@ export function ContractModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Status
             </label>
-            <select
+            <Select
               value={status}
               onChange={(e) => setStatus(e.target.value as ContractStatus)}
               className="w-full px-3 py-2 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-md text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
@@ -211,14 +214,14 @@ export function ContractModal({
               <option value="DRAFT">Rascunho</option>
               <option value="PENDING">Pendente</option>
               <option value="ACTIVE">Ativo</option>
-            </select>
+            </Select>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Valor
             </label>
-            <input
+            <Input
               type="number"
               value={value}
               onChange={(e) => setValue(e.target.value)}
@@ -231,7 +234,7 @@ export function ContractModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Data de Expiração
             </label>
-            <input
+            <Input
               type="date"
               value={expirationDate}
               onChange={(e) => setExpirationDate(e.target.value)}

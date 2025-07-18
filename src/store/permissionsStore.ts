@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { APIError } from "../services/errors/api.errors";
-import { permissionsService } from "../services/team/permissions.service";
+import { permissionsService } from "../services/permission/permissions.service";
 import {
   OutputPermissionDTO,
   GrantPermissionsDTO,

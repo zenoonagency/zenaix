@@ -5,15 +5,24 @@ import { useCustomModal } from "../../../components/CustomModal";
 import { TeamMember } from "../../../types/team.types";
 import { useTeamMembersStore } from "../../../store/teamMembersStore";
 import { useAuthStore } from "../../../store/authStore";
+import { toast } from "react-toastify";
+import { TeamMemberModal } from "./TeamMemberModal";
 
 export function TeamList() {
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const { modal, customConfirm } = useCustomModal();
 
-  const { members, removeMember, removeMemberFromOrg } = useTeamMembersStore();
+  const {
+    members,
+    removeMember,
+    removeMemberFromOrg,
+    updateMemberRole,
+    fetchAllMembers,
+  } = useTeamMembersStore();
   const { token, user } = useAuthStore();
   const organizationId = user?.organization_id;
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [roleLoadingId, setRoleLoadingId] = useState<string | null>(null);
 
   const sortedMembers = [...members].sort((a, b) => {
     if (a.role === "MASTER") return -1;
@@ -21,7 +30,21 @@ export function TeamList() {
     return 0;
   });
 
-  const handleRoleChange = (memberId: string, isAdmin: boolean) => {};
+  const handleRoleChange = async (memberId: string, isAdmin: boolean) => {
+    if (!token || !organizationId) return;
+    setRoleLoadingId(memberId);
+    const newRole = isAdmin ? "ADMIN" : "TEAM_MEMBER";
+    try {
+      await updateMemberRole(token, organizationId, memberId, {
+        role: newRole,
+      });
+      toast.success("Função atualizada com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao atualizar função do membro.");
+    } finally {
+      setRoleLoadingId(null);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     const confirmed = await customConfirm(
@@ -39,6 +62,8 @@ export function TeamList() {
       setRemovingId(null);
     }
   };
+
+  const handleCloseEditModal = () => setEditingMember(null);
 
   return (
     <>
@@ -77,7 +102,11 @@ export function TeamList() {
               {sortedMembers.map((member) => (
                 <tr
                   key={member.id}
-                  className="hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+                  className={`hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors ${
+                    roleLoadingId === member.id
+                      ? "opacity-60 pointer-events-none"
+                      : ""
+                  }`}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -99,6 +128,8 @@ export function TeamList() {
                           />
                           Master
                         </div>
+                      ) : roleLoadingId === member.id ? (
+                        <span className="animate-spin inline-block w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full"></span>
                       ) : (
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
@@ -108,6 +139,7 @@ export function TeamList() {
                             onChange={(e) =>
                               handleRoleChange(member.id, e.target.checked)
                             }
+                            disabled={roleLoadingId === member.id}
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-500/20 dark:peer-focus:ring-purple-500/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
                           <div className="ml-3 text-sm font-medium text-gray-900 dark:text-white">
@@ -133,14 +165,20 @@ export function TeamList() {
                         <button
                           onClick={() => setEditingMember(member)}
                           className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 mr-3"
-                          disabled={removingId === member.id}
+                          disabled={
+                            removingId === member.id ||
+                            roleLoadingId === member.id
+                          }
                         >
                           <Edit2 className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => handleDelete(member.id)}
                           className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                          disabled={removingId === member.id}
+                          disabled={
+                            removingId === member.id ||
+                            roleLoadingId === member.id
+                          }
                         >
                           {removingId === member.id ? (
                             <span className="animate-spin inline-block w-5 h-5 border-2 border-current border-t-transparent rounded-full"></span>
@@ -169,6 +207,15 @@ export function TeamList() {
         </div>
       </div>
       {modal}
+      {editingMember && (
+        <TeamMemberModal
+          isOpen={!!editingMember}
+          onClose={handleCloseEditModal}
+          member={editingMember}
+          onSave={() => {}}
+          isLoading={false}
+        />
+      )}
     </>
   );
 }

@@ -10,6 +10,26 @@ import {
 } from "../../types/team.types";
 
 export const permissionsService = {
+  async listAllSystem(token: string): Promise<OutputPermissionDTO[]> {
+    try {
+      const url = `${API_CONFIG.baseUrl}${API_CONFIG.permissions.listAll}`;
+      const response = await fetchWithAuth(url, {
+        method: "GET",
+        headers: getAuthHeaders(token),
+      });
+      const responseData = await response.json();
+      if (!response.ok) {
+        throw formatApiError(
+          responseData,
+          "Falha ao buscar permissões do sistema."
+        );
+      }
+      return responseData.data;
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      throw new APIError("Ocorreu um erro ao buscar as permissões do sistema.");
+    }
+  },
   async list(
     token: string,
     organizationId: string,

@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { LANGUAGE_OPTIONS } from "../../contexts/LocalizationContext";
 import { TIMEZONE_OPTIONS } from "../../utils/dateUtils";
 import { compressImage } from "../../utils/imageCompression";
+import { Eye, EyeOff } from "lucide-react";
 
 export function ProfileTab() {
   const { user, token, updateUser, logout } = useAuthStore();
@@ -23,6 +24,7 @@ export function ProfileTab() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -418,14 +420,28 @@ export function ProfileTab() {
               </ul>
             </div>
             <div className="flex flex-col gap-3 mt-4">
-              <input
-                type="password"
-                placeholder="Digite sua senha"
-                value={deletePassword}
-                onChange={(e) => setDeletePassword(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#7f00ff]/20 focus:border-[#7f00ff] transition-all duration-200 bg-white shadow-sm"
-                disabled={isDeleting}
-              />
+              <div className="relative">
+                <input
+                  type={showDeletePassword ? "text" : "password"}
+                  placeholder="Digite sua senha"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#7f00ff]/20 focus:border-[#7f00ff] transition-all duration-200 bg-white shadow-sm pr-12"
+                  disabled={isDeleting}
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 focus:outline-none"
+                  onClick={() => setShowDeletePassword((v) => !v)}
+                  tabIndex={-1}
+                >
+                  {showDeletePassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={handleDeleteAccount}

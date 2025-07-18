@@ -26,6 +26,9 @@ import { useToast } from "../../../hooks/useToast";
 import { generateId } from "../../../utils/generateId";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Input } from "../../../components/ui/Input";
+import { Select } from "../../../components/ui/Select";
+import { Textarea } from "../../../components/ui/Textarea";
 
 interface CardModalProps {
   isOpen: boolean;
@@ -428,7 +431,7 @@ export function CardModal({
                 >
                   Título
                 </label>
-                <input
+                <Input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -449,7 +452,7 @@ export function CardModal({
                 >
                   Descrição
                 </label>
-                <textarea
+                <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
@@ -474,7 +477,7 @@ export function CardModal({
                       Valor
                     </label>
                   </div>
-                  <input
+                  <Input
                     type="number"
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
@@ -498,7 +501,7 @@ export function CardModal({
                       Telefone
                     </label>
                   </div>
-                  <input
+                  <Input
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
@@ -523,7 +526,7 @@ export function CardModal({
                       Data
                     </label>
                   </div>
-                  <input
+                  <Input
                     type="date"
                     value={scheduledDate}
                     onChange={(e) => setScheduledDate(e.target.value)}
@@ -546,7 +549,7 @@ export function CardModal({
                       Hora
                     </label>
                   </div>
-                  <input
+                  <Input
                     type="time"
                     value={scheduledTime}
                     onChange={(e) => setScheduledTime(e.target.value)}
@@ -570,7 +573,7 @@ export function CardModal({
                     Responsável
                   </label>
                 </div>
-                <select
+                <Select
                   value={responsibleId}
                   onChange={(e) => setResponsibleId(e.target.value)}
                   className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
@@ -585,7 +588,7 @@ export function CardModal({
                       {member.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               <div>
@@ -599,7 +602,7 @@ export function CardModal({
                     Prioridade
                   </label>
                 </div>
-                <select
+                <Select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
                   className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
@@ -613,7 +616,7 @@ export function CardModal({
                   <option value="medium">Média</option>
                   <option value="high">Alta</option>
                   <option value="urgent">Urgente</option>
-                </select>
+                </Select>
               </div>
 
               <div>
@@ -684,7 +687,7 @@ export function CardModal({
                 <div className="space-y-3">
                   {customFields.map((field) => (
                     <div key={field.id} className="flex gap-3">
-                      <input
+                      <Input
                         type="text"
                         value={field.name}
                         onChange={(e) =>
@@ -701,7 +704,7 @@ export function CardModal({
                             : "bg-white border-gray-300 text-gray-900"
                         }`}
                       />
-                      <input
+                      <Input
                         type="text"
                         value={field.value}
                         onChange={(e) =>
@@ -755,7 +758,7 @@ export function CardModal({
                 {showNewSubtaskForm && (
                   <div className="mb-4 p-4 rounded-lg border border-[#7f00ff]/20 bg-[#7f00ff]/5">
                     <div className="space-y-3">
-                      <input
+                      <Input
                         type="text"
                         value={newSubtaskTitle}
                         onChange={(e) => setNewSubtaskTitle(e.target.value)}
@@ -766,7 +769,7 @@ export function CardModal({
                             : "bg-white border-gray-300 text-gray-900"
                         }`}
                       />
-                      <textarea
+                      <Textarea
                         value={newSubtaskDescription}
                         onChange={(e) =>
                           setNewSubtaskDescription(e.target.value)

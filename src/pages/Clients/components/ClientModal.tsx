@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { X } from 'lucide-react';
-import { Input } from '../../../components/ui/Input';
+import React, { useState } from "react";
+import { X } from "lucide-react";
+import { Input } from "../../../components/ui/Input";
+import { Select } from "../../../components/ui/Select";
+import { Textarea } from "../../../components/ui/Textarea";
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -9,11 +11,16 @@ interface ClientModalProps {
   client?: any;
 }
 
-export function ClientModal({ isOpen, onClose, onSave, client }: ClientModalProps) {
-  const [name, setName] = useState(client?.name || '');
-  const [email, setEmail] = useState(client?.email || '');
-  const [phone, setPhone] = useState(client?.phone || '');
-  const [status, setStatus] = useState(client?.status || 'active');
+export function ClientModal({
+  isOpen,
+  onClose,
+  onSave,
+  client,
+}: ClientModalProps) {
+  const [name, setName] = useState(client?.name || "");
+  const [email, setEmail] = useState(client?.email || "");
+  const [phone, setPhone] = useState(client?.phone || "");
+  const [status, setStatus] = useState(client?.status || "active");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +35,7 @@ export function ClientModal({ isOpen, onClose, onSave, client }: ClientModalProp
       <div className="bg-white dark:bg-dark-800 rounded-lg w-full max-w-md p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-            {client ? 'Editar Cliente' : 'Novo Cliente'}
+            {client ? "Editar Cliente" : "Novo Cliente"}
           </h2>
           <button
             onClick={onClose}
@@ -66,14 +73,17 @@ export function ClientModal({ isOpen, onClose, onSave, client }: ClientModalProp
             </label>
             <div className="relative">
               <div className="absolute -inset-[1px] bg-gradient-to-r from-[#7f00ff] to-[#e100ff] rounded-lg opacity-50"></div>
-              <select
+              <Select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
-                className="relative w-full px-3 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg text-gray-900 dark:text-white focus:outline-none"
+                onChange={(e) =>
+                  setStatus(e.target.value as "active" | "inactive")
+                }
+                label="Status"
+                required
               >
                 <option value="active">Ativo</option>
                 <option value="inactive">Inativo</option>
-              </select>
+              </Select>
             </div>
           </div>
 

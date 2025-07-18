@@ -16,6 +16,8 @@ import { useTransactionStore } from "./store/transactionStore";
 import { supabase } from "./lib/supabaseClient";
 import { useTeamMembersStore } from "./store/teamMembersStore";
 import { useInviteStore } from "./store/inviteStore";
+import { usePermissionsStore } from "./store/permissionsStore";
+import { useSystemPermissionsStore } from "./store/systemPermissionsStore";
 
 export function App() {
   const {
@@ -46,7 +48,6 @@ export function App() {
   const fetchAllContracts = useContractStore(
     (state) => state.fetchAllContracts
   );
-  const fetchAllInvites = useInviteStore((state) => state.fetchAllInvites);
   const fetchAllMembers = useTeamMembersStore((state) => state.fetchAllMembers);
 
   const connectToRealtime = useRealtimeStore((state) => state.connect);
@@ -65,7 +66,6 @@ export function App() {
         fetchAllContracts(token, organizationId);
         fetchAllTransactions(token, organizationId);
         fetchAllMembers(token, organizationId);
-        fetchAllInvites(token, organizationId);
       }
 
       if (userId) {

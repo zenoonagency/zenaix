@@ -1,16 +1,8 @@
+import { User } from "./auth";
+
 export type TeamMemberRole = "MASTER" | "ADMIN" | "TEAM_MEMBER";
 
-export interface TeamMember {
-  id: string;
-  email: string;
-  name: string;
-  first_name: string | null;
-  last_name: string | null;
-  role: TeamMemberRole;
-  organization_id: string;
-  created_at: string;
-  updated_at: string;
-  avatar_url?: string;
+export interface TeamMember extends User {
 }
 
 export interface InputUpdateTeamMemberRoleDTO {

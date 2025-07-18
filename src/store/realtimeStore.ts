@@ -11,6 +11,7 @@ import { useTransactionStore } from "./transactionStore";
 import { TransactionType } from "../types/transaction";
 import { useTeamMembersStore } from "./teamMembersStore";
 import { useInviteStore } from "./inviteStore";
+import { usePermissionsStore } from "./permissionsStore";
 
 interface RealtimeState {
   userChannel: RealtimeChannel | null;
@@ -140,10 +141,10 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
                   .getState()
                   .setSummary({ income: 0, expenses: 0, balance: 0 });
               }
-
               break;
             case "INVITATION_ACCEPTED":
               useTeamMembersStore.getState().addMember(eventData.data.user);
+              useInviteStore.getState().updateInvite(eventData.data.invitation);
               break;
             case "INVITATION_SENT":
               useInviteStore.getState().addInvite(eventData.data);
@@ -156,6 +157,21 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
                 .getState()
                 .removeMember(eventData.data.user_id);
               break;
+            case "TEAM_MEMBER_UPDATED":
+              useTeamMembersStore.getState().updateMember(eventData.data);
+              break;
+            case "PERMISSIONS_GRANTED":
+            case "PERMISSIONS_REVOKED": {
+              const { token, organization } = useAuthStore.getState();
+              const memberId = eventData.data.id;
+
+              if (token && organization.id && memberId) {
+                usePermissionsStore
+                  .getState()
+                  .fetchPermissions(token, organization.id, memberId);
+              }
+              break;
+            }
           }
         })
         .subscribe((status) => {
