@@ -129,7 +129,7 @@ export function CardModal({
     // Para criação de card (mode === "add"), manter comportamento local
     if (mode === "add") {
       const newSubtask: Subtask = {
-        id: generateId(),
+        id: generateId(), // ID temporário apenas para UI
         title: newSubtaskTitle.trim(),
         description: newSubtaskDescription.trim(),
         completed: false,
@@ -139,7 +139,7 @@ export function CardModal({
       setNewSubtaskTitle("");
       setNewSubtaskDescription("");
       setShowNewSubtaskForm(false);
-      showToast("Subtarefa adicionada com sucesso!", "success");
+      // Não mostrar toast na criação local
       return;
     }
 
@@ -472,7 +472,7 @@ export function CardModal({
         tag_ids: selectedTagIds,
         due_date: dueDate,
         assignee_id: responsibleId || null,
-        subtasks,
+        subtasks: subtasks.map(({ title, description }) => ({ title, description })),
         // attachments são gerenciados separadamente via attachmentService
       };
 
