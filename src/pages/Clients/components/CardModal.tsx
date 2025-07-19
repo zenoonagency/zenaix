@@ -28,6 +28,9 @@ import { ptBR } from "date-fns/locale";
 import { Input } from "../../../components/ui/Input";
 import { Select } from "../../../components/ui/Select";
 import { Textarea } from "../../../components/ui/Textarea";
+import { attachmentService } from "../../../services/attachment.service";
+import { useAuthStore } from "../../../store/authStore";
+import { AttachmentDTO } from "../../../types/card";
 
 interface CardModalProps {
   isOpen: boolean;
@@ -65,6 +68,8 @@ export function CardModal({
   const { tags } = useTagStore();
   const { members } = useTeamMembersStore();
   const { showToast } = useToast();
+  const { token, organization } = useAuthStore();
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [title, setTitle] = useState(card?.title || "");
   const [description, setDescription] = useState(card?.description || "");
   const [value, setValue] = useState(card?.value?.toString() || "");
@@ -198,8 +203,8 @@ export function CardModal({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // Reduzido para 2MB
-    const maxSize = 2 * 1024 * 1024;
+    // Limite conforme documentação: 1 anexo por card, 5MB
+    const maxSize = 5 * 1024 * 1024;
     const allowedTypes = [
       "image/jpeg",
       "image/png",
@@ -208,28 +213,34 @@ export function CardModal({
       "text/plain",
     ];
 
-    // Verificar se já atingiu o limite de anexos
-    if (attachments.length >= 5) {
-      showToast("Limite máximo de 5 anexos por cartão atingido", "error");
+    // Verificar se já atingiu o limite de anexos (1 por card conforme doc)
+    if (attachments.length >= 1) {
+      showToast("Limite máximo de 1 anexo por cartão atingido", "error");
       return;
     }
 
-    for (const file of files) {
-      if (file.size > maxSize) {
-        showToast(`O arquivo ${file.name} excede o limite de 2MB`, "error");
-        continue;
-      }
+    if (!token || !organization?.id) {
+      showToast("Erro de autenticação", "error");
+      return;
+    }
 
-      if (!allowedTypes.includes(file.type)) {
-        showToast(`O tipo de arquivo ${file.name} não é permitido`, "error");
-        continue;
-      }
+    setIsUploadingAttachment(true);
 
-      try {
+    try {
+      for (const file of files) {
+        if (file.size > maxSize) {
+          showToast(`O arquivo ${file.name} excede o limite de 5MB`, "error");
+          continue;
+        }
+
+        if (!allowedTypes.includes(file.type)) {
+          showToast(`O tipo de arquivo ${file.name} não é permitido`, "error");
+          continue;
+        }
+
         let finalFile = file;
-        let base64Data = "";
 
-        // Se for uma imagem, comprimir antes de converter para base64
+        // Se for uma imagem, comprimir antes do upload
         if (file.type.startsWith("image/")) {
           const compressedBlob = await compressImage(file);
           finalFile = new File([compressedBlob], file.name, {
@@ -237,46 +248,35 @@ export function CardModal({
           });
         }
 
-        // Converter arquivo para base64
-        const reader = new FileReader();
-        base64Data = await new Promise((resolve, reject) => {
-          reader.onload = () => {
-            const result = reader.result as string;
-            // Remover cabeçalho do base64 para economizar espaço
-            const base64 = result.split(",")[1];
-            resolve(base64);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(finalFile);
-        });
+        // Upload via API
+        const uploadedAttachments = await attachmentService.createAttachment(
+          token,
+          organization.id,
+          boardId,
+          listId,
+          card?.id || "temp", // Para cards novos, será atualizado após criação
+          finalFile
+        );
 
-        // Verificar espaço disponível
-        try {
-          const testKey = `test_${Date.now()}`;
-          localStorage.setItem(testKey, base64Data);
-          localStorage.removeItem(testKey);
-        } catch (storageError) {
-          showToast(
-            "Erro: Espaço de armazenamento insuficiente. Remova alguns anexos antigos.",
-            "error"
-          );
-          continue;
-        }
+        // Converter para formato local
+        const newAttachments = uploadedAttachments.map(
+          (attachment: AttachmentDTO) => ({
+            id: attachment.id,
+            name: attachment.file_name,
+            url: attachment.file_url,
+            size: attachment.fileSize,
+            createdAt: attachment.created_at,
+          })
+        );
 
-        const newAttachment = {
-          id: Math.random().toString(36).substring(7),
-          name: file.name,
-          url: `data:${file.type};base64,${base64Data}`,
-          size: finalFile.size,
-          createdAt: new Date().toISOString(),
-        };
-
-        setAttachments((prev) => [...prev, newAttachment]);
+        setAttachments((prev) => [...prev, ...newAttachments]);
         showToast(`Arquivo ${file.name} adicionado com sucesso!`, "success");
-      } catch (error) {
-        console.error("Erro ao processar arquivo:", error);
-        showToast(`Erro ao processar o arquivo ${file.name}`, "error");
       }
+    } catch (error: any) {
+      console.error("Erro ao fazer upload:", error);
+      showToast(error.message || "Erro ao fazer upload do arquivo", "error");
+    } finally {
+      setIsUploadingAttachment(false);
     }
 
     // Limpar input
@@ -339,8 +339,29 @@ export function CardModal({
     });
   };
 
-  const handleRemoveAttachment = (attachmentId: string) => {
-    setAttachments(attachments.filter((a) => a.id !== attachmentId));
+  const handleRemoveAttachment = async (attachmentId: string) => {
+    if (!token || !organization?.id || !card?.id) {
+      // Para cards novos, apenas remover do estado local
+      setAttachments(attachments.filter((a) => a.id !== attachmentId));
+      return;
+    }
+
+    try {
+      await attachmentService.deleteAttachment(
+        token,
+        organization.id,
+        boardId,
+        listId,
+        card.id,
+        attachmentId
+      );
+
+      setAttachments(attachments.filter((a) => a.id !== attachmentId));
+      showToast("Anexo removido com sucesso!", "success");
+    } catch (error: any) {
+      console.error("Erro ao remover anexo:", error);
+      showToast(error.message || "Erro ao remover anexo", "error");
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -369,7 +390,7 @@ export function CardModal({
         {}
       ),
       subtasks,
-      attachments,
+      // attachments são gerenciados separadamente via attachmentService
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -903,10 +924,11 @@ export function CardModal({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                    disabled={isUploadingAttachment}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Upload className="w-4 h-4" />
-                    Adicionar Anexo
+                    {isUploadingAttachment ? "Enviando..." : "Adicionar Anexo"}
                   </button>
                   <input
                     ref={fileInputRef}
