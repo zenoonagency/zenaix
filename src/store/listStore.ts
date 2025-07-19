@@ -52,8 +52,8 @@ export const useListStore = create<ListState>()(
       },
 
       fetchLists: async (boardId) => {
-        const { token } = useAuthStore.getState();
-        if (!token) return;
+        const { token, organization } = useAuthStore.getState();
+        if (!token || !organization?.id) return;
 
         if (get().isLoading) return;
         if (get().lists.length === 0) {
@@ -61,7 +61,11 @@ export const useListStore = create<ListState>()(
         }
 
         try {
-          const lists = await listService.getLists(token, boardId);
+          const lists = await listService.getLists(
+            token,
+            organization.id,
+            boardId
+          );
           set({
             lists,
             isLoading: false,

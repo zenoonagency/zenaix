@@ -60,8 +60,8 @@ export const useCardStore = create<CardState>()(
       setSelectedCard: (card) => set({ selectedCard: card }),
 
       fetchAllCards: async (boardId, listId, title) => {
-        const { token } = useAuthStore.getState();
-        if (!token) return;
+        const { token, organization } = useAuthStore.getState();
+        if (!token || !organization?.id) return;
 
         if (get().isLoading) return;
         if (get().cards.length === 0) {
@@ -71,6 +71,7 @@ export const useCardStore = create<CardState>()(
         try {
           const cards = await cardService.getCards(
             token,
+            organization.id,
             boardId,
             listId,
             title

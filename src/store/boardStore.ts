@@ -8,6 +8,7 @@ import {
 } from "../types/board";
 import { useAuthStore } from "./authStore";
 import { useToastStore } from "../components/Notification";
+import { useListStore } from "./listStore";
 import { APIError } from "../services/errors/api.errors";
 
 interface BoardState {
@@ -118,7 +119,6 @@ export const useBoardStore = create<BoardState>()(
           return;
         }
 
-        // Se já há um board ativo e ele ainda existe na lista, mantê-lo
         if (
           state.activeBoardId &&
           boards.some((b) => b.id === state.activeBoardId)
@@ -126,7 +126,6 @@ export const useBoardStore = create<BoardState>()(
           return;
         }
 
-        // Se há um último board usado e ele ainda existe, selecioná-lo
         if (
           state.lastUsedBoardId &&
           boards.some((b) => b.id === state.lastUsedBoardId)
@@ -135,20 +134,23 @@ export const useBoardStore = create<BoardState>()(
           return;
         }
 
-        // Caso contrário, selecionar o primeiro board
         set({ activeBoardId: boards[0].id });
       },
 
       fetchAllBoards: async (token: string, organizationId: string) => {
         if (!token || !organizationId) return;
 
-        if (get().isLoading) return;
+        if (get().isLoading) {
+          return;
+        }
+
         if (get().boards.length === 0) {
           set({ isLoading: true });
         }
 
         try {
           const boards = await boardService.getBoards(token, organizationId);
+
           set({
             boards,
             isLoading: false,
@@ -156,7 +158,6 @@ export const useBoardStore = create<BoardState>()(
             lastFetched: Date.now(),
           });
 
-          // Após carregar os boards, selecionar o ativo automaticamente
           get().selectActiveBoard(boards);
         } catch (error: any) {
           const errorMessage =
@@ -179,11 +180,15 @@ export const useBoardStore = create<BoardState>()(
             organization.id,
             boardId
           );
-          // Atualiza a store com o quadro completo
+
+          // Carregar listas do board automaticamente
+          const { fetchLists } = useListStore.getState();
+          await fetchLists(boardId);
+
           get().updateBoard(board);
           set({
             selectedBoard: board,
-            activeBoard: board, // Define como board ativo completo
+            activeBoard: board,
             isLoading: false,
             error: null,
           });
@@ -197,13 +202,13 @@ export const useBoardStore = create<BoardState>()(
 
       selectAndLoadBoard: async (boardId: string) => {
         const { token, organization } = useAuthStore.getState();
-        if (!token || !organization.id) return;
+        if (!token || !organization.id) {
+          return;
+        }
 
-        // Primeiro, definir o board como ativo
         get().setActiveBoardId(boardId);
         get().setLastUsedBoardId(boardId);
 
-        // Depois, carregar o board completo com listas e cards
         await get().fetchBoardById(boardId);
       },
     }),

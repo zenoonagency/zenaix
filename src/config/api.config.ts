@@ -188,25 +188,42 @@ export const API_CONFIG = {
       `/organizations/${organizationId}/boards/${boardId}/access-list`,
   },
   lists: {
-    create: (boardId: string) => `/boards/${boardId}/lists`,
-    findAll: (boardId: string) => `/boards/${boardId}/lists`,
-    findById: (boardId: string, listId: string) =>
-      `/boards/${boardId}/lists/${listId}`,
-    update: (boardId: string, listId: string) =>
-      `/boards/${boardId}/lists/${listId}`,
-    delete: (boardId: string, listId: string) =>
-      `/boards/${boardId}/lists/${listId}`,
+    create: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists`,
+    findAll: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists`,
+    findById: (organizationId: string, boardId: string, listId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}`,
+    update: (organizationId: string, boardId: string, listId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}`,
+    delete: (organizationId: string, boardId: string, listId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}`,
   },
   cards: {
-    create: (boardId: string, listId: string) =>
-      `/boards/${boardId}/lists/${listId}/cards`,
-    findAll: (boardId: string, listId: string) =>
-      `/boards/${boardId}/lists/${listId}/cards`,
-    findById: (boardId: string, listId: string, cardId: string) =>
-      `/boards/${boardId}/lists/${listId}/cards/${cardId}`,
-    update: (boardId: string, listId: string, cardId: string) =>
-      `/boards/${boardId}/lists/${listId}/cards/${cardId}`,
-    delete: (boardId: string, listId: string, cardId: string) =>
-      `/boards/${boardId}/lists/${listId}/cards/${cardId}`,
+    create: (organizationId: string, boardId: string, listId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards`,
+    findAll: (organizationId: string, boardId: string, listId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards`,
+    findById: (
+      organizationId: string,
+      boardId: string,
+      listId: string,
+      cardId: string
+    ) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}`,
+    update: (
+      organizationId: string,
+      boardId: string,
+      listId: string,
+      cardId: string
+    ) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}`,
+    delete: (
+      organizationId: string,
+      boardId: string,
+      listId: string,
+      cardId: string
+    ) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}`,
   },
 };

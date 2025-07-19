@@ -37,7 +37,10 @@ import { useThemeStore } from "../../../store/themeStore";
 import { useToast } from "../../../hooks/useToast";
 import { CardModal } from "./CardModal";
 import { useCustomModal } from "../../../components/CustomModal";
-import { api } from "../../../services/api";
+import { listService } from "../../../services/list.service";
+import { useListStore } from "../../../store/listStore";
+import { useAuthStore } from "../../../store/authStore";
+import { InputUpdateListDTO } from "../../../types/list";
 import { mutate } from "swr";
 import { VariableSizeList as VirtualList } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -252,18 +255,21 @@ function SortModal({ isOpen, onClose, onSort, lists }: SortModalProps) {
 export const List = React.memo(
   ({ list, boardId, isOver, activeCard }: ListProps) => {
     const { theme } = useThemeStore();
+    const { showToast } = useToast();
+    const { customConfirm } = useCustomModal();
+    const { updateList, removeList } = useListStore();
+    const { token, organization } = useAuthStore();
     const isDark = theme === "dark";
-    // TODO: Integrar com boardStore se necessário
     const [showMenu, setShowMenu] = useState(false);
     const [showSortModal, setShowSortModal] = useState(false);
     const [showCardModal, setShowCardModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [title, setTitle] = useState(list.title);
     const [color, setColor] = useState(list.color || "");
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
-    const { modal, customConfirm } = useCustomModal();
-    const isCompletedList = false; // getCompletedListId(boardId) === list.id; // This line was removed as per the edit hint
-    const { showToast } = useToast();
+    const isCompletedList = false; // getCompletedListId(boardId) === list.id;
     const containerRef = useRef<HTMLDivElement>(null);
     const [showListMenuModal, setShowListMenuModal] = useState(false);
     const { setNodeRef } = useDroppable({
@@ -285,13 +291,33 @@ export const List = React.memo(
         document.removeEventListener("mousedown", handleClickOutside);
       };
     }, []);
-    const handleEdit = () => {
-      if (title.trim()) {
-        // updateList(boardId, list.id, { // This line was removed as per the edit hint
-        //   title: title.trim(),
-        //   color: color || undefined,
-        // });
+    const handleEdit = async () => {
+      if (!title.trim() || !token || !organization?.id) return;
+
+      setIsUpdating(true);
+      try {
+        const dto: InputUpdateListDTO = {
+          name: title.trim(),
+          color: color || undefined,
+        };
+
+        const updatedList = await listService.updateList(
+          token,
+          organization.id,
+          boardId,
+          list.id,
+          dto
+        );
+
+        // Atualizar na listStore
+        updateList(updatedList);
+
+        showToast("Lista atualizada com sucesso!", "success");
         setIsEditing(false);
+      } catch (err: any) {
+        showToast(err.message || "Erro ao atualizar lista", "error");
+      } finally {
+        setIsUpdating(false);
       }
     };
     const handleSort = (newLists: ListType[]) => {
@@ -331,9 +357,25 @@ export const List = React.memo(
         "Excluir lista",
         "Tem certeza que deseja excluir esta lista?"
       );
-      if (confirmed) {
-        // deleteList(boardId, list.id); // This line was removed as per the edit hint
-        showToast("Lista excluída com sucesso!", "success");
+      if (confirmed && token && organization?.id) {
+        setIsDeleting(true);
+        try {
+          await listService.deleteList(
+            token,
+            organization.id,
+            boardId,
+            list.id
+          );
+
+          // Remover da listStore
+          removeList(list.id);
+
+          showToast("Lista excluída com sucesso!", "success");
+        } catch (err: any) {
+          showToast(err.message || "Erro ao excluir lista", "error");
+        } finally {
+          setIsDeleting(false);
+        }
       }
     };
     const cardData = useMemo(() => list.cards, [list.cards]);
@@ -432,9 +474,10 @@ export const List = React.memo(
                 </button>
                 <button
                   onClick={handleEdit}
-                  className="px-3 py-1 text-sm bg-[#7f00ff] text-white rounded hover:bg-[#7f00ff]/90"
+                  disabled={isUpdating}
+                  className="px-3 py-1 text-sm bg-[#7f00ff] text-white rounded hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Salvar
+                  {isUpdating ? "Salvando..." : "Salvar"}
                 </button>
               </div>
             </div>

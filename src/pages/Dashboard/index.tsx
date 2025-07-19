@@ -136,9 +136,6 @@ export function Dashboard() {
         throw new Error("Token ou organização não disponível");
       }
 
-      // Carregar todos os boards primeiro (se necessário)
-      await fetchAllBoards(token, organization.id);
-
       // Garantir que os stores estão inicializados
       if (!contractStore?.initialized) {
         await Promise.all([contractStore?.initialize?.()]);
@@ -147,11 +144,6 @@ export function Dashboard() {
       // Verificar se os stores estão disponíveis
       if (!contractStore) {
         throw new Error("Falha ao carregar dados dos stores");
-      }
-
-      // Se há um board ativo, carregar ele completo (se necessário)
-      if (activeBoardId) {
-        await selectAndLoadBoard(activeBoardId);
       }
 
       setIsLoading(false);
@@ -169,13 +161,14 @@ export function Dashboard() {
         }, 2000);
       }
     }
-  }, [
-    contractStore,
-    retryCount,
-    fetchAllBoards,
-    activeBoardId,
-    selectAndLoadBoard,
-  ]);
+  }, [contractStore, retryCount]);
+
+  // Efeito separado para carregar o board ativo quando necessário
+  useEffect(() => {
+    if (activeBoardId && (!activeBoard?.lists || activeBoard.lists.length === 0)) {
+      selectAndLoadBoard(activeBoardId);
+    }
+  }, [activeBoardId, activeBoard?.lists, selectAndLoadBoard]);
 
   // Usar useEffect para inicialização e cleanup
   useEffect(() => {
@@ -293,43 +286,24 @@ export function Dashboard() {
   // Obter os top vendedores a partir dos cartões concluídos
   const topSellers = React.useMemo(() => {
     try {
-      console.log("---------- DIAGNÓSTICO COMPLETO TOP VENDEDORES ----------");
-
       // 1. Verificar o quadro selecionado
-      console.log("Quadro selecionado:", selectedBoard);
-      console.log("Quadro encontrado:", selectedKanbanBoard);
-
       // 2. Verificar lista de concluídos
-      console.log("ID da lista concluída:", completedListId);
-      console.log("Lista concluída:", completedList);
-
       // 3. Verificar se a lista tem cartões
-      const hasCards = completedList?.cards && completedList.cards.length > 0;
-      console.log("Lista tem cartões:", hasCards);
-      if (hasCards) {
-        console.log("Quantidade de cartões:", completedList?.cards?.length);
-      }
-
       // 4. Verificar membros disponíveis
-      console.log("Membros disponíveis:", members);
 
       if (!selectedBoard) {
-        console.log("Nenhum quadro selecionado");
         return [];
       }
 
       if (!completedListId) {
-        console.log("Nenhuma lista configurada como concluída neste quadro");
         return [];
       }
 
       if (!completedList) {
-        console.log("Lista concluída não encontrada");
         return [];
       }
 
       if (!completedList?.cards || completedList.cards.length === 0) {
-        console.log("Lista concluída não tem cartões");
         return [];
       }
 
@@ -337,19 +311,8 @@ export function Dashboard() {
       const cardsWithResponsible = completedList.cards.filter(
         (card) => card.responsibleId
       );
-      console.log("Cartões com responsável:", cardsWithResponsible.length);
-      console.log(
-        "Detalhes dos cartões com responsável:",
-        cardsWithResponsible.map((c) => ({
-          id: c.id,
-          title: c.title,
-          responsibleId: c.responsibleId,
-          value: c.value,
-        }))
-      );
 
       if (cardsWithResponsible.length === 0) {
-        console.log("Nenhum cartão com responsável atribuído");
         return [];
       }
 
@@ -382,9 +345,6 @@ export function Dashboard() {
 
         return acc;
       }, {} as Record<string, { id: string; name: string; count: number; totalValue: number }>);
-
-      console.log("Estatísticas finais de vendedores:", sellerStats);
-      console.log("---------- FIM DIAGNÓSTICO TOP VENDEDORES ----------");
 
       // Converter para array e ordenar por valor total
       return Object.values(sellerStats).sort(

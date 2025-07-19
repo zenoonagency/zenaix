@@ -15,12 +15,14 @@ import { formatApiError } from "../utils/formatters";
 export const cardService = {
   async createCard(
     token: string,
+    organizationId: string,
     boardId: string,
     listId: string,
     data: InputCreateCardDTO
   ): Promise<OutputCardDTO> {
     try {
       const url = `${API_CONFIG.baseUrl}${API_CONFIG.cards.create(
+        organizationId,
         boardId,
         listId
       )}`;
@@ -45,12 +47,14 @@ export const cardService = {
 
   async getCards(
     token: string,
+    organizationId: string,
     boardId: string,
     listId: string,
     title?: string
   ): Promise<OutputCardDTO[]> {
     try {
       let url = `${API_CONFIG.baseUrl}${API_CONFIG.cards.findAll(
+        organizationId,
         boardId,
         listId
       )}`;
@@ -77,12 +81,14 @@ export const cardService = {
 
   async getCardById(
     token: string,
+    organizationId: string,
     boardId: string,
     listId: string,
     cardId: string
   ): Promise<OutputCardDTO> {
     try {
       const url = `${API_CONFIG.baseUrl}${API_CONFIG.cards.findById(
+        organizationId,
         boardId,
         listId,
         cardId
@@ -107,6 +113,7 @@ export const cardService = {
 
   async updateCard(
     token: string,
+    organizationId: string,
     boardId: string,
     listId: string,
     cardId: string,
@@ -114,6 +121,7 @@ export const cardService = {
   ): Promise<OutputCardDTO> {
     try {
       const url = `${API_CONFIG.baseUrl}${API_CONFIG.cards.update(
+        organizationId,
         boardId,
         listId,
         cardId
@@ -139,12 +147,14 @@ export const cardService = {
 
   async deleteCard(
     token: string,
+    organizationId: string,
     boardId: string,
     listId: string,
     cardId: string
   ): Promise<void> {
     try {
       const url = `${API_CONFIG.baseUrl}${API_CONFIG.cards.delete(
+        organizationId,
         boardId,
         listId,
         cardId

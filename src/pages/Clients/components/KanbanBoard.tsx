@@ -15,9 +15,12 @@ import { Plus, Loader2 } from "lucide-react";
 import { useThemeStore } from "../../../store/themeStore";
 import { useToast } from "../../../hooks/useToast";
 import { boardService } from "../../../services/board.service";
+import { listService } from "../../../services/list.service";
 import { useAuthStore } from "../../../store/authStore";
 import { useBoardStore } from "../../../store/boardStore";
+import { useListStore } from "../../../store/listStore";
 import { InputCreateBoardDTO } from "../../../types/board";
+import { InputCreateListDTO } from "../../../types/list";
 import { OutputCardDTO } from "../../../types/card";
 
 const PREDEFINED_COLORS = [
@@ -49,7 +52,14 @@ export function KanbanBoard() {
   const { theme } = useThemeStore();
   const { showToast } = useToast();
   const isDark = theme === "dark";
-  const { boards, activeBoardId, setActiveBoardId } = useBoardStore();
+  const {
+    boards,
+    activeBoardId,
+    activeBoard,
+    setActiveBoardId,
+    selectAndLoadBoard,
+  } = useBoardStore();
+  const { lists, addList, fetchLists } = useListStore();
   const { token, organization } = useAuthStore();
   const [activeCard, setActiveCard] = useState<OutputCardDTO | null>(null);
   const [activeListId, setActiveListId] = useState<string | null>(null);
@@ -61,6 +71,7 @@ export function KanbanBoard() {
   const [newBoardName, setNewBoardName] = useState("");
   const [newBoardDescription, setNewBoardDescription] = useState("");
   const [isCreatingBoard, setIsCreatingBoard] = useState(false);
+  const [isCreatingList, setIsCreatingList] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -70,12 +81,26 @@ export function KanbanBoard() {
     })
   );
 
-  // Board ativo: se não houver activeBoardId, pega o primeiro board
-  const board = boards.length
-    ? boards.find((b) => b.id === activeBoardId) || boards[0]
-    : null;
+  // Usar o activeBoard que já vem com listas e cards, ou fallback para o board básico
+  const board =
+    activeBoard ||
+    (boards.length
+      ? boards.find((b) => b.id === activeBoardId) || boards[0]
+      : null);
 
-  // Sempre que mudar o board, atualiza o activeBoardId na store
+  // Sempre buscar o nome mais atualizado do board
+  const boardName =
+    boards.find((b) => b.id === activeBoardId)?.name ||
+    board?.name ||
+    "Quadro não encontrado";
+
+  // Carregar listas quando o board ativo mudar
+  useEffect(() => {
+    if (activeBoardId) {
+      fetchLists(activeBoardId);
+    }
+  }, [activeBoardId, fetchLists]);
+
   useEffect(() => {
     if (board && board.id !== activeBoardId) {
       setActiveBoardId(board.id);
@@ -138,6 +163,41 @@ export function KanbanBoard() {
     []
   );
 
+  // Função para criar nova lista via service
+  const handleCreateList = async () => {
+    if (!newListTitle.trim() || !activeBoardId) return;
+
+    setIsCreatingList(true);
+    try {
+      if (!token || !organization?.id) throw new Error("Sem autenticação");
+
+      const dto: InputCreateListDTO = {
+        name: newListTitle.trim(),
+        color: newListColor || "#7F00FF",
+      };
+
+      const newList = await listService.createList(
+        token,
+        organization.id,
+        activeBoardId,
+        dto
+      );
+
+      // Adicionar à listStore
+      addList(newList);
+
+      // Recarregar o board ativo para incluir a nova lista
+      await selectAndLoadBoard(activeBoardId);
+
+      showToast("Lista criada com sucesso!", "success");
+      handleCloseModal();
+    } catch (err: any) {
+      showToast(err.message || "Erro ao criar lista", "error");
+    } finally {
+      setIsCreatingList(false);
+    }
+  };
+
   // Função para criar novo board via service
   const handleCreateBoard = async () => {
     if (!newBoardName.trim()) return;
@@ -182,7 +242,7 @@ export function KanbanBoard() {
                   className="text-2xl font-bold text-gray-900 dark:text-white mb-4"
                   style={{ textAlign: "left" }}
                 >
-                  Quadro: {board.name}
+                  Quadro: {boardName}
                 </h2>
               </div>
             )}
@@ -198,7 +258,7 @@ export function KanbanBoard() {
             </div>
             <div className="flex gap-4 p-4 overflow-x-auto min-w-full scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent [&::-webkit-scrollbar]:h-2">
               <div className="flex gap-4">
-                {board?.lists?.map((list: any) => (
+                {lists.map((list: any) => (
                   <ListComponent
                     key={list.id}
                     list={{
@@ -215,7 +275,7 @@ export function KanbanBoard() {
                   />
                 ))}
                 {/* Botão '+' só aparece se houver pelo menos uma lista */}
-                {board?.lists && board.lists.length > 0 && (
+                {lists.length > 0 && (
                   <button
                     onClick={handleAddList}
                     className="flex items-center justify-center w-12 h-24 rounded-lg border-2 border-dashed border-[#7f00ff] text-[#7f00ff] text-3xl hover:bg-[#7f00ff]/10 transition-colors"
@@ -267,10 +327,11 @@ export function KanbanBoard() {
                       Cancelar
                     </button>
                     <button
-                      onClick={handleCloseModal}
+                      onClick={handleCreateList}
                       className="px-4 py-2 rounded bg-[#7f00ff] text-white hover:bg-[#7f00ff]/90"
+                      disabled={isCreatingList || !newListTitle.trim()}
                     >
-                      Criar
+                      {isCreatingList ? "Criando..." : "Criar"}
                     </button>
                   </div>
                 </div>

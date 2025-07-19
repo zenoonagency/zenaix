@@ -53,8 +53,6 @@ export function App() {
 
   useEffect(() => {
     if (isAuthenticated && _hasHydrated && token) {
-      console.log("✅ Efeito Principal: Sincronizando dados e conexões...");
-
       fetchAndSyncUser();
       fetchAllPlans(token);
 
@@ -72,23 +70,10 @@ export function App() {
       }
 
       return () => {
-        console.log("🧹 Limpando conexões de Realtime...");
         disconnectFromRealtime();
       };
     }
-  }, [
-    isAuthenticated,
-    _hasHydrated,
-    token,
-    userId,
-    organizationId,
-    fetchAndSyncUser,
-    fetchAllPlans,
-    fetchAllTags,
-    fetchAllEmbedPages,
-    connectToRealtime,
-    disconnectFromRealtime,
-  ]);
+  }, [isAuthenticated, _hasHydrated, token, userId, organizationId]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {

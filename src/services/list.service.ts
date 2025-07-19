@@ -15,11 +15,15 @@ import { formatApiError } from "../utils/formatters";
 export const listService = {
   async createList(
     token: string,
+    organizationId: string,
     boardId: string,
     data: InputCreateListDTO
   ): Promise<OutputListDTO> {
     try {
-      const url = `${API_CONFIG.baseUrl}${API_CONFIG.lists.create(boardId)}`;
+      const url = `${API_CONFIG.baseUrl}${API_CONFIG.lists.create(
+        organizationId,
+        boardId
+      )}`;
       const response = await fetchWithAuth(url, {
         method: "POST",
         headers: getAuthHeaders(token),
@@ -39,9 +43,16 @@ export const listService = {
     }
   },
 
-  async getLists(token: string, boardId: string): Promise<OutputListDTO[]> {
+  async getLists(
+    token: string,
+    organizationId: string,
+    boardId: string
+  ): Promise<OutputListDTO[]> {
     try {
-      const url = `${API_CONFIG.baseUrl}${API_CONFIG.lists.findAll(boardId)}`;
+      const url = `${API_CONFIG.baseUrl}${API_CONFIG.lists.findAll(
+        organizationId,
+        boardId
+      )}`;
       const response = await fetchWithAuth(url, {
         method: "GET",
         headers: getAuthHeaders(token),
@@ -62,11 +73,13 @@ export const listService = {
 
   async getListById(
     token: string,
+    organizationId: string,
     boardId: string,
     listId: string
   ): Promise<OutputListDTO> {
     try {
       const url = `${API_CONFIG.baseUrl}${API_CONFIG.lists.findById(
+        organizationId,
         boardId,
         listId
       )}`;
@@ -90,12 +103,14 @@ export const listService = {
 
   async updateList(
     token: string,
+    organizationId: string,
     boardId: string,
     listId: string,
     data: InputUpdateListDTO
   ): Promise<OutputListDTO> {
     try {
       const url = `${API_CONFIG.baseUrl}${API_CONFIG.lists.update(
+        organizationId,
         boardId,
         listId
       )}`;
@@ -120,11 +135,13 @@ export const listService = {
 
   async deleteList(
     token: string,
+    organizationId: string,
     boardId: string,
     listId: string
   ): Promise<void> {
     try {
       const url = `${API_CONFIG.baseUrl}${API_CONFIG.lists.delete(
+        organizationId,
         boardId,
         listId
       )}`;

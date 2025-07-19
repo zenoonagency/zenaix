@@ -184,6 +184,16 @@ export function Clients() {
     setShowListSelector(true);
   };
 
+  // Efeito para carregar o board ativo completo quando necessário
+  useEffect(() => {
+    if (
+      activeBoardId &&
+      (!activeBoard?.lists || activeBoard.lists.length === 0)
+    ) {
+      selectAndLoadBoard(activeBoardId);
+    }
+  }, [activeBoardId, activeBoard?.lists, selectAndLoadBoard]);
+
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
       <div className={`p-6 bg-background dark:bg-background`}>
