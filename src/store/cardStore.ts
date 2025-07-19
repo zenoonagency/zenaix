@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { cardService } from "../services/card.service";
 import {
   OutputCardDTO,
@@ -14,6 +15,7 @@ interface CardState {
   isLoading: boolean;
   error: string | null;
   selectedCard: OutputCardDTO | null;
+  lastFetched: number | null; 
 
   setCards: (cards: OutputCardDTO[]) => void;
   addCard: (card: OutputCardDTO) => void;
@@ -21,162 +23,145 @@ interface CardState {
   removeCard: (cardId: string) => void;
   setSelectedCard: (card: OutputCardDTO | null) => void;
 
-  fetchCards: (
+  fetchAllCards: (
     boardId: string,
     listId: string,
     title?: string
   ) => Promise<void>;
-  fetchCardById: (
-    boardId: string,
-    listId: string,
-    cardId: string
-  ) => Promise<void>;
-  createCard: (
+  createCardApi: (
     boardId: string,
     listId: string,
     data: InputCreateCardDTO
   ) => Promise<OutputCardDTO | null>;
-  updateCardRemote: (
+  updateCardApi: (
     boardId: string,
     listId: string,
     cardId: string,
     data: InputUpdateCardDTO
   ) => Promise<OutputCardDTO | null>;
-  deleteCard: (
+  deleteCardApi: (
     boardId: string,
     listId: string,
     cardId: string
   ) => Promise<void>;
 }
 
-export const useCardStore = create<CardState>((set, get) => ({
-  cards: [],
-  isLoading: false,
-  error: null,
-  selectedCard: null,
+export const useCardStore = create<CardState>()(
+  persist(
+    (set, get) => ({
+      cards: [],
+      isLoading: false,
+      error: null,
+      selectedCard: null,
+      lastFetched: null,
 
-  setCards: (cards) => set({ cards }),
-  addCard: (card) => {
-    set((state) => ({
-      cards: state.cards.some((c) => c.id === card.id)
-        ? state.cards
-        : [...state.cards, card],
-    }));
-  },
-  updateCard: (card) => {
-    set((state) => ({
-      cards: state.cards.map((c) => (c.id === card.id ? card : c)),
-    }));
-  },
-  removeCard: (cardId) => {
-    set((state) => ({
-      cards: state.cards.filter((c) => c.id !== cardId),
-    }));
-  },
-  setSelectedCard: (card) => set({ selectedCard: card }),
+      setCards: (cards) => set({ cards }),
+      addCard: (card) => {
+        set((state) => ({
+          cards: state.cards.some((c) => c.id === card.id)
+            ? state.cards
+            : [...state.cards, card],
+        }));
+      },
+      updateCard: (card) => {
+        set((state) => ({
+          cards: state.cards.map((c) => (c.id === card.id ? card : c)),
+        }));
+      },
+      removeCard: (cardId) => {
+        set((state) => ({
+          cards: state.cards.filter((c) => c.id !== cardId),
+        }));
+      },
+      setSelectedCard: (card) => set({ selectedCard: card }),
 
-  fetchCards: async (boardId, listId, title) => {
-    const { token } = useAuthStore.getState();
-    if (!token) return;
-    set({ isLoading: true });
-    try {
-      const cards = await cardService.getCards(token, boardId, listId, title);
-      set({ cards, isLoading: false, error: null });
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof APIError ? error.message : "Erro ao buscar cards";
-      set({ error: errorMessage, isLoading: false });
-      useToastStore.getState().addToast(errorMessage, "error");
+      fetchAllCards: async (boardId, listId, title) => {
+        const { token } = useAuthStore.getState();
+        if (!token) return;
+
+        if (get().isLoading) return;
+        if (get().cards.length === 0) {
+          set({ isLoading: true });
+        }
+
+        try {
+          const cards = await cardService.getCards(
+            token,
+            boardId,
+            listId,
+            title
+          );
+          set({
+            cards,
+            isLoading: false,
+            error: null,
+            lastFetched: Date.now(),
+          });
+        } catch (error: any) {
+          const errorMessage =
+            error instanceof APIError ? error.message : "Erro ao buscar cards";
+          set({ error: errorMessage, isLoading: false });
+          useToastStore.getState().addToast(errorMessage, "error");
+        }
+      },
+
+      createCardApi: async (boardId, listId, data) => {
+        const { token } = useAuthStore.getState();
+        if (!token) return null;
+
+        try {
+          return await cardService.createCard(token, boardId, listId, data);
+        } catch (error: any) {
+          const errorMessage =
+            error instanceof APIError ? error.message : "Erro ao criar card";
+          set({ error: errorMessage });
+          useToastStore.getState().addToast(errorMessage, "error");
+          throw error;
+        }
+      },
+      updateCardApi: async (boardId, listId, cardId, data) => {
+        const { token } = useAuthStore.getState();
+        if (!token) return null;
+
+        try {
+          return await cardService.updateCard(
+            token,
+            boardId,
+            listId,
+            cardId,
+            data
+          );
+        } catch (error: any) {
+          const errorMessage =
+            error instanceof APIError
+              ? error.message
+              : "Erro ao atualizar card";
+          set({ error: errorMessage });
+          useToastStore.getState().addToast(errorMessage, "error");
+          throw error;
+        }
+      },
+      deleteCardApi: async (boardId, listId, cardId) => {
+        const { token } = useAuthStore.getState();
+        if (!token) return;
+
+        try {
+          await cardService.deleteCard(token, boardId, listId, cardId);
+        } catch (error: any) {
+          const errorMessage =
+            error instanceof APIError ? error.message : "Erro ao apagar card";
+          set({ error: errorMessage });
+          useToastStore.getState().addToast(errorMessage, "error");
+          throw error;
+        }
+      },
+    }),
+    {
+      name: "card-store",
+      partialize: (state) => ({
+        cards: state.cards,
+        lastFetched: state.lastFetched,
+      }),
     }
-  },
-  fetchCardById: async (boardId, listId, cardId) => {
-    const { token } = useAuthStore.getState();
-    if (!token) return;
-    set({ isLoading: true });
-    try {
-      const card = await cardService.getCardById(
-        token,
-        boardId,
-        listId,
-        cardId
-      );
-      set((state) => ({
-        cards: state.cards.some((c) => c.id === card.id)
-          ? state.cards.map((c) => (c.id === card.id ? card : c))
-          : [...state.cards, card],
-        selectedCard: card,
-        isLoading: false,
-        error: null,
-      }));
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof APIError ? error.message : "Erro ao buscar card";
-      set({ error: errorMessage, isLoading: false });
-      useToastStore.getState().addToast(errorMessage, "error");
-    }
-  },
-  createCard: async (boardId, listId, data) => {
-    const { token } = useAuthStore.getState();
-    if (!token) return null;
-    set({ isLoading: true });
-    try {
-      const card = await cardService.createCard(token, boardId, listId, data);
-      set((state) => ({
-        cards: [...state.cards, card],
-        isLoading: false,
-        error: null,
-      }));
-      return card;
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof APIError ? error.message : "Erro ao criar card";
-      set({ error: errorMessage, isLoading: false });
-      useToastStore.getState().addToast(errorMessage, "error");
-      return null;
-    }
-  },
-  updateCardRemote: async (boardId, listId, cardId, data) => {
-    const { token } = useAuthStore.getState();
-    if (!token) return null;
-    set({ isLoading: true });
-    try {
-      const card = await cardService.updateCard(
-        token,
-        boardId,
-        listId,
-        cardId,
-        data
-      );
-      set((state) => ({
-        cards: state.cards.map((c) => (c.id === card.id ? card : c)),
-        isLoading: false,
-        error: null,
-      }));
-      return card;
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof APIError ? error.message : "Erro ao atualizar card";
-      set({ error: errorMessage, isLoading: false });
-      useToastStore.getState().addToast(errorMessage, "error");
-      return null;
-    }
-  },
-  deleteCard: async (boardId, listId, cardId) => {
-    const { token } = useAuthStore.getState();
-    if (!token) return;
-    set({ isLoading: true });
-    try {
-      await cardService.deleteCard(token, boardId, listId, cardId);
-      set((state) => ({
-        cards: state.cards.filter((c) => c.id !== cardId),
-        isLoading: false,
-        error: null,
-      }));
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof APIError ? error.message : "Erro ao deletar card";
-      set({ error: errorMessage, isLoading: false });
-      useToastStore.getState().addToast(errorMessage, "error");
-    }
-  },
-}));
+  )
+);
