@@ -712,10 +712,10 @@ export function CardModal({
                   }`}
                 >
                   <option value="">Selecione a prioridade</option>
-                  <option value="low">Baixa</option>
-                  <option value="medium">Média</option>
-                  <option value="high">Alta</option>
-                  <option value="urgent">Urgente</option>
+                  <option value="LOW">Baixa</option>
+                  <option value="MEDIUM">Média</option>
+                  <option value="HIGH">Alta</option>
+                  <option value="URGENT">Urgente</option>
                 </Select>
               </div>
 
