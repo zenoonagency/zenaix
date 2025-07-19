@@ -182,11 +182,11 @@ const Card = React.memo(
             value: updatedCard.value,
             phone: updatedCard.phone,
             priority: updatedCard.priority,
-            tagIds: updatedCard.tagIds,
-            dueDate: updatedCard.dueDate,
-            responsibleId: updatedCard.responsibleId,
-            customFields: updatedCard.customFields,
+            tag_ids: updatedCard.tagIds,
+            due_date: updatedCard.dueDate,
+            assignee_id: updatedCard.responsibleId,
             subtasks: updatedCard.subtasks,
+            attachments: updatedCard.attachments,
           };
 
           const updatedCardData = await cardService.updateCard(

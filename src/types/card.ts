@@ -10,6 +10,7 @@ export interface InputCreateCardDTO {
   assignee_id?: string;
   tag_ids?: string[];
   subtasks?: Array<{ title: string }>;
+  attachments?: Array<any>;
 }
 
 export interface InputUpdateCardDTO {
@@ -27,6 +28,7 @@ export interface InputUpdateCardDTO {
     description?: string;
     is_completed?: boolean;
   }>;
+  attachments?: Array<any>;
   list_id?: string;
   position?: number;
 }
