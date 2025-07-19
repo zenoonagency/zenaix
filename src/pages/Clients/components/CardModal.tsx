@@ -453,20 +453,27 @@ export function CardModal({
     setIsSubmitting(true);
 
     try {
+      // Combinar data e hora para due_date
+      let dueDate = null;
+      if (scheduledDate && scheduledTime) {
+        const dateTime = new Date(`${scheduledDate}T${scheduledTime}`);
+        dueDate = dateTime.toISOString();
+      } else if (scheduledDate) {
+        const dateTime = new Date(`${scheduledDate}T00:00`);
+        dueDate = dateTime.toISOString();
+      }
+
       const cardData = {
         title: title.trim(),
         description: description.trim(),
         value: value ? parseFloat(value) : 0,
         phone: phone.trim(),
         priority: priority as CardPriority,
-        tagIds: selectedTagIds,
-        scheduledDate,
-        scheduledTime,
-        responsibleId,
+        tag_ids: selectedTagIds,
+        due_date: dueDate,
+        assignee_id: responsibleId || null,
         subtasks,
         // attachments são gerenciados separadamente via attachmentService
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
 
       await onSave(cardData);
