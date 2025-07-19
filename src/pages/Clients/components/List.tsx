@@ -19,9 +19,12 @@ import { useToast } from "../../../hooks/useToast";
 import { CardModal } from "./CardModal";
 import { useCustomModal } from "../../../components/CustomModal";
 import { listService } from "../../../services/list.service";
+import { cardService } from "../../../services/card.service";
 import { useListStore } from "../../../store/listStore";
+import { useCardStore } from "../../../store/cardStore";
 import { useAuthStore } from "../../../store/authStore";
 import { InputUpdateListDTO } from "../../../types/list";
+import { InputCreateCardDTO } from "../../../types/card";
 import { mutate } from "swr";
 import { VariableSizeList as VirtualList } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -41,6 +44,7 @@ export const List = React.memo(
     const { showToast } = useToast();
     const { customConfirm } = useCustomModal();
     const { updateList, removeList } = useListStore();
+    const { addCard } = useCardStore();
     const { token, organization } = useAuthStore();
     const isDark = theme === "dark";
     const [showMenu, setShowMenu] = useState(false);
@@ -50,6 +54,7 @@ export const List = React.memo(
     const [color, setColor] = useState(list.color || "");
     const [isUpdating, setIsUpdating] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isCreatingCard, setIsCreatingCard] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const isCompletedList = false; // getCompletedListId(boardId) === list.id;
     const containerRef = useRef<HTMLDivElement>(null);
@@ -103,25 +108,29 @@ export const List = React.memo(
       }
     };
 
-    const handleCreateCard = (cardData: any) => {
-      const newCard: Omit<CardType, "id"> = {
-        title: cardData.title,
-        description: cardData.description || "",
-        tags: [],
-        tagIds: cardData.tagIds || [],
-        value: cardData.value ? parseFloat(cardData.value) : undefined,
-        phone: cardData.phone || undefined,
-        subtasks: cardData.subtasks || [],
-        attachments: cardData.attachments || [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        dueDate: cardData.scheduledDate || undefined,
-        responsibleId: cardData.responsibleId || undefined,
-        priority: cardData.priority || undefined,
-      };
-      // addCard(boardId, list.id, newCard as CardType); // This line was removed as per the edit hint
-      setShowCardModal(false);
-      showToast("Card criado com sucesso!", "success");
+    const handleCreateCard = async (cardData: InputCreateCardDTO) => {
+      if (!token || !organization?.id) return;
+
+      setIsCreatingCard(true);
+      try {
+        const newCard = await cardService.createCard(
+          token,
+          organization.id,
+          boardId,
+          list.id,
+          cardData
+        );
+
+        // Atualizar na cardStore
+        addCard(newCard);
+        
+        setShowCardModal(false);
+        showToast("Card criado com sucesso!", "success");
+      } catch (err: any) {
+        showToast(err.message || "Erro ao criar card", "error");
+      } finally {
+        setIsCreatingCard(false);
+      }
     };
     const handleDelete = async () => {
       const confirmed = await customConfirm(
@@ -342,14 +351,15 @@ export const List = React.memo(
         <div className="p-2 shrink-0">
           <button
             onClick={() => setShowCardModal(true)}
+            disabled={isCreatingCard}
             className={`w-full p-2 flex items-center justify-center gap-2 text-sm rounded-lg transition-colors ${
               isDark
                 ? "bg-dark-600 text-gray-400 hover:bg-dark-500"
                 : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-            }`}
+            } ${isCreatingCard ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <Plus className="w-4 h-4 ${isDark ? 'bg-dark-600'}" />
-            Adicionar Card
+            {isCreatingCard ? "Criando..." : "Adicionar Card"}
           </button>
         </div>
 

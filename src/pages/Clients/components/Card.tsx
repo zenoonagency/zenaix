@@ -22,6 +22,10 @@ import { useToast } from "../../../hooks/useToast";
 import { CardDetailModal } from "./CardDetailModal";
 import { CardMenuModal } from "./CardMenuModal";
 import { useInviteStore } from "../../../store/inviteStore";
+import { useCardStore } from "../../../store/cardStore";
+import { cardService } from "../../../services/card.service";
+import { useAuthStore } from "../../../store/authStore";
+import { InputUpdateCardDTO } from "../../../types/card";
 
 interface CardProps {
   card: CardType;
@@ -113,6 +117,8 @@ const Card = React.memo(
     const isDark = theme === "dark";
     const tagStore = useTagStore();
     const teamStore = useInviteStore();
+    const { updateCard, removeCard } = useCardStore();
+    const { token, organization } = useAuthStore();
     const tags = tagStore?.tags || [];
     const members = teamStore?.members || [];
     const { showToast } = useToast();
@@ -166,27 +172,84 @@ const Card = React.memo(
       setShowEditModal(true);
     }, []);
     const handleSaveEdit = useCallback(
-      (updatedCard: Partial<CardType>) => {
-        // updateCard(boardId, listId, cardData.id, updatedCard); // Removed as per edit hint
-        setShowEditModal(false);
+      async (updatedCard: Partial<CardType>) => {
+        if (!token || !organization?.id) return;
+
+        try {
+          const dto: InputUpdateCardDTO = {
+            title: updatedCard.title,
+            description: updatedCard.description,
+            value: updatedCard.value,
+            phone: updatedCard.phone,
+            priority: updatedCard.priority,
+            tagIds: updatedCard.tagIds,
+            dueDate: updatedCard.dueDate,
+            responsibleId: updatedCard.responsibleId,
+            customFields: updatedCard.customFields,
+            subtasks: updatedCard.subtasks,
+          };
+
+          const updatedCardData = await cardService.updateCard(
+            token,
+            organization.id,
+            boardId,
+            listId,
+            cardData.id,
+            dto
+          );
+
+          // Atualizar na cardStore
+          updateCard(updatedCardData);
+
+          setShowEditModal(false);
+          showToast("Card atualizado com sucesso!", "success");
+        } catch (err: any) {
+          showToast(err.message || "Erro ao atualizar card", "error");
+        }
       },
       [
-        /* updateCard, boardId, listId, cardData.id */
+        token,
+        organization?.id,
+        boardId,
+        listId,
+        cardData.id,
+        updateCard,
+        showToast,
       ]
     );
     const handleDelete = useCallback((e?: React.MouseEvent) => {
       if (e) e.stopPropagation();
       setShowDeleteConfirm(true);
     }, []);
-    const confirmDelete = useCallback(
-      () => {
-        // deleteCard(boardId, listId, cardData.id); // Removed as per edit hint
+    const confirmDelete = useCallback(async () => {
+      if (!token || !organization?.id) return;
+
+      try {
+        await cardService.deleteCard(
+          token,
+          organization.id,
+          boardId,
+          listId,
+          cardData.id
+        );
+
+        // Remover da cardStore
+        removeCard(cardData.id);
+
         setShowDeleteConfirm(false);
-      },
-      [
-        /* deleteCard, boardId, listId, cardData.id */
-      ]
-    );
+        showToast("Card excluído com sucesso!", "success");
+      } catch (err: any) {
+        showToast(err.message || "Erro ao excluir card", "error");
+      }
+    }, [
+      token,
+      organization?.id,
+      boardId,
+      listId,
+      cardData.id,
+      removeCard,
+      showToast,
+    ]);
     const handleDuplicate = useCallback(
       (e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
