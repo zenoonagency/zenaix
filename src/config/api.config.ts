@@ -169,4 +169,44 @@ export const API_CONFIG = {
     count: 2,
     delay: 1000,
   },
+  boards: {
+    create: (organizationId: string) =>
+      `/organizations/${organizationId}/boards`,
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/boards`,
+    findById: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}`,
+    update: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}`,
+    delete: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}`,
+    setCompleted: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/set-completed`,
+    topSellers: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/top-sellers`,
+    accessList: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/access-list`,
+  },
+  lists: {
+    create: (boardId: string) => `/boards/${boardId}/lists`,
+    findAll: (boardId: string) => `/boards/${boardId}/lists`,
+    findById: (boardId: string, listId: string) =>
+      `/boards/${boardId}/lists/${listId}`,
+    update: (boardId: string, listId: string) =>
+      `/boards/${boardId}/lists/${listId}`,
+    delete: (boardId: string, listId: string) =>
+      `/boards/${boardId}/lists/${listId}`,
+  },
+  cards: {
+    create: (boardId: string, listId: string) =>
+      `/boards/${boardId}/lists/${listId}/cards`,
+    findAll: (boardId: string, listId: string) =>
+      `/boards/${boardId}/lists/${listId}/cards`,
+    findById: (boardId: string, listId: string, cardId: string) =>
+      `/boards/${boardId}/lists/${listId}/cards/${cardId}`,
+    update: (boardId: string, listId: string, cardId: string) =>
+      `/boards/${boardId}/lists/${listId}/cards/${cardId}`,
+    delete: (boardId: string, listId: string, cardId: string) =>
+      `/boards/${boardId}/lists/${listId}/cards/${cardId}`,
+  },
 };

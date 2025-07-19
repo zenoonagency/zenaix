@@ -315,8 +315,7 @@ export function Calendar() {
         )} foram excluídos com sucesso!`,
         "success"
       );
-
-      await fetchEvents();
+      
       setShowDeleteConfirmModal(false);
       setDateToDelete(null);
     } catch (error: any) {
@@ -408,7 +407,6 @@ export function Calendar() {
         bulkDeleteData.filters
       );
       showToast(bulkDeleteData.message, "success");
-      await fetchEvents();
       setShowDeleteConfigModal(false);
     } catch (error: any) {
       let errorMessage = "Erro ao excluir eventos";

@@ -25,7 +25,6 @@ export function DayEventsModal({
   events,
   onEventClick,
 }: DayEventsModalProps) {
-  const { fetchEvents } = useCalendarStore();
   const { token, user } = useAuthStore();
   const { showToast } = useToast();
   const organizationId = user?.organization_id;
@@ -64,10 +63,6 @@ export function DayEventsModal({
         "success"
       );
 
-      // Atualizar a lista de eventos
-      await fetchEvents();
-
-      // Fechar o modal de confirmação e o modal principal
       setShowDeleteConfirm(false);
       onClose();
     } catch (error: any) {

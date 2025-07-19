@@ -1,24 +1,21 @@
 import { API_CONFIG } from "./api.config";
 
 export const ENDPOINTS = {
-  SETTINGS: {
-    ASAAS: "https://fluxos-n8n.mgmxhs.easypanel.host/webhook/asaas",
-  },
   AI_SERVICE: {
     LIGA: `${API_CONFIG.baseUrl}/liga`,
     DESLIGA: `${API_CONFIG.baseUrl}/desliga`,
   },
   API_EVOLUTION: {
-    WHATSAPP_QR_CODE: `${this.baseUrl}/whatsapp/qr-code`,
-    WHATSAPP_STATUS: `${this.baseUrl}/whatsapp/status`,
-    WHATSAPP_SEND: `${this.baseUrl}/whatsapp/send`,
-    CONVERSATION_CONTROL: `${this.baseUrl}/conversation/control`,
+    WHATSAPP_QR_CODE: `${API_CONFIG.baseUrl}/whatsapp/qr-code`,
+    WHATSAPP_STATUS: `${API_CONFIG.baseUrl}/whatsapp/status`,
+    WHATSAPP_SEND: `${API_CONFIG.baseUrl}/whatsapp/send`,
+    CONVERSATION_CONTROL: `${API_CONFIG.baseUrl}/conversation/control`,
   },
   PROFILE: {
-    AGENT_WEBHOOK: "webhookAgent", // Variable, not a fixed URL
+    AGENT_WEBHOOK: "webhookAgent", 
   },
   MESSAGING: {
-    DISPARO_WEBHOOK: "DISPARO_WEBHOOK", // Variable, not a fixed URL
+    DISPARO_WEBHOOK: "DISPARO_WEBHOOK",
   },
   CONVERSATIONS: {
     GET_QR_CODE:
@@ -40,24 +37,5 @@ export const ENDPOINTS = {
   },
   HEADER: {
     CHAT: "https://zenoon-agency-n8n.htm57w.easypanel.host/webhook/c0bf5d3e-e3a4-4d66-aec6-6edcc9c6a666/chat",
-  },
-  TEAM_MEMBERS: {
-    FIND_ALL: (orgId: string) => `/organizations/${orgId}/members`,
-    FIND_BY_ID: (orgId: string, memberId: string) =>
-      `/organizations/${orgId}/members/${memberId}`,
-    UPDATE_ROLE: (orgId: string, memberId: string) =>
-      `/organizations/${orgId}/members/${memberId}/role`,
-    REMOVE: (orgId: string, memberId: string) =>
-      `/organizations/${orgId}/members/${memberId}`,
-  },
-  CALENDAR: {
-    EVENTS: (orgId: string) => `/organizations/${orgId}/calendar/events`,
-    EVENT_BY_ID: (orgId: string, eventId: string) =>
-      `/organizations/${orgId}/calendar/events/${eventId}`,
-    CREATE_EVENT: (orgId: string) => `/organizations/${orgId}/calendar/events`,
-    UPDATE_EVENT: (orgId: string, eventId: string) =>
-      `/organizations/${orgId}/calendar/events/${eventId}`,
-    DELETE_EVENT: (orgId: string, eventId: string) =>
-      `/organizations/${orgId}/calendar/events/${eventId}`,
   },
 };
