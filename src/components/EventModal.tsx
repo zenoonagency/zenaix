@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ptBR } from "date-fns/locale";
 import { X } from "lucide-react";
-import { CalendarEvent } from "../store/calendarStore";
 import "react-datepicker/dist/react-datepicker.css";
+import { CalendarEvent } from "../types/calendar";
 
 registerLocale("pt-BR", ptBR);
 
@@ -40,9 +40,22 @@ export function EventModal({
     await onSubmit({
       title,
       description,
-      start: startDate,
-      responsible: "",
-      end: endDate,
+      start_at: startDate.toISOString(),
+      end_at: endDate.toISOString(),
+      color: "#7f00ff",
+      organization_id: "",
+      creator_id: "",
+      creator: {
+        id: "",
+        email: "",
+        name: "",
+        role: "",
+        organization_id: "",
+        created_at: "",
+        updated_at: "",
+      },
+      categories: [],
+      notifications: [],
     });
     setTitle("");
     setDescription("");

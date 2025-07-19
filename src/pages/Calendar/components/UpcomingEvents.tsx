@@ -114,6 +114,21 @@ export function UpcomingEvents() {
     };
   };
 
+  const getEventColor = (event: CalendarEvent) => {
+    // Usar a cor baseada no status do tempo (cor dos balões/tags)
+    const timeStatus = getTimeStatus(event);
+    switch (timeStatus.status) {
+      case "happening":
+        return "#10b981"; // green-500 (cor do balão verde)
+      case "soon":
+        return "#f59e0b"; // yellow-500 (cor do balão amarelo)
+      case "upcoming":
+        return "#3b82f6"; // blue-500 (cor do balão azul)
+      default:
+        return "#7f00ff"; // purple default
+    }
+  };
+
   const handleEventClick = (event: CalendarEvent) => {
     setSelectedEvent(event);
     setShowDetailModal(true);
@@ -192,13 +207,26 @@ export function UpcomingEvents() {
             <div
               key={event.id}
               onClick={() => handleEventClick(event)}
-              className={`p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-600 transition-colors cursor-pointer relative group border-l-4 ${timeStatus.color}`}
+              className={`p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-600 transition-all duration-300 cursor-pointer relative group border-l-4 ${timeStatus.color} overflow-hidden`}
             >
-              <div className="absolute right-2 top-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Overlay da cor do evento */}
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out"
+                style={{
+                  background: `linear-gradient(to right, ${getEventColor(
+                    event
+                  )}40 0%, ${getEventColor(event)}20 30%, ${getEventColor(
+                    event
+                  )}10 60%, transparent 100%)`,
+                }}
+              />
+
+              {/* Botões de ação com animação */}
+              <div className="absolute right-0 top-0 h-full flex items-center space-x-1 bg-gradient-to-l from-gray-100 dark:from-dark-600 via-gray-100 dark:via-dark-600 to-transparent pl-4 pr-2 transform translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out z-10">
                 <button
                   onClick={(e) => handleEditClick(event, e)}
                   disabled={isDeleting}
-                  className="p-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                   title="Editar evento"
                 >
                   <Pencil size={14} />
@@ -206,7 +234,7 @@ export function UpcomingEvents() {
                 <button
                   onClick={(e) => handleDeleteClick(event, e)}
                   disabled={isDeleting}
-                  className="p-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                   title="Excluir evento"
                 >
                   {isDeleting ? (
@@ -217,49 +245,52 @@ export function UpcomingEvents() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 pr-16">
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                  {event.title}
-                </h3>
-                <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                    timeStatus.status === "happening"
-                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                      : timeStatus.status === "soon"
-                      ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                      : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:bg-blue-200"
-                  }`}
-                >
-                  {timeStatus.label}
-                </span>
-              </div>
-
-              {event.description && (
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-                  {event.description}
-                </p>
-              )}
-              <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                {format(new Date(event.start_at), "dd 'de' MMMM 'às' HH:mm", {
-                  locale: ptBR,
-                })}
-              </div>
-              {event.categories && event.categories.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {event.categories.map((category) => (
-                    <span
-                      key={category.id}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                      style={{
-                        backgroundColor: `${category.color}20`,
-                        color: category.color,
-                      }}
-                    >
-                      {category.name}
-                    </span>
-                  ))}
+              {/* Conteúdo (sem animação de empurrar) */}
+              <div className="relative z-5">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                    {event.title}
+                  </h3>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                      timeStatus.status === "happening"
+                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                        : timeStatus.status === "soon"
+                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                        : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:bg-blue-200"
+                    }`}
+                  >
+                    {timeStatus.label}
+                  </span>
                 </div>
-              )}
+
+                {event.description && (
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                    {event.description}
+                  </p>
+                )}
+                <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                  {format(new Date(event.start_at), "dd 'de' MMMM 'às' HH:mm", {
+                    locale: ptBR,
+                  })}
+                </div>
+                {event.categories && event.categories.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {event.categories.map((category) => (
+                      <span
+                        key={category.id}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                        style={{
+                          backgroundColor: `${category.color}20`,
+                          color: category.color,
+                        }}
+                      >
+                        {category.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}

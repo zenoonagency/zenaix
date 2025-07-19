@@ -99,6 +99,8 @@ export const API_CONFIG = {
       `/organizations/${organizationId}/calendar/events/${eventId}`,
     delete: (organizationId: string, eventId: string) =>
       `/organizations/${organizationId}/calendar/events/${eventId}`,
+    deleteAll: (organizationId: string) =>
+      `/organizations/${organizationId}/calendar/events/`,
   },
   whatsapp: {
     getAllMessages: "/todas_messages",

@@ -79,6 +79,8 @@ export interface CalendarFilters {
   year?: number;
   month?: number;
   searchTerm?: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface CalendarResponse {

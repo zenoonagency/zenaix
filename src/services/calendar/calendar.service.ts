@@ -191,7 +191,6 @@ export const calendarService = {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
 
-        // Adicionar status ao erro para melhor tratamento
         const error = formatApiError(errorData, "Falha ao apagar evento.");
         (error as any).status = response.status;
 
@@ -199,13 +198,49 @@ export const calendarService = {
       }
     } catch (error) {
       if (error instanceof APIError) {
-        // Preservar o status se existir
         if ((error as any).status) {
           (error as any).status = (error as any).status;
         }
         throw error;
       }
       throw new APIError("Ocorreu um erro inesperado ao apagar o evento.");
+    }
+  },
+
+  async deleteAllEvents(
+    token: string,
+    organizationId: string,
+    filters?: CalendarFilters
+  ): Promise<void> {
+    try {
+      const url = new URL(
+        `${API_CONFIG.baseUrl}${API_CONFIG.calendar.deleteAll(organizationId)}`,
+        window.location.origin
+      );
+
+      if (filters) {
+        if (filters.year)
+          url.searchParams.append("year", filters.year.toString());
+        if (filters.month)
+          url.searchParams.append("month", filters.month.toString());
+        if (filters.start_date)
+          url.searchParams.append("start_date", filters.start_date);
+        if (filters.end_date)
+          url.searchParams.append("end_date", filters.end_date);
+      }
+
+      const response = await fetchWithAuth(url.toString(), {
+        method: "DELETE",
+        headers: getAuthHeaders(token),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw formatApiError(errorData, "Falha ao apagar eventos em massa.");
+      }
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      throw new APIError("Ocorreu um erro inesperado ao apagar os eventos.");
     }
   },
 };

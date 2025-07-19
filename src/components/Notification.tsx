@@ -65,7 +65,7 @@ export function NotificationSingle({
   onClose,
 }: NotificationProps) {
   return (
-    <div className="fixed top-4 right-4 z-50">
+    <div className="fixed top-4 right-4 z-[99999]">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -103,7 +103,7 @@ export function Notification() {
   }, [toasts, removeToast]);
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] space-y-2">
+    <div className="fixed top-4 right-4 z-[99999] space-y-2">
       <AnimatePresence>
         {toasts.map((toast) => (
           <motion.div

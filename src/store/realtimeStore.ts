@@ -180,7 +180,12 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
               useCalendarStore.getState().updateEvent(eventData.data);
               break;
             case "CALENDAR_DELETED":
-              useCalendarStore.getState().deleteEventApi(eventData.data.id);
+              useCalendarStore.getState().removeEvent(eventData.data.id);
+              break;
+            case "CALENDAR_EVENTS_DELETED":
+              useCalendarStore
+                .getState()
+                .removeEventsByFilter(eventData.data.filters);
               break;
           }
         })

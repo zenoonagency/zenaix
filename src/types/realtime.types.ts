@@ -19,6 +19,7 @@ export interface RealtimeEventPayload {
     | "CONTRACT_UPDATE"
     | "CONTRACT_DELETED"
     | "CALENDAR_CREATED"
+    | "CALENDAR_EVENTS_DELETED"
     | "CONTRACT_FILE_UPDATE"
     | "CONTRACT_FILE_DELETED"
     | "DISPATCH_EXECUTED"

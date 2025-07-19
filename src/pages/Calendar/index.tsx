@@ -14,6 +14,8 @@ import {
   Calendar as CalendarIcon,
   ChevronRight,
   ChevronLeft,
+  Trash2,
+  Settings,
 } from "lucide-react";
 import { useCalendarStore } from "../../store/calendarStore";
 import { useAuthStore } from "../../store/authStore";
@@ -27,6 +29,8 @@ import { EventDetailModal } from "./components/EventDetailModal";
 import { DayEventsModal } from "./components/DayEventsModal";
 import { CalendarSelector } from "./components/CalendarSelector";
 import { CalendarEvent } from "../../types/calendar";
+import { ConfirmationModal } from "../../components/ConfirmationModal";
+import { Modal } from "../../components/Modal";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import "./styles.css";
@@ -47,8 +51,7 @@ const localizer = dateFnsLocalizer({
 const DragAndDropCalendar = withDragAndDrop(BigCalendar);
 
 export function Calendar() {
-  const { events, fetchEvents, isLoading, clearDuplicateEvents } =
-    useCalendarStore();
+  const { events, fetchEvents, isLoading } = useCalendarStore();
 
   const { token, user } = useAuthStore();
   const { members, fetchAllMembers } = useTeamMembersStore();
@@ -72,6 +75,25 @@ export function Calendar() {
   const [isEditing, setIsEditing] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [visibleCalendars, setVisibleCalendars] = useState<string[]>(["all"]);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [dateToDelete, setDateToDelete] = useState<Date | null>(null);
+  const [showDeleteConfigModal, setShowDeleteConfigModal] = useState(false);
+  const [isDeletingEvents, setIsDeletingEvents] = useState(false);
+  const [showBulkDeleteConfirmModal, setShowBulkDeleteConfirmModal] =
+    useState(false);
+  const [bulkDeleteData, setBulkDeleteData] = useState<{
+    filters: any;
+    message: string;
+    confirmMessage: string;
+  } | null>(null);
+  const [deleteFilters, setDeleteFilters] = useState({
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+    day: new Date().getDate(),
+    startDate: new Date().toISOString().split("T")[0], // YYYY-MM-DD
+    endDate: new Date().toISOString().split("T")[0], // YYYY-MM-DD
+    deleteType: "month" as "month" | "year" | "day" | "all",
+  });
 
   // Estados para loading otimista
   const [optimisticEvents, setOptimisticEvents] = useState<CalendarEvent[]>([]);
@@ -80,10 +102,7 @@ export function Calendar() {
   );
 
   useEffect(() => {
-    // Proteção contra múltiplas chamadas
     if (!token || !organizationId) return;
-
-    console.log("[Calendar] Carregando eventos...");
     fetchEvents();
   }, [fetchEvents, token, organizationId]);
 
@@ -92,13 +111,6 @@ export function Calendar() {
       fetchAllMembers(token, organizationId);
     }
   }, [token, organizationId, fetchAllMembers]);
-
-  useEffect(() => {
-    const uniqueIds = new Set(events.map((e) => e.id));
-    if (uniqueIds.size !== events.length) {
-      clearDuplicateEvents();
-    }
-  }, [events, clearDuplicateEvents]);
 
   const handleSelectSlot = useCallback(
     ({ start, end }: { start: Date; end: Date }) => {
@@ -319,7 +331,7 @@ export function Calendar() {
           errorMessage.includes("permissão")
         ) {
           errorMessage =
-            "Você não tem permissão para excluir eventos do calendário. Entre em contacto com o administrador da organização.";
+            "Você não tem permissão para excluir eventos no calendário. Entre em contacto com o administrador da organização.";
         }
 
         showToast(errorMessage, "error");
@@ -327,6 +339,167 @@ export function Calendar() {
     },
     [token, organizationId, events, optimisticEvents]
   );
+
+  const getDayEvents = useCallback(
+    (date: Date) => {
+      return events.filter((event) =>
+        isSameDay(new Date(event.start_at), date)
+      );
+    },
+    [events]
+  );
+
+  const handleDeleteAllEventsOfDay = useCallback(
+    async (date: Date) => {
+      if (!token || !organizationId) {
+        showToast("Erro de autenticação", "error");
+        return;
+      }
+
+      const eventsToDelete = getDayEvents(date);
+
+      if (eventsToDelete.length === 0) {
+        showToast("Não há eventos para excluir neste dia.", "info");
+        return;
+      }
+
+      // Abrir modal de confirmação
+      setDateToDelete(date);
+      setShowDeleteConfirmModal(true);
+    },
+    [token, organizationId, getDayEvents]
+  );
+
+  const confirmDeleteAllEvents = useCallback(async () => {
+    if (!token || !organizationId || !dateToDelete) {
+      showToast("Erro de autenticação", "error");
+      return;
+    }
+
+    setIsDeletingEvents(true);
+    const eventsToDelete = getDayEvents(dateToDelete);
+
+    try {
+      const deletePromises = eventsToDelete.map((event) =>
+        calendarService.deleteEvent(token, organizationId, event.id)
+      );
+
+      await Promise.all(deletePromises);
+
+      showToast(
+        `Todos os ${eventsToDelete.length} eventos de ${format(
+          dateToDelete,
+          "dd/MM/yyyy"
+        )} foram excluídos com sucesso!`,
+        "success"
+      );
+
+      await fetchEvents();
+      setShowDeleteConfirmModal(false);
+      setDateToDelete(null);
+    } catch (error: any) {
+      let errorMessage = "Erro ao excluir eventos";
+      if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      showToast(errorMessage, "error");
+    } finally {
+      setIsDeletingEvents(false);
+    }
+  }, [token, organizationId, dateToDelete, getDayEvents, fetchEvents]);
+
+  const handleDeleteWithFilters = useCallback(() => {
+    if (!token || !organizationId) {
+      showToast("Erro de autenticação", "error");
+      return;
+    }
+
+    let filters = {};
+    let message = "";
+    let confirmMessage = "";
+
+    switch (deleteFilters.deleteType) {
+      case "month":
+        filters = { year: deleteFilters.year, month: deleteFilters.month };
+        const monthName = new Date(
+          deleteFilters.year,
+          deleteFilters.month - 1
+        ).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+        message = `Todos os eventos de ${monthName} foram excluídos com sucesso!`;
+        confirmMessage = `Tem certeza que deseja excluir todos os eventos de ${monthName}? Esta ação não pode ser desfeita.`;
+        break;
+      case "year":
+        filters = { year: deleteFilters.year };
+        message = `Todos os eventos de ${deleteFilters.year} foram excluídos com sucesso!`;
+        confirmMessage = `Tem certeza que deseja excluir todos os eventos de ${deleteFilters.year}? Esta ação não pode ser desfeita.`;
+        break;
+      case "day":
+        const startDate = new Date(deleteFilters.startDate);
+        const endDate = new Date(deleteFilters.endDate);
+
+        const startOfDay = new Date(startDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        filters = {
+          start_date: startOfDay.toISOString(),
+          end_date: endOfDay.toISOString(),
+        };
+
+        const startFormatted = format(startDate, "dd/MM/yyyy");
+        const endFormatted = format(endDate, "dd/MM/yyyy");
+
+        if (startFormatted === endFormatted) {
+          message = `Todos os eventos de ${startFormatted} foram excluídos com sucesso!`;
+          confirmMessage = `Tem certeza que deseja excluir todos os eventos de ${startFormatted}? Esta ação não pode ser desfeita.`;
+        } else {
+          message = `Todos os eventos de ${startFormatted} a ${endFormatted} foram excluídos com sucesso!`;
+          confirmMessage = `Tem certeza que deseja excluir todos os eventos de ${startFormatted} a ${endFormatted}? Esta ação não pode ser desfeita.`;
+        }
+        break;
+      case "all":
+        filters = {};
+        message = "Todos os eventos foram excluídos com sucesso!";
+        confirmMessage =
+          "Tem certeza que deseja excluir TODOS os eventos do calendário? Esta ação é irreversível!";
+        break;
+    }
+
+    setBulkDeleteData({ filters, message, confirmMessage });
+    setShowBulkDeleteConfirmModal(true);
+  }, [token, organizationId, deleteFilters]);
+
+  const confirmBulkDelete = useCallback(async () => {
+    if (!token || !organizationId || !bulkDeleteData) {
+      showToast("Erro de autenticação", "error");
+      return;
+    }
+
+    setIsDeletingEvents(true);
+    try {
+      await calendarService.deleteAllEvents(
+        token,
+        organizationId,
+        bulkDeleteData.filters
+      );
+      showToast(bulkDeleteData.message, "success");
+      await fetchEvents();
+      setShowDeleteConfigModal(false);
+    } catch (error: any) {
+      let errorMessage = "Erro ao excluir eventos";
+      if (error?.message) {
+        errorMessage = error.message;
+      }
+      showToast(errorMessage, "error");
+    } finally {
+      setIsDeletingEvents(false);
+      setShowBulkDeleteConfirmModal(false);
+      setBulkDeleteData(null);
+    }
+  }, [token, organizationId, bulkDeleteData, fetchEvents]);
 
   const eventPropGetter: EventPropGetter<CalendarEvent> = useCallback(
     (event) => {
@@ -352,15 +525,6 @@ export function Calendar() {
     setSelectedDate(date);
     setShowDayEventsModal(true);
   }, []);
-
-  const getDayEvents = useCallback(
-    (date: Date) => {
-      return events.filter((event) =>
-        isSameDay(new Date(event.start_at), date)
-      );
-    },
-    [events]
-  );
 
   const filteredEvents = useMemo(() => {
     // Usar eventos otimistas se disponíveis, senão usar eventos normais
@@ -454,6 +618,13 @@ export function Calendar() {
             >
               <Plus className="w-5 h-5 mr-1" />
               Novo Evento
+            </button>
+            <button
+              onClick={() => setShowDeleteConfigModal(true)}
+              className="p-2 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition-colors"
+              title="Excluir eventos em massa"
+            >
+              <Trash2 className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -618,6 +789,302 @@ export function Calendar() {
         onClose={() => setShowCalendarSelector(false)}
         visibleCalendars={visibleCalendars}
         setVisibleCalendars={setVisibleCalendars}
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirmModal}
+        onClose={() => {
+          setShowDeleteConfirmModal(false);
+          setDateToDelete(null);
+        }}
+        onConfirm={confirmDeleteAllEvents}
+        title="Confirmar exclusão"
+        message={
+          dateToDelete
+            ? `Tem certeza que deseja excluir todos os ${
+                getDayEvents(dateToDelete).length
+              } eventos de ${format(
+                dateToDelete,
+                "dd/MM/yyyy"
+              )}? Esta ação não pode ser desfeita.`
+            : ""
+        }
+        confirmText="Excluir Todos"
+        cancelText="Cancelar"
+        confirmButtonClass="bg-red-500 hover:bg-red-600"
+        isLoading={isDeletingEvents}
+      />
+
+      <Modal
+        isOpen={showDeleteConfigModal}
+        onClose={() => setShowDeleteConfigModal(false)}
+        title="Excluir Eventos em Massa"
+        size="medium"
+      >
+        <div className="space-y-6">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <Settings className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                  Configuração de Exclusão
+                </h4>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                  Escolha o período dos eventos que deseja excluir. Esta ação
+                  não pode ser desfeita.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Excluir eventos:
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDeleteFilters((prev) => ({
+                      ...prev,
+                      deleteType: "day",
+                    }))
+                  }
+                  className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
+                    deleteFilters.deleteType === "day"
+                      ? "border-[#7f00ff] bg-[#7f00ff] text-white"
+                      : "border-gray-200 dark:border-gray-700 hover:border-[#7f00ff] text-gray-700 dark:text-gray-300 hover:text-[#7f00ff]"
+                  }`}
+                >
+                  Dia
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDeleteFilters((prev) => ({
+                      ...prev,
+                      deleteType: "month",
+                    }))
+                  }
+                  className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
+                    deleteFilters.deleteType === "month"
+                      ? "border-[#7f00ff] bg-[#7f00ff] text-white"
+                      : "border-gray-200 dark:border-gray-700 hover:border-[#7f00ff] text-gray-700 dark:text-gray-300 hover:text-[#7f00ff]"
+                  }`}
+                >
+                  Mês
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDeleteFilters((prev) => ({
+                      ...prev,
+                      deleteType: "year",
+                    }))
+                  }
+                  className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
+                    deleteFilters.deleteType === "year"
+                      ? "border-[#7f00ff] bg-[#7f00ff] text-white"
+                      : "border-gray-200 dark:border-gray-700 hover:border-[#7f00ff] text-gray-700 dark:text-gray-300 hover:text-[#7f00ff]"
+                  }`}
+                >
+                  Ano
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDeleteFilters((prev) => ({
+                      ...prev,
+                      deleteType: "all",
+                    }))
+                  }
+                  className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
+                    deleteFilters.deleteType === "all"
+                      ? "border-red-500 bg-red-500 text-white"
+                      : "border-gray-200 dark:border-gray-700 hover:border-red-500 text-gray-700 dark:text-gray-300 hover:text-red-500"
+                  }`}
+                >
+                  Todos
+                </button>
+              </div>
+            </div>
+
+            {deleteFilters.deleteType === "month" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Ano
+                  </label>
+                  <select
+                    value={deleteFilters.year}
+                    onChange={(e) =>
+                      setDeleteFilters((prev) => ({
+                        ...prev,
+                        year: parseInt(e.target.value),
+                      }))
+                    }
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg text-gray-900 dark:text-white border border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
+                  >
+                    {Array.from(
+                      { length: 10 },
+                      (_, i) => new Date().getFullYear() - 5 + i
+                    ).map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Mês
+                  </label>
+                  <select
+                    value={deleteFilters.month}
+                    onChange={(e) =>
+                      setDeleteFilters((prev) => ({
+                        ...prev,
+                        month: parseInt(e.target.value),
+                      }))
+                    }
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg text-gray-900 dark:text-white border border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
+                  >
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                      (month) => (
+                        <option key={month} value={month}>
+                          {new Date(2024, month - 1).toLocaleDateString(
+                            "pt-BR",
+                            { month: "long" }
+                          )}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {deleteFilters.deleteType === "year" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Ano
+                </label>
+                <select
+                  value={deleteFilters.year}
+                  onChange={(e) =>
+                    setDeleteFilters((prev) => ({
+                      ...prev,
+                      year: parseInt(e.target.value),
+                    }))
+                  }
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg text-gray-900 dark:text-white border border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
+                >
+                  {Array.from(
+                    { length: 10 },
+                    (_, i) => new Date().getFullYear() - 5 + i
+                  ).map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {deleteFilters.deleteType === "day" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Data de Início
+                  </label>
+                  <input
+                    type="date"
+                    value={deleteFilters.startDate}
+                    onChange={(e) =>
+                      setDeleteFilters((prev) => ({
+                        ...prev,
+                        startDate: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg text-gray-900 dark:text-white border border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Data de Fim
+                  </label>
+                  <input
+                    type="date"
+                    value={deleteFilters.endDate}
+                    min={deleteFilters.startDate}
+                    onChange={(e) =>
+                      setDeleteFilters((prev) => ({
+                        ...prev,
+                        endDate: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg text-gray-900 dark:text-white border border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
+                  />
+                </div>
+              </div>
+            )}
+
+            {deleteFilters.deleteType === "all" && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-red-800 dark:text-red-200">
+                      Atenção!
+                    </h4>
+                    <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                      Esta opção irá excluir TODOS os eventos do calendário.
+                      Esta ação é irreversível.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-dark-600">
+            <button
+              onClick={() => setShowDeleteConfigModal(false)}
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-dark-700 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleDeleteWithFilters}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+            >
+              Excluir Eventos
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmationModal
+        isOpen={showBulkDeleteConfirmModal}
+        onClose={() => {
+          setShowBulkDeleteConfirmModal(false);
+          setBulkDeleteData(null);
+        }}
+        onConfirm={confirmBulkDelete}
+        title="Confirmar exclusão"
+        message={bulkDeleteData?.confirmMessage || ""}
+        confirmText="Excluir Eventos"
+        cancelText="Cancelar"
+        confirmButtonClass="bg-red-500 hover:bg-red-600"
+        isLoading={isDeletingEvents}
       />
     </div>
   );
