@@ -20,6 +20,10 @@
   color: #1a1a1a;
 }
 
+.modal-form-field {
+  margin: 10px;
+}
+
 .dark .rbc-toolbar-label {
   color: #e5e5e5;
 }
@@ -233,7 +237,7 @@
 }
 
 .rbc-overlay::before {
-  content: '';
+  content: "";
   position: fixed;
   top: 0;
   left: 0;
@@ -460,7 +464,7 @@
 }
 
 .rbc-event.has-categories::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 0;
@@ -655,7 +659,8 @@
   background: #1a1a1a;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .dark .rbc-overlay-header {
@@ -723,4 +728,443 @@
 
 .dark .rbc-allday-cell {
   background-color: #1a1a1a;
-} 
+}
+
+/* Estilos para DatePicker na modal */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker__input-container {
+  width: 100%;
+}
+
+.react-datepicker__input-container input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  color: #111827;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.dark .react-datepicker__input-container input {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+.react-datepicker__input-container input:focus {
+  border-color: #7f00ff;
+  box-shadow: 0 0 0 2px rgba(127, 0, 255, 0.1);
+}
+
+/* Modal de eventos - melhorias de responsividade */
+.event-modal {
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.event-modal-content {
+  overflow-y: auto;
+  max-height: calc(90vh - 120px);
+  padding-right: 0.5rem;
+}
+
+/* Scrollbar customizada para a modal */
+.event-modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.event-modal-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.dark .event-modal-content::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.event-modal-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.dark .event-modal-content::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+.event-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.dark .event-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Melhorias para campos de formulário na modal */
+.modal-form-field {
+  margin-bottom: 1.5rem;
+}
+
+.modal-form-field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.dark .modal-form-field label {
+  color: #d1d5db;
+}
+
+.modal-form-field input,
+.modal-form-field select,
+.modal-form-field textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  color: #111827;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.dark .modal-form-field input,
+.dark .modal-form-field select,
+.dark .modal-form-field textarea {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+.modal-form-field input:focus,
+.modal-form-field select:focus,
+.modal-form-field textarea:focus {
+  border-color: #7f00ff;
+  box-shadow: 0 0 0 2px rgba(127, 0, 255, 0.1);
+}
+
+/* Grid responsivo para datas */
+.date-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .date-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Botões da modal */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 1.5rem;
+}
+
+.dark .modal-actions {
+  border-top-color: #374151;
+}
+
+.modal-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.modal-btn-secondary {
+  color: #374151;
+  background-color: transparent;
+  border: 1px solid #d1d5db;
+}
+
+.dark .modal-btn-secondary {
+  color: #d1d5db;
+  border-color: #4b5563;
+}
+
+.modal-btn-secondary:hover {
+  background-color: #f3f4f6;
+}
+
+.dark .modal-btn-secondary:hover {
+  background-color: #374151;
+}
+
+.modal-btn-primary {
+  color: white;
+  background-color: #7f00ff;
+  border: 1px solid #7f00ff;
+}
+
+.modal-btn-primary:hover {
+  background-color: #6b00d9;
+  border-color: #6b00d9;
+}
+
+/* Estilos específicos para DatePicker */
+.react-datepicker {
+  font-family: inherit;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background-color: white;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.dark .react-datepicker {
+  background-color: #1f2937;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+.react-datepicker__header {
+  background-color: #f9fafb;
+  border-bottom: 1px solid #d1d5db;
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.dark .react-datepicker__header {
+  background-color: #374151;
+  border-color: #4b5563;
+}
+
+.react-datepicker__current-month {
+  color: #111827;
+  font-weight: 600;
+}
+
+.dark .react-datepicker__current-month {
+  color: #f9fafb;
+}
+
+.react-datepicker__day {
+  color: #111827;
+  border-radius: 0.25rem;
+  margin: 0.125rem;
+  width: 2rem;
+  height: 2rem;
+  line-height: 2rem;
+  text-align: center;
+}
+
+.dark .react-datepicker__day {
+  color: #f9fafb;
+}
+
+.react-datepicker__day:hover {
+  background-color: #f3f4f6;
+}
+
+.dark .react-datepicker__day:hover {
+  background-color: #4b5563;
+}
+
+.react-datepicker__day--selected {
+  background-color: #7f00ff;
+  color: white;
+}
+
+.react-datepicker__day--keyboard-selected {
+  background-color: rgba(127, 0, 255, 0.1);
+  color: #7f00ff;
+}
+
+.react-datepicker__time-container {
+  border-left: 1px solid #d1d5db;
+}
+
+.dark .react-datepicker__time-container {
+  border-color: #4b5563;
+}
+
+.react-datepicker__time {
+  background-color: white;
+}
+
+.dark .react-datepicker__time {
+  background-color: #1f2937;
+}
+
+.react-datepicker__time-list-item {
+  color: #111827;
+  padding: 0.5rem;
+}
+
+.dark .react-datepicker__time-list-item {
+  color: #f9fafb;
+}
+
+.react-datepicker__time-list-item:hover {
+  background-color: #f3f4f6;
+}
+
+.dark .react-datepicker__time-list-item:hover {
+  background-color: #4b5563;
+}
+
+.react-datepicker__time-list-item--selected {
+  background-color: #7f00ff;
+  color: white;
+}
+
+/* Melhorias para responsividade da modal */
+@media (max-width: 640px) {
+  .event-modal {
+    max-width: 95vw;
+    margin: 1rem;
+  }
+
+  .event-modal-content {
+    max-height: calc(90vh - 100px);
+  }
+
+  .date-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .modal-actions .modal-btn {
+    width: 100%;
+  }
+}
+
+/* Correção para campos de select na modal */
+.modal-form-field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+.dark .modal-form-field select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%39ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Melhorias para o seletor de cores */
+.color-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.dark .color-picker-grid {
+  background-color: #1f2937;
+}
+
+.color-option {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.color-option:hover {
+  transform: scale(1.1);
+  border-color: #d1d5db;
+}
+
+.dark .color-option:hover {
+  border-color: #4b5563;
+}
+
+/* Melhorias para categorias */
+.category-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.category-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background-color: #f3f4f6;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  color: #374151;
+  transition: all 0.2s;
+}
+
+.dark .category-tag {
+  background-color: #374151;
+  color: #d1d5db;
+}
+
+.category-tag:hover {
+  background-color: #e5e7eb;
+}
+
+.dark .category-tag:hover {
+  background-color: #4b5563;
+}
+
+.category-remove-btn {
+  color: #6b7280;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.category-remove-btn:hover {
+  color: #ef4444;
+}
+
+/* Estilos para inputs com ícones internos */
+.input-with-icon {
+  position: relative;
+}
+
+.input-with-icon input,
+.input-with-icon select {
+  padding-left: 2.5rem;
+}
+
+.input-with-icon .icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.dark .input-with-icon .icon {
+  color: #9ca3af;
+}
+
+/* Ajuste para select com ícone */
+.input-with-icon select {
+  background-position: right 0.75rem center;
+  padding-right: 2.5rem;
+}

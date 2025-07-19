@@ -15,9 +15,6 @@ import { useContractStore } from "./store/contractStore";
 import { useTransactionStore } from "./store/transactionStore";
 import { supabase } from "./lib/supabaseClient";
 import { useTeamMembersStore } from "./store/teamMembersStore";
-import { useInviteStore } from "./store/inviteStore";
-import { usePermissionsStore } from "./store/permissionsStore";
-import { useSystemPermissionsStore } from "./store/systemPermissionsStore";
 
 export function App() {
   const {
@@ -95,9 +92,11 @@ export function App() {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         console.log(
-          "👀 Aba tornou-se visível. A verificar o estado do Realtime..."
+          "👀 Aba tornou-se visível. A verificar a sessão e o estado do Realtime..."
         );
+
         supabase.realtime.connect();
+        useAuthStore.getState().fetchAndSyncUser();
       }
     };
 

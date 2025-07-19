@@ -50,4 +50,14 @@ export const ENDPOINTS = {
     REMOVE: (orgId: string, memberId: string) =>
       `/organizations/${orgId}/members/${memberId}`,
   },
+  CALENDAR: {
+    EVENTS: (orgId: string) => `/organizations/${orgId}/calendar/events`,
+    EVENT_BY_ID: (orgId: string, eventId: string) =>
+      `/organizations/${orgId}/calendar/events/${eventId}`,
+    CREATE_EVENT: (orgId: string) => `/organizations/${orgId}/calendar/events`,
+    UPDATE_EVENT: (orgId: string, eventId: string) =>
+      `/organizations/${orgId}/calendar/events/${eventId}`,
+    DELETE_EVENT: (orgId: string, eventId: string) =>
+      `/organizations/${orgId}/calendar/events/${eventId}`,
+  },
 };

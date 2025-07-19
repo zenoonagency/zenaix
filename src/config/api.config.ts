@@ -88,6 +88,18 @@ export const API_CONFIG = {
     delete: (organizationId: string, tagId: string) =>
       `/organizations/${organizationId}/tags/${tagId}`,
   },
+  calendar: {
+    create: (organizationId: string) =>
+      `/organizations/${organizationId}/calendar/events`,
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/calendar/events`,
+    findById: (organizationId: string, eventId: string) =>
+      `/organizations/${organizationId}/calendar/events/${eventId}`,
+    update: (organizationId: string, eventId: string) =>
+      `/organizations/${organizationId}/calendar/events/${eventId}`,
+    delete: (organizationId: string, eventId: string) =>
+      `/organizations/${organizationId}/calendar/events/${eventId}`,
+  },
   whatsapp: {
     getAllMessages: "/todas_messages",
     getMessages: "/messages",

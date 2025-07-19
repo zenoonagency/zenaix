@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import { X, Search, Calendar as CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { useCalendarStore } from '../../../store/calendarStore';
-import { Modal } from '../../../components/Modal';
-import { EventDetailModal } from './EventDetailModal';
-import { EventModal } from './EventModal';
+import React, { useState, useMemo } from "react";
+import { X, Search, Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { useCalendarStore } from "../../../store/calendarStore";
+import { Modal } from "../../../components/Modal";
+import { EventDetailModal } from "./EventDetailModal";
+import { EventModal } from "./EventModal";
+import { CalendarEvent } from "../../../types/calendar";
 
 interface SearchEventsModalProps {
   isOpen: boolean;
@@ -14,26 +15,32 @@ interface SearchEventsModalProps {
 
 export function SearchEventsModal({ isOpen, onClose }: SearchEventsModalProps) {
   const { events } = useCalendarStore();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
+    null
+  );
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
   const filteredEvents = useMemo(() => {
-    return events.filter(event => {
-      const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (event.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return events.filter((event) => {
+      const matchesSearch =
+        event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (event.description || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
 
-      const matchesDateRange = (!startDate || new Date(event.start) >= new Date(startDate)) &&
-        (!endDate || new Date(event.end) <= new Date(endDate));
+      const matchesDateRange =
+        (!startDate || new Date(event.start_at) >= new Date(startDate)) &&
+        (!endDate || new Date(event.end_at) <= new Date(endDate));
 
       return matchesSearch && matchesDateRange;
     });
   }, [events, searchTerm, startDate, endDate]);
 
-  const handleEventClick = (event: any) => {
+  const handleEventClick = (event: CalendarEvent) => {
     setSelectedEvent(event);
     setShowDetailModal(true);
   };
@@ -106,19 +113,27 @@ export function SearchEventsModal({ isOpen, onClose }: SearchEventsModalProps) {
                     <div className="mt-2 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                       <CalendarIcon className="w-4 h-4" />
                       <span>
-                        {format(new Date(event.start), "dd 'de' MMMM 'às' HH:mm", {
-                          locale: ptBR,
-                        })}
+                        {format(
+                          new Date(event.start_at),
+                          "dd 'de' MMMM 'às' HH:mm",
+                          {
+                            locale: ptBR,
+                          }
+                        )}
                       </span>
                     </div>
-                    {event.customFields && event.customFields.length > 0 && (
+                    {event.categories && event.categories.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {event.customFields.map((field) => (
+                        {event.categories.map((category) => (
                           <span
-                            key={field.id}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#7f00ff]/10 text-[#7f00ff]"
+                            key={category.id}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                            style={{
+                              backgroundColor: `${category.color}20`,
+                              color: category.color,
+                            }}
                           >
-                            {field.name}: {field.value}
+                            {category.name}
                           </span>
                         ))}
                       </div>
@@ -159,4 +174,4 @@ export function SearchEventsModal({ isOpen, onClose }: SearchEventsModalProps) {
       )}
     </>
   );
-} 
+}

@@ -1,19 +1,26 @@
-import React from 'react';
-import { X } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Dialog, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
+import React from "react";
+import { X } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment } from "react";
+import { CalendarEvent } from "../../../types/calendar";
 
 interface DayEventsModalProps {
   isOpen: boolean;
   onClose: () => void;
   date: Date;
-  events: any[];
-  onEventClick?: (event: any) => void;
+  events: CalendarEvent[];
+  onEventClick?: (event: CalendarEvent) => void;
 }
 
-export function DayEventsModal({ isOpen, onClose, date, events, onEventClick }: DayEventsModalProps) {
+export function DayEventsModal({
+  isOpen,
+  onClose,
+  date,
+  events,
+  onEventClick,
+}: DayEventsModalProps) {
   if (!isOpen) return null;
 
   const formattedDate = format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
@@ -52,7 +59,7 @@ export function DayEventsModal({ isOpen, onClose, date, events, onEventClick }: 
                       {formattedDate}
                     </Dialog.Title>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {events.length} evento{events.length !== 1 ? 's' : ''}
+                      {events.length} evento{events.length !== 1 ? "s" : ""}
                     </p>
                   </div>
                   <button
@@ -66,7 +73,9 @@ export function DayEventsModal({ isOpen, onClose, date, events, onEventClick }: 
                 {/* Lista de eventos */}
                 <div className="p-4 max-h-[60vh] overflow-y-auto">
                   {events.length === 0 ? (
-                    <p className="text-center text-gray-500 dark:text-gray-400">Nenhum evento neste dia</p>
+                    <p className="text-center text-gray-500 dark:text-gray-400">
+                      Nenhum evento neste dia
+                    </p>
                   ) : (
                     <div className="space-y-3">
                       {events.map((event) => (
@@ -78,9 +87,9 @@ export function DayEventsModal({ isOpen, onClose, date, events, onEventClick }: 
                           <div className="flex items-start gap-3">
                             {/* Horário */}
                             <div className="flex-shrink-0 text-sm text-gray-400">
-                              {format(new Date(event.start), 'HH:mm')}
+                              {format(new Date(event.start_at), "HH:mm")}
                             </div>
-                            
+
                             {/* Detalhes */}
                             <div className="flex-grow">
                               <h4 className="text-white font-medium mb-1">
@@ -93,12 +102,16 @@ export function DayEventsModal({ isOpen, onClose, date, events, onEventClick }: 
                               )}
                               {event.categories?.length > 0 && (
                                 <div className="flex flex-wrap gap-2 mt-2">
-                                  {event.categories.map((category: string) => (
+                                  {event.categories.map((category) => (
                                     <span
-                                      key={category}
-                                      className="px-2 py-0.5 text-xs rounded-full bg-purple-500/20 text-purple-300"
+                                      key={category.id}
+                                      className="px-2 py-0.5 text-xs rounded-full"
+                                      style={{
+                                        backgroundColor: `${category.color}20`,
+                                        color: category.color,
+                                      }}
                                     >
-                                      {category}
+                                      {category.name}
                                     </span>
                                   ))}
                                 </div>
@@ -117,4 +130,4 @@ export function DayEventsModal({ isOpen, onClose, date, events, onEventClick }: 
       </Dialog>
     </Transition>
   );
-} 
+}
