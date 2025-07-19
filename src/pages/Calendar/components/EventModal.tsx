@@ -5,7 +5,6 @@ import { useAuthStore } from "../../../store/authStore";
 import { calendarService } from "../../../services/calendar";
 import { useTeamMembersStore } from "../../../store/teamMembersStore";
 import { Input } from "../../../components/ui/Input";
-import { Select } from "../../../components/ui/Select";
 import { Textarea } from "../../../components/ui/Textarea";
 import {
   CalendarEvent,
@@ -52,7 +51,6 @@ export function EventModal({
   event,
   isEditing,
 }: EventModalProps) {
-  const { fetchEvents } = useCalendarStore();
   const { token, user } = useAuthStore();
   const { members } = useTeamMembersStore();
   const { showToast } = useToast();
@@ -78,7 +76,6 @@ export function EventModal({
   const [notification, setNotification] = useState<
     "NONE" | "MINUTES_15" | "HOUR_1" | "DAY_1"
   >(event?.notifications?.length ? "MINUTES_15" : "NONE");
-  const [showColorPicker, setShowColorPicker] = useState(false);
   const [showCategoryInput, setShowCategoryInput] = useState(false);
   const [newCategory, setNewCategory] = useState("");
   const [newCategoryColor, setNewCategoryColor] = useState(
@@ -87,7 +84,6 @@ export function EventModal({
   const [assigneeId, setAssigneeId] = useState(event?.assignee_id || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Estados para exclusão
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -170,7 +166,6 @@ export function EventModal({
           eventData as InputUpdateEventDTO
         );
         showToast(`Evento "${title}" atualizado com sucesso!`, "success");
-        await fetchEvents();
       } else {
         await calendarService.createEvent(
           token,
@@ -179,7 +174,6 @@ export function EventModal({
         );
         showToast(`Evento "${title}" criado com sucesso!`, "success");
         onClose();
-        await fetchEvents();
       }
     } catch (error: any) {
       let errorMessage = "Erro ao salvar evento. Tente novamente.";
@@ -215,7 +209,6 @@ export function EventModal({
     try {
       await calendarService.deleteEvent(token, organizationId, event.id);
       showToast(`Evento "${event.title}" excluído com sucesso!`, "success");
-      await fetchEvents();
       onClose();
     } catch (error: any) {
       let errorMessage = "Erro ao excluir evento. Tente novamente.";

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Calendar as BigCalendar,
   dateFnsLocalizer,
@@ -90,8 +90,8 @@ export function Calendar() {
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
     day: new Date().getDate(),
-    startDate: new Date().toISOString().split("T")[0], // YYYY-MM-DD
-    endDate: new Date().toISOString().split("T")[0], // YYYY-MM-DD
+    startDate: new Date().toISOString().split("T")[0],
+    endDate: new Date().toISOString().split("T")[0],
     deleteType: "month" as "month" | "year" | "day" | "all",
   });
 
@@ -140,23 +140,19 @@ export function Calendar() {
         return;
       }
 
-      // Validação de data
       if (end <= start) {
         showToast("A data de fim deve ser posterior à data de início", "error");
         return;
       }
 
-      // Bloquear interações
       setUpdatingEventIds((prev) => new Set([...prev, event.id]));
 
-      // Criar evento otimista (nova posição)
       const optimisticEvent = {
         ...event,
         start_at: start.toISOString(),
         end_at: end.toISOString(),
       };
 
-      // Aplicar mudança otimista imediatamente
       setOptimisticEvents((prev) =>
         prev.length > 0
           ? prev.map((e) => (e.id === event.id ? optimisticEvent : e))
@@ -169,7 +165,6 @@ export function Calendar() {
           end_at: end.toISOString(),
         });
 
-        // Sucesso: confirmar mudança otimista
         setOptimisticEvents((prev) =>
           prev.map((e) => (e.id === event.id ? optimisticEvent : e))
         );
@@ -177,7 +172,6 @@ export function Calendar() {
       } catch (error: any) {
         console.error("Erro ao mover evento:", error);
 
-        // Erro: reverter para posição original
         setOptimisticEvents((prev) =>
           prev.map((e) => (e.id === event.id ? event : e))
         );
@@ -187,7 +181,6 @@ export function Calendar() {
           errorMessage = error.message;
         }
 
-        // Verificar se é um erro de permissão específico
         if (
           error?.status === 403 ||
           errorMessage.includes("Acesso negado") ||
@@ -199,7 +192,6 @@ export function Calendar() {
 
         showToast(errorMessage, "error");
       } finally {
-        // Liberar interações
         setUpdatingEventIds(
           (prev) => new Set([...prev].filter((id) => id !== event.id))
         );
@@ -223,23 +215,19 @@ export function Calendar() {
         return;
       }
 
-      // Validação de data
       if (end <= start) {
         showToast("A data de fim deve ser posterior à data de início", "error");
         return;
       }
 
-      // Bloquear interações
       setUpdatingEventIds((prev) => new Set([...prev, event.id]));
 
-      // Criar evento otimista (novo tamanho)
       const optimisticEvent = {
         ...event,
         start_at: start.toISOString(),
         end_at: end.toISOString(),
       };
 
-      // Aplicar mudança otimista imediatamente
       setOptimisticEvents((prev) =>
         prev.length > 0
           ? prev.map((e) => (e.id === event.id ? optimisticEvent : e))
@@ -260,7 +248,6 @@ export function Calendar() {
       } catch (error: any) {
         console.error("Erro ao redimensionar evento:", error);
 
-        // Erro: reverter para tamanho original
         setOptimisticEvents((prev) =>
           prev.map((e) => (e.id === event.id ? event : e))
         );
@@ -270,7 +257,6 @@ export function Calendar() {
           errorMessage = error.message;
         }
 
-        // Verificar se é um erro de permissão específico
         if (
           error?.status === 403 ||
           errorMessage.includes("Acesso negado") ||
@@ -297,49 +283,6 @@ export function Calendar() {
     setShowEventModal(true);
   }, []);
 
-  const handleDeleteEvent = useCallback(
-    async (id: string, title: string) => {
-      if (!token || !organizationId) {
-        showToast("Erro de autenticação", "error");
-        return;
-      }
-
-      // Remoção otimista imediata
-      const originalEvents =
-        optimisticEvents.length > 0 ? optimisticEvents : events;
-      setOptimisticEvents(originalEvents.filter((e) => e.id !== id));
-
-      try {
-        await calendarService.deleteEvent(token, organizationId, id);
-        // Sucesso: manter remoção otimista
-        showToast(`Evento "${title}" excluído com sucesso!`, "success");
-      } catch (error: any) {
-        console.error("Erro ao excluir evento:", error);
-
-        // Erro: reverter remoção otimista
-        setOptimisticEvents(originalEvents);
-
-        let errorMessage = "Erro ao excluir evento";
-        if (error?.message) {
-          errorMessage = error.message;
-        }
-
-        // Verificar se é um erro de permissão específico
-        if (
-          error?.status === 403 ||
-          errorMessage.includes("Acesso negado") ||
-          errorMessage.includes("permissão")
-        ) {
-          errorMessage =
-            "Você não tem permissão para excluir eventos no calendário. Entre em contacto com o administrador da organização.";
-        }
-
-        showToast(errorMessage, "error");
-      }
-    },
-    [token, organizationId, events, optimisticEvents]
-  );
-
   const getDayEvents = useCallback(
     (date: Date) => {
       return events.filter((event) =>
@@ -347,27 +290,6 @@ export function Calendar() {
       );
     },
     [events]
-  );
-
-  const handleDeleteAllEventsOfDay = useCallback(
-    async (date: Date) => {
-      if (!token || !organizationId) {
-        showToast("Erro de autenticação", "error");
-        return;
-      }
-
-      const eventsToDelete = getDayEvents(date);
-
-      if (eventsToDelete.length === 0) {
-        showToast("Não há eventos para excluir neste dia.", "info");
-        return;
-      }
-
-      // Abrir modal de confirmação
-      setDateToDelete(date);
-      setShowDeleteConfirmModal(true);
-    },
-    [token, organizationId, getDayEvents]
   );
 
   const confirmDeleteAllEvents = useCallback(async () => {
@@ -527,7 +449,6 @@ export function Calendar() {
   }, []);
 
   const filteredEvents = useMemo(() => {
-    // Usar eventos otimistas se disponíveis, senão usar eventos normais
     const eventsToFilter =
       optimisticEvents.length > 0 ? optimisticEvents : events;
 

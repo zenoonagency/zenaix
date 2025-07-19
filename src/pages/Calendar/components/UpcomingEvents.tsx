@@ -6,7 +6,6 @@ import {
   startOfDay,
   endOfDay,
   addDays,
-  isPast,
   differenceInMinutes,
   differenceInHours,
   differenceInDays,
@@ -23,7 +22,7 @@ import { useToast } from "../../../hooks/useToast";
 import { Modal } from "../../../components/Modal";
 
 export function UpcomingEvents() {
-  const { events, fetchEvents } = useCalendarStore();
+  const { events } = useCalendarStore();
   const { token, user } = useAuthStore();
   const { showToast } = useToast();
   const organizationId = user?.organization_id;

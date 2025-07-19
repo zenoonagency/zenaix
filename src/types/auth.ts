@@ -40,6 +40,7 @@ export interface AuthSuccessPayload {
   organization: OrganizationOutput | null;
   permissions: string[];
   token: string;
+  refreshToken: string;
 }
 
 export interface AuthState {

@@ -84,8 +84,6 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
             case "ORGANIZATION_UPDATED":
               useAuthStore.getState().setOrganization(eventData.data);
               break;
-            case "TEAM_MEMBER_REMOVED":
-              break;
             case "TAG_CREATED":
               useTagStore.getState().addTag(eventData.data);
               break;
@@ -186,6 +184,9 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
               useCalendarStore
                 .getState()
                 .removeEventsByFilter(eventData.data.filters);
+              break;
+            case "CALENDAR_ALL_EVENTS_DELETED":
+              useCalendarStore.getState().removeAllEvents();
               break;
           }
         })

@@ -20,6 +20,7 @@ interface CalendarState {
     start_date: string;
     end_date: string;
   }) => void;
+  removeAllEvents: () => void;
 
   fetchEvents: (filters?: CalendarFilters) => Promise<void>;
 }
@@ -62,6 +63,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
 
       return { events: filteredEvents };
     });
+  },
+  removeAllEvents: () => {
+    set({ events: [], selectedEvent: null }); 
   },
   fetchEvents: async (filters) => {
     const { token, organization } = useAuthStore.getState();

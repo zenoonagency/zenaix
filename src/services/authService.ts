@@ -26,6 +26,7 @@ export const authService = {
       return {
         user: userPayload,
         token: responseData.token,
+        refreshToken: userPayload.refreshToken,
         organization: userPayload.organization || null,
         permissions: userPayload.permissions || [],
       };
@@ -62,6 +63,7 @@ export const authService = {
       return {
         user: apiPayload,
         token: apiPayload.token,
+        refreshToken: apiPayload.refreshToken,
         organization: apiPayload.data.organization || null,
         permissions: apiPayload.data.permissions || [],
       };

@@ -26,7 +26,7 @@ export default defineConfig({
       },
       "/api": {
         target: "https://app-backend-zenaix.mgmxhs.easypanel.host",
-        changeOrigin: true, // Necessário para hosts virtuais
+        changeOrigin: true,
         secure: false,
         rewrite: (path) => path,
         configure: (proxy, _options) => {

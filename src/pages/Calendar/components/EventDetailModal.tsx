@@ -1,9 +1,8 @@
-import React, { useState } from "react";
-import { X, Edit, Trash2, Calendar, Clock, User, Hash } from "lucide-react";
+import  { useState } from "react";
+import {  Edit, Trash2, Calendar, Clock, User, Hash } from "lucide-react";
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarEvent } from "../../../types/calendar";
-import { useCalendarStore } from "../../../store/calendarStore";
 import { useAuthStore } from "../../../store/authStore";
 import { calendarService } from "../../../services/calendar";
 import { useTeamMembersStore } from "../../../store/teamMembersStore";
@@ -23,7 +22,6 @@ export function EventDetailModal({
   event,
   onEdit,
 }: EventDetailModalProps) {
-  const { fetchEvents } = useCalendarStore();
   const { token, user } = useAuthStore();
   const { members } = useTeamMembersStore();
   const { showToast } = useToast();

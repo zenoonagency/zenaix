@@ -26,7 +26,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
       login: async (payload: AuthSuccessPayload) => {
         const { data, error } = await supabase.auth.setSession({
           access_token: payload.token,
-          refresh_token: payload.token,
+          refresh_token: payload.refreshToken,
         });
 
         supabase.realtime.setAuth(payload.token);
