@@ -47,7 +47,6 @@ export function AutomationModal({
   const { members } = useTeamMembersStore();
   const { tags } = useTagStore();
   const isDark = theme === "dark";
-
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [currentAutomation, setCurrentAutomation] = useState<Automation>({
     id: "",
@@ -60,17 +59,13 @@ export function AutomationModal({
   });
   const [isEditing, setIsEditing] = useState(false);
   const [step, setStep] = useState<"list" | "create">("list");
-
   const currentBoard = boards.find((b) => b.id === boardId);
-
   useEffect(() => {
-    // Carregar automações do localStorage
     const savedAutomations = localStorage.getItem(`automations_${boardId}`);
     if (savedAutomations) {
       setAutomations(JSON.parse(savedAutomations));
     }
   }, [boardId]);
-
   const saveAutomations = (newAutomations: Automation[]) => {
     localStorage.setItem(
       `automations_${boardId}`,
@@ -78,65 +73,6 @@ export function AutomationModal({
     );
     setAutomations(newAutomations);
   };
-
-  const handleCreateAutomation = () => {
-    if (!currentAutomation.name.trim()) {
-      showToast("O nome da automação é obrigatório", "error");
-      return;
-    }
-
-    if (!currentAutomation.webhookUrl.trim()) {
-      showToast("A URL do webhook é obrigatória", "error");
-      return;
-    }
-
-    if (
-      currentAutomation.triggerType === "card_moved" &&
-      (!currentAutomation.sourceListId || !currentAutomation.targetListId)
-    ) {
-      showToast("Selecione as listas de origem e destino", "error");
-      return;
-    }
-
-    if (
-      currentAutomation.triggerType === "card_created" &&
-      !currentAutomation.targetListId
-    ) {
-      showToast("Selecione a lista onde o cartão será criado", "error");
-      return;
-    }
-
-    const newAutomation = {
-      ...currentAutomation,
-      id: isEditing ? currentAutomation.id : Date.now().toString(),
-    };
-
-    if (isEditing) {
-      const updatedAutomations = automations.map((a) =>
-        a.id === newAutomation.id ? newAutomation : a
-      );
-      saveAutomations(updatedAutomations);
-      showToast("Automação atualizada com sucesso!", "success");
-    } else {
-      saveAutomations([...automations, newAutomation]);
-      showToast("Automação criada com sucesso!", "success");
-    }
-
-    resetForm();
-  };
-
-  const handleEditAutomation = (automation: Automation) => {
-    setCurrentAutomation(automation);
-    setIsEditing(true);
-    setStep("create");
-  };
-
-  const handleDeleteAutomation = (id: string) => {
-    const updatedAutomations = automations.filter((a) => a.id !== id);
-    saveAutomations(updatedAutomations);
-    showToast("Automação excluída com sucesso!", "success");
-  };
-
   const handleToggleActive = (id: string) => {
     const updatedAutomations = automations.map((a) =>
       a.id === id ? { ...a, active: !a.active } : a
@@ -144,7 +80,6 @@ export function AutomationModal({
     saveAutomations(updatedAutomations);
     showToast("Status da automação atualizado!", "success");
   };
-
   const resetForm = () => {
     setCurrentAutomation({
       id: "",
@@ -158,20 +93,16 @@ export function AutomationModal({
     setIsEditing(false);
     setStep("list");
   };
-
   const handleClose = () => {
     resetForm();
     onClose();
   };
-
   const getTriggerDescription = (automation: Automation) => {
-    // Função auxiliar para obter o nome da lista
     const getListName = (listId?: string) => {
       if (!listId) return "qualquer lista";
       const list = currentBoard?.lists?.find((l) => l.id === listId);
       return list ? list.title : "lista removida";
     };
-
     switch (automation.triggerType) {
       case "card_moved":
         return `Quando um cartão for movido de ${getListName(
@@ -185,7 +116,6 @@ export function AutomationModal({
         return "Tipo de gatilho não definido";
     }
   };
-
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={handleClose}>

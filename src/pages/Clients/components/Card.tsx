@@ -3,29 +3,13 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Tag as TagIcon,
-  Phone,
   DollarSign,
   Calendar,
-  Clock,
-  User,
-  Mail,
-  Link,
-  Hash,
   CheckSquare,
-  Square,
-  ChevronDown,
-  ChevronUp,
   MoreVertical,
-  Edit2,
-  Copy,
-  Trash2,
-  ArrowRightLeft,
   AlertTriangle,
   AlertCircle,
   AlertOctagon,
-  Paperclip,
-  Pencil,
-  ArrowUpDown,
 } from "lucide-react";
 import { useKanbanStore } from "../store/kanbanStore";
 import { useTagStore } from "../../../store/tagStore";
@@ -126,15 +110,11 @@ MoveCardModal.displayName = "MoveCardModal";
 
 const Card = React.memo(
   ({ card, boardId, listId, isDragging, className }: CardProps) => {
-    console.log(`Renderizando Card: ${card.title}`);
     const { theme } = useThemeStore();
     const isDark = theme === "dark";
-
-    // Get store values with safe fallbacks
     const kanbanStore = useKanbanStore();
     const tagStore = useTagStore();
     const teamStore = useInviteStore();
-
     const tags = tagStore?.tags || [];
     const members = teamStore?.members || [];
     const {
@@ -146,15 +126,12 @@ const Card = React.memo(
       getCompletedListId,
     } = kanbanStore || {};
     const { showToast } = useToast();
-
     const [showMenu, setShowMenu] = useState(false);
     const [showMoveModal, setShowMoveModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showCardMenuModal, setShowCardMenuModal] = useState(false);
-
-    // Ensure required props and store values exist
     if (
       !card ||
       !boardId ||
@@ -166,8 +143,6 @@ const Card = React.memo(
     ) {
       return null;
     }
-
-    // Memoizar cardData para evitar recriações desnecessárias
     const cardData = useMemo(
       () => ({
         ...card,
@@ -177,7 +152,6 @@ const Card = React.memo(
       }),
       [card]
     );
-
     const cardTags = useMemo(
       () =>
         (cardData.tagIds || [])
@@ -185,13 +159,10 @@ const Card = React.memo(
           .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined),
       [cardData.tagIds, tags]
     );
-
     const isCompletedList = useMemo(
       () => getCompletedListId?.(boardId) === listId,
       [getCompletedListId, boardId, listId]
     );
-
-    // Memoizar as listas disponíveis para o modal de movimentação
     const availableLists = useMemo(() => {
       const currentBoard = boards?.find((b) => b.id === boardId);
       return (
@@ -201,7 +172,6 @@ const Card = React.memo(
         })) || []
       );
     }, [boards, boardId]);
-
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
       id: cardData.id,
       data: {
@@ -211,19 +181,15 @@ const Card = React.memo(
         boardId,
       },
     });
-
     const style = transform
       ? {
           transform: CSS.Transform.toString(transform),
         }
       : undefined;
-
-    // Usar useCallback para handlers para evitar recriações
     const handleEdit = useCallback((e?: React.MouseEvent) => {
       if (e) e.stopPropagation();
       setShowEditModal(true);
     }, []);
-
     const handleSaveEdit = useCallback(
       (updatedCard: Partial<CardType>) => {
         updateCard(boardId, listId, cardData.id, updatedCard);
@@ -231,17 +197,14 @@ const Card = React.memo(
       },
       [updateCard, boardId, listId, cardData.id]
     );
-
     const handleDelete = useCallback((e?: React.MouseEvent) => {
       if (e) e.stopPropagation();
       setShowDeleteConfirm(true);
     }, []);
-
     const confirmDelete = useCallback(() => {
       deleteCard(boardId, listId, cardData.id);
       setShowDeleteConfirm(false);
     }, [deleteCard, boardId, listId, cardData.id]);
-
     const handleDuplicate = useCallback(
       (e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
@@ -250,7 +213,6 @@ const Card = React.memo(
       },
       [duplicateCard, boardId, listId, cardData.id, showToast]
     );
-
     const handleMove = useCallback(
       (targetListId: string) => {
         moveCard(boardId, listId, targetListId, cardData.id);
@@ -258,42 +220,32 @@ const Card = React.memo(
       },
       [moveCard, boardId, listId, cardData.id]
     );
-
     const openCardMenu = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
       setShowCardMenuModal(true);
     }, []);
-
     const openDetailModal = useCallback(() => {
       setShowDetailModal(true);
     }, []);
-
     const closeDetailModal = useCallback(() => {
       setShowDetailModal(false);
     }, []);
-
     const closeMoveModal = useCallback(() => {
       setShowMoveModal(false);
     }, []);
-
     const closeMenuModal = useCallback(() => {
       setShowCardMenuModal(false);
     }, []);
-
     const closeDeleteConfirm = useCallback(() => {
       setShowDeleteConfirm(false);
     }, []);
-
     const closeEditModal = useCallback(() => {
       setShowEditModal(false);
     }, []);
-
     const openMoveModal = useCallback(() => {
       setShowMoveModal(true);
       setShowCardMenuModal(false);
     }, []);
-
-    // Memoizar as classes principais para evitar recálculo
     const cardClassName = useMemo(
       () => `
     relative group bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700
