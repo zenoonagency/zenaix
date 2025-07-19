@@ -34,7 +34,8 @@ export interface CustomField {
 export interface Attachment {
   id: string;
   name: string;
-  url: string;
+  url?: string;
+  file?: File; // Para anexos pendentes de upload
   size: number;
   createdAt: string;
 }

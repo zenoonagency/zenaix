@@ -297,7 +297,51 @@ export function CardModal({
       return;
     }
 
-    if (!token || !organization?.id) {
+    // Para criação de card (mode === "add"), apenas selecionar o arquivo
+    if (mode === "add") {
+      for (const file of files) {
+        if (file.size > maxSize) {
+          showToast(`O arquivo ${file.name} excede o limite de 5MB`, "error");
+          continue;
+        }
+
+        if (!allowedTypes.includes(file.type)) {
+          showToast(`O tipo de arquivo ${file.name} não é permitido`, "error");
+          continue;
+        }
+
+        let finalFile = file;
+
+        // Se for uma imagem, comprimir antes de armazenar
+        if (file.type.startsWith("image/")) {
+          const compressedBlob = await compressImage(file);
+          finalFile = new File([compressedBlob], file.name, {
+            type: file.type,
+          });
+        }
+
+        // Armazenar arquivo localmente para upload posterior
+        const newAttachment = {
+          id: generateId(), // ID temporário
+          name: file.name,
+          file: finalFile, // Guardar o arquivo para upload posterior
+          size: finalFile.size,
+          createdAt: new Date().toISOString(),
+        };
+
+        setAttachments((prev) => [...prev, newAttachment]);
+        showToast(`Arquivo ${file.name} selecionado!`, "success");
+      }
+
+      // Limpar input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
+    // Para edição de card (mode === "edit"), enviar diretamente
+    if (!token || !organization?.id || !card?.id) {
       showToast("Erro de autenticação", "error");
       return;
     }
@@ -332,7 +376,7 @@ export function CardModal({
           organization.id,
           boardId,
           listId,
-          card?.id || "temp", // Para cards novos, será atualizado após criação
+          card.id,
           finalFile
         );
 
@@ -472,11 +516,36 @@ export function CardModal({
         tag_ids: selectedTagIds,
         due_date: dueDate,
         assignee_id: responsibleId || null,
-        subtasks: subtasks.map(({ title, description }) => ({ title, description })),
+        subtasks: subtasks.map(({ title, description }) => ({
+          title,
+          description,
+        })),
         // attachments são gerenciados separadamente via attachmentService
       };
 
-      await onSave(cardData);
+      const createdCard = await onSave(cardData);
+
+      // Se há anexos pendentes, fazer upload após criação do card
+      if (mode === "add" && attachments.length > 0 && createdCard?.id) {
+        const pendingAttachments = attachments.filter((att) => att.file);
+        
+        for (const attachment of pendingAttachments) {
+          try {
+            await attachmentService.createAttachment(
+              token!,
+              organization!.id,
+              boardId,
+              listId,
+              createdCard.id,
+              attachment.file!
+            );
+          } catch (error: any) {
+            console.error("Erro ao fazer upload do anexo:", error);
+            showToast(`Erro ao fazer upload do anexo ${attachment.name}`, "error");
+          }
+        }
+      }
+
       onClose();
     } catch (error: any) {
       console.error("Erro ao salvar card:", error);
