@@ -468,24 +468,28 @@ export function KanbanBoard() {
     if (!token || !organization?.id || !activeBoardId) return;
 
     try {
-      // Encontrar apenas a lista que mudou de posição
-      const movedList = newLists.find((newList) => {
+      // Encontrar todas as listas que mudaram de posição
+      const movedLists = newLists.filter((newList) => {
         const originalList = lists.find((l) => l.id === newList.id);
         return newList.position !== originalList?.position;
       });
 
-      if (movedList) {
-        // Atualizar apenas a lista que mudou
-        const dto: InputUpdateListDTO = {
-          position: movedList.position,
-        };
-        await listService.updateList(
-          token,
-          organization.id,
-          activeBoardId,
-          movedList.id,
-          dto
-        );
+      if (movedLists.length > 0) {
+        // Atualizar todas as listas que mudaram
+        const updatePromises = movedLists.map((list) => {
+          const dto: InputUpdateListDTO = {
+            position: list.position,
+          };
+          return listService.updateList(
+            token,
+            organization.id,
+            activeBoardId,
+            list.id,
+            dto
+          );
+        });
+
+        await Promise.all(updatePromises);
       }
 
       // Recarregar as listas para refletir a nova ordem
