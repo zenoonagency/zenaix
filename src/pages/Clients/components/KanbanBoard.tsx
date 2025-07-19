@@ -9,9 +9,18 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { KeyboardSensor } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { List as ListComponent } from "./List";
 import { Card } from "./Card";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, GripVertical } from "lucide-react";
 import { useThemeStore } from "../../../store/themeStore";
 import { useToast } from "../../../hooks/useToast";
 import { boardService } from "../../../services/board.service";
@@ -20,7 +29,7 @@ import { useAuthStore } from "../../../store/authStore";
 import { useBoardStore } from "../../../store/boardStore";
 import { useListStore } from "../../../store/listStore";
 import { InputCreateBoardDTO } from "../../../types/board";
-import { InputCreateListDTO } from "../../../types/list";
+import { InputCreateListDTO, InputUpdateListDTO } from "../../../types/list";
 import { OutputCardDTO } from "../../../types/card";
 
 const PREDEFINED_COLORS = [
@@ -44,6 +53,191 @@ function Spinner() {
     <div className="flex flex-col items-center justify-center h-[40vh]">
       <Loader2 className="w-12 h-12 text-[#7f00ff] animate-spin mb-4" />
       <span className="text-gray-500 text-lg">Carregando quadro...</span>
+    </div>
+  );
+}
+
+interface SortableItemProps {
+  id: string;
+  title: string;
+  position: number;
+  isDark: boolean;
+}
+
+function SortableItem({ id, title, position, isDark }: SortableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: transform ? CSS.Translate.toString(transform) : "",
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-3 p-3 rounded-md ${
+        isDark
+          ? "bg-dark-800 hover:bg-dark-600"
+          : "bg-[#f8f8f8] hover:bg-dark-50"
+      } cursor-move border ${isDark ? "border-gray-600" : "border-gray-200"}`}
+      {...attributes}
+      {...listeners}
+    >
+      <GripVertical
+        className={`w-5 h-5 ${isDark ? "text-gray-400" : "text-gray-500"}`}
+      />
+      <span className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+        P-{position}
+      </span>
+      <span className={`flex-1 ${isDark ? "text-gray-100" : "text-gray-900"}`}>
+        {title}
+      </span>
+    </div>
+  );
+}
+
+interface SortModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSort: (newLists: any[]) => void;
+  lists: any[];
+}
+
+function SortModal({ isOpen, onClose, onSort, lists }: SortModalProps) {
+  const { theme } = useThemeStore();
+  const isDark = theme === "dark";
+  const [items, setItems] = useState(lists);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragStart = (event: DragEndEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setItems((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        const newLists = arrayMove(items, oldIndex, newIndex);
+        onSort(newLists);
+        return newLists;
+      });
+    }
+    setActiveId(null);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className={`${
+          isDark ? "bg-dark-600" : "bg-white"
+        } rounded-lg w-full max-w-md p-6`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3
+          className={`text-lg font-medium mb-4 ${
+            isDark ? "text-gray-200" : "text-gray-900"
+          }`}
+        >
+          Ordenar Listas
+        </h3>
+        <div className="mb-6 space-y-2">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={items.map((item) => item.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {items.map((item, index) => (
+                <SortableItem
+                  key={item.id}
+                  id={item.id}
+                  title={item.name || item.title}
+                  position={index + 1}
+                  isDark={isDark}
+                />
+              ))}
+            </SortableContext>
+            <DragOverlay>
+              {activeId ? (
+                <div
+                  className={`flex items-center gap-3 p-3 rounded-md ${
+                    isDark ? "bg-dark-700" : "bg-white"
+                  } shadow-lg border ${
+                    isDark ? "border-gray-600" : "border-gray-200"
+                  }`}
+                >
+                  <GripVertical
+                    className={`w-5 h-5 ${
+                      isDark ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  />
+                  <span
+                    className={`text-sm ${
+                      isDark ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    P-{items.findIndex((item) => item.id === activeId) + 1}
+                  </span>
+                  <span
+                    className={`flex-1 ${
+                      isDark ? "text-gray-100" : "text-gray-900"
+                    }`}
+                  >
+                    {items.find((item) => item.id === activeId)?.name ||
+                      items.find((item) => item.id === activeId)?.title}
+                  </span>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className={`px-4 py-2 rounded-md ${
+              isDark
+                ? "text-gray-300 hover:bg-gray-700"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90"
+          >
+            Concluir
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -72,6 +266,7 @@ export function KanbanBoard() {
   const [newBoardDescription, setNewBoardDescription] = useState("");
   const [isCreatingBoard, setIsCreatingBoard] = useState(false);
   const [isCreatingList, setIsCreatingList] = useState(false);
+  const [showSortModal, setShowSortModal] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -222,6 +417,36 @@ export function KanbanBoard() {
     }
   };
 
+  // Função para reordenar listas
+  const handleSortLists = async (newLists: any[]) => {
+    if (!token || !organization?.id || !activeBoardId) return;
+
+    try {
+      // Atualizar a posição de cada lista
+      const updatePromises = newLists.map((list, index) => {
+        const dto: InputUpdateListDTO = {
+          position: index + 1,
+        };
+        return listService.updateList(
+          token,
+          organization.id,
+          activeBoardId,
+          list.id,
+          dto
+        );
+      });
+
+      await Promise.all(updatePromises);
+
+      // Recarregar as listas para refletir a nova ordem
+      await fetchLists(activeBoardId);
+
+      showToast("Listas reordenadas com sucesso!", "success");
+    } catch (err: any) {
+      showToast(err.message || "Erro ao reordenar listas", "error");
+    }
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -255,6 +480,15 @@ export function KanbanBoard() {
                 <Plus className="w-5 h-5" />
                 Adicionar Lista
               </button>
+              {lists.length > 1 && (
+                <button
+                  onClick={() => setShowSortModal(true)}
+                  className="flex-shrink-0 px-4 py-3 flex items-center justify-center gap-2 text-base bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 transition-colors"
+                >
+                  <GripVertical className="w-5 h-5" />
+                  Ordenar Listas
+                </button>
+              )}
             </div>
             <div className="flex gap-4 p-4 overflow-x-auto min-w-full scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent [&::-webkit-scrollbar]:h-2">
               <div className="flex gap-4">
@@ -397,6 +631,13 @@ export function KanbanBoard() {
           />
         </DragOverlay>
       )}
+
+      <SortModal
+        isOpen={showSortModal}
+        onClose={() => setShowSortModal(false)}
+        onSort={handleSortLists}
+        lists={lists}
+      />
       {/* BoardSelector removido - já existe no header principal */}
     </DndContext>
   );

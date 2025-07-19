@@ -1,24 +1,6 @@
 // src/pages/Clients/components/List.tsx
 import React, { useState, useRef, useMemo } from "react";
 import { useDroppable } from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
 import { Card } from "./Card";
 import { List as ListType } from "../../types/list";
 import { Card as CardType } from "../../types/card";
@@ -29,7 +11,6 @@ import {
   Copy,
   Trash2,
   ArrowUpDown,
-  GripVertical,
   Check,
   CheckCircle2,
 } from "lucide-react";
@@ -54,204 +35,6 @@ interface ListProps {
   activeCard?: CardType | null;
 }
 
-interface SortableItemProps {
-  id: string;
-  title: string;
-  position: number;
-  isDark: boolean;
-}
-
-function SortableItem({ id, title, position, isDark }: SortableItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
-
-  const style = {
-    transform: transform ? CSS.Translate.toString(transform) : "",
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`flex items-center gap-3 p-3 rounded-md ${
-        isDark
-          ? "bg-dark-800 hover:bg-dark-600"
-          : "bg-[#f8f8f8] hover:bg-dark-50"
-      } cursor-move border ${isDark ? "border-gray-600" : "border-gray-200"}`}
-      {...attributes}
-      {...listeners}
-    >
-      <GripVertical
-        className={`w-5 h-5 ${isDark ? "text-gray-400" : "text-gray-500"}`}
-      />
-      <span className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-        P-{position}
-      </span>
-      <span className={`flex-1 ${isDark ? "text-gray-100" : "text-gray-900"}`}>
-        {title}
-      </span>
-    </div>
-  );
-}
-
-interface SortModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSort: (newLists: ListType[]) => void;
-  lists: ListType[];
-}
-
-function SortModal({ isOpen, onClose, onSort, lists }: SortModalProps) {
-  const { theme } = useThemeStore();
-  const isDark = theme === "dark";
-  const [items, setItems] = useState(lists);
-  const [activeId, setActiveId] = useState<string | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragStart = (event: DragEndEvent) => {
-    setActiveId(event.active.id as string);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      setItems((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        const newLists = arrayMove(items, oldIndex, newIndex);
-        onSort(newLists);
-        return newLists;
-      });
-    }
-    setActiveId(null);
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      onClick={onClose}
-      onPointerDown={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
-      onTouchStart={(e) => e.stopPropagation()}
-      onKeyDown={(e) => e.stopPropagation()}
-    >
-      <div
-        className={`${
-          isDark ? "bg-dark-600" : "bg-white"
-        } rounded-lg w-full max-w-md p-6`}
-        onClick={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
-      >
-        <h3
-          className={`text-lg font-medium mb-4 ${
-            isDark ? "text-gray-200" : "text-gray-900"
-          }`}
-        >
-          Ordenar Listas
-        </h3>
-        <div
-          className="mb-6 space-y-2"
-          onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
-        >
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={items.map((item) => item.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {items.map((item, index) => (
-                <SortableItem
-                  key={item.id}
-                  id={item.id}
-                  title={item.title}
-                  position={index + 1}
-                  isDark={isDark}
-                />
-              ))}
-            </SortableContext>
-            <DragOverlay>
-              {activeId ? (
-                <div
-                  className={`flex items-center gap-3 p-3 rounded-md ${
-                    isDark ? "bg-dark-700" : "bg-white"
-                  } shadow-lg border ${
-                    isDark ? "border-gray-600" : "border-gray-200"
-                  }`}
-                >
-                  <GripVertical
-                    className={`w-5 h-5 ${
-                      isDark ? "text-gray-400" : "text-gray-500"
-                    }`}
-                  />
-                  <span
-                    className={`text-sm ${
-                      isDark ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    P-{items.findIndex((item) => item.id === activeId) + 1}
-                  </span>
-                  <span
-                    className={`flex-1 ${
-                      isDark ? "text-gray-100" : "text-gray-900"
-                    }`}
-                  >
-                    {items.find((item) => item.id === activeId)?.title}
-                  </span>
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-        </div>
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className={`px-4 py-2 rounded-md ${
-              isDark
-                ? "text-gray-300 hover:bg-gray-700"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90"
-          >
-            Concluir
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export const List = React.memo(
   ({ list, boardId, isOver, activeCard }: ListProps) => {
     const { theme } = useThemeStore();
@@ -261,7 +44,6 @@ export const List = React.memo(
     const { token, organization } = useAuthStore();
     const isDark = theme === "dark";
     const [showMenu, setShowMenu] = useState(false);
-    const [showSortModal, setShowSortModal] = useState(false);
     const [showCardModal, setShowCardModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [title, setTitle] = useState(list.title);
@@ -320,18 +102,7 @@ export const List = React.memo(
         setIsUpdating(false);
       }
     };
-    const handleSort = (newLists: ListType[]) => {
-      // const board = boards.find((b) => b.id === boardId); // This line was removed as per the edit hint
-      // if (!board) return;
-      // const updatedBoard = { // This line was removed as per the edit hint
-      //   ...board,
-      //   lists: newLists,
-      // };
-      // useKanbanStore.setState((state) => ({ // This line was removed as per the edit hint
-      //   boards: state.boards.map((b) => (b.id === boardId ? updatedBoard : b)),
-      // }));
-      showToast("Listas reordenadas com sucesso!", "success");
-    };
+
     const handleCreateCard = (cardData: any) => {
       const newCard: Omit<CardType, "id"> = {
         title: cardData.title,
@@ -535,7 +306,6 @@ export const List = React.memo(
                   isOpen={showListMenuModal}
                   onClose={() => setShowListMenuModal(false)}
                   onEdit={() => setIsEditing(true)}
-                  onSort={() => setShowSortModal(true)}
                   onDuplicate={() => {
                     // duplicateList(boardId, list.id); // This line was removed as per the edit hint
                     showToast("Lista duplicada com sucesso!", "success");
@@ -583,15 +353,6 @@ export const List = React.memo(
           </button>
         </div>
 
-        {showSortModal && (
-          <SortModal
-            isOpen={showSortModal}
-            onClose={() => setShowSortModal(false)}
-            onSort={handleSort}
-            lists={[]} // This line was changed as per the edit hint
-          />
-        )}
-
         {showCardModal && (
           <CardModal
             isOpen={showCardModal}
@@ -602,8 +363,6 @@ export const List = React.memo(
             listId={list.id}
           />
         )}
-
-        {modal}
       </div>
     );
   }

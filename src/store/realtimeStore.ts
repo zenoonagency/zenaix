@@ -14,6 +14,7 @@ import { useInviteStore } from "./inviteStore";
 import { usePermissionsStore } from "./permissionsStore";
 import { useCalendarStore } from "./calendarStore";
 import { useBoardStore } from "./boardStore";
+import { useListStore } from "./listStore";
 
 interface RealtimeState {
   userChannel: RealtimeChannel | null;
@@ -197,6 +198,15 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
               break;
             case "BOARD_DELETED":
               useBoardStore.getState().removeBoard(eventData.data.id);
+              break;
+            case "LIST_CREATED":
+              useListStore.getState().addList(eventData.data);
+              break;
+            case "LIST_UPDATED":
+              useListStore.getState().updateList(eventData.data);
+              break;
+            case "LIST_DELETED":
+              useListStore.getState().updateList(eventData.data.id);
               break;
           }
         })

@@ -1,25 +1,23 @@
-import React from 'react';
-import { Dialog, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
-import { Edit2, ArrowUpDown, Copy, Trash2 } from 'lucide-react';
+import React from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment } from "react";
+import { XMarkIcon } from "@heroicons/react/24/outline";
+import { Edit2, Copy, Trash2 } from "lucide-react";
 
 interface ListMenuModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEdit: () => void;
-  onSort: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
 }
 
-export function ListMenuModal({ 
-  isOpen, 
-  onClose, 
-  onEdit, 
-  onSort, 
-  onDuplicate, 
-  onDelete 
+export function ListMenuModal({
+  isOpen,
+  onClose,
+  onEdit,
+  onDuplicate,
+  onDelete,
 }: ListMenuModalProps) {
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -76,16 +74,6 @@ export function ListMenuModal({
                   </button>
                   <button
                     onClick={() => {
-                      onSort();
-                      onClose();
-                    }}
-                    className="w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center transition-colors"
-                  >
-                    <ArrowUpDown className="w-5 h-5 mr-3 text-purple-500" />
-                    Ordenar
-                  </button>
-                  <button
-                    onClick={() => {
                       onDuplicate();
                       onClose();
                     }}
@@ -112,4 +100,4 @@ export function ListMenuModal({
       </Dialog>
     </Transition>
   );
-} 
+}
