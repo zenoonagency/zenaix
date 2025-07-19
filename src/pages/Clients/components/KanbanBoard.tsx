@@ -117,6 +117,15 @@ function SortModal({ isOpen, onClose, onSort, lists }: SortModalProps) {
   const isDark = theme === "dark";
   const [items, setItems] = useState(lists);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Reset items when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setItems(lists);
+      setHasChanges(false);
+    }
+  }, [isOpen, lists]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -137,8 +146,40 @@ function SortModal({ isOpen, onClose, onSort, lists }: SortModalProps) {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
         const newLists = arrayMove(items, oldIndex, newIndex);
-        onSort(newLists);
-        return newLists;
+
+        // Calcular nova posição apenas para a lista movida
+        const movedList = newLists[newIndex];
+        let newPosition: number;
+
+        if (newIndex === 0) {
+          // Movendo para o primeiro lugar
+          const firstListPosition = newLists[1]?.position || 10;
+          newPosition = firstListPosition - 1; // Ex: 10 -> 9
+        } else if (newIndex === newLists.length - 1) {
+          // Movendo para o último lugar
+          const lastListPosition = newLists[newIndex - 1]?.position || 10;
+          newPosition = lastListPosition + 1; // Ex: 30 -> 31
+        } else {
+          // Movendo para o meio
+          const prevListPosition = newLists[newIndex - 1]?.position || 10;
+          const nextListPosition = newLists[newIndex + 1]?.position || 10;
+          newPosition =
+            prevListPosition + (nextListPosition - prevListPosition) / 2; // Ex: entre 10 e 20 = 15
+        }
+
+        // Atualizar apenas a lista movida
+        const updatedLists = newLists.map((list, index) => {
+          if (index === newIndex) {
+            return {
+              ...list,
+              position: newPosition,
+            };
+          }
+          return list;
+        });
+
+        setHasChanges(true);
+        return updatedLists;
       });
     }
     setActiveId(null);
@@ -231,8 +272,18 @@ function SortModal({ isOpen, onClose, onSort, lists }: SortModalProps) {
             Cancelar
           </button>
           <button
-            onClick={onClose}
-            className="px-4 py-2 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90"
+            onClick={() => {
+              if (hasChanges) {
+                onSort(items);
+              }
+              onClose();
+            }}
+            disabled={!hasChanges}
+            className={`px-4 py-2 rounded-md ${
+              hasChanges
+                ? "bg-[#7f00ff] text-white hover:bg-[#7f00ff]/90"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
           >
             Concluir
           </button>
@@ -378,14 +429,9 @@ export function KanbanBoard() {
         dto
       );
 
-      // Adicionar à listStore
-      addList(newList);
-
-      // Recarregar o board ativo para incluir a nova lista
-      await selectAndLoadBoard(activeBoardId);
-
-      showToast("Lista criada com sucesso!", "success");
       handleCloseModal();
+      showToast("Lista criada com sucesso!", "success");
+      await selectAndLoadBoard(activeBoardId);
     } catch (err: any) {
       showToast(err.message || "Erro ao criar lista", "error");
     } finally {
@@ -422,21 +468,25 @@ export function KanbanBoard() {
     if (!token || !organization?.id || !activeBoardId) return;
 
     try {
-      // Atualizar a posição de cada lista
-      const updatePromises = newLists.map((list, index) => {
+      // Encontrar apenas a lista que mudou de posição
+      const movedList = newLists.find((newList) => {
+        const originalList = lists.find((l) => l.id === newList.id);
+        return newList.position !== originalList?.position;
+      });
+
+      if (movedList) {
+        // Atualizar apenas a lista que mudou
         const dto: InputUpdateListDTO = {
-          position: index + 1,
+          position: movedList.position,
         };
-        return listService.updateList(
+        await listService.updateList(
           token,
           organization.id,
           activeBoardId,
-          list.id,
+          movedList.id,
           dto
         );
-      });
-
-      await Promise.all(updatePromises);
+      }
 
       // Recarregar as listas para refletir a nova ordem
       await fetchLists(activeBoardId);
@@ -492,22 +542,24 @@ export function KanbanBoard() {
             </div>
             <div className="flex gap-4 p-4 overflow-x-auto min-w-full scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent [&::-webkit-scrollbar]:h-2">
               <div className="flex gap-4">
-                {lists.map((list: any) => (
-                  <ListComponent
-                    key={list.id}
-                    list={{
-                      id: list.id,
-                      title: list.name || list.title || "",
-                      cards: list.cards || [],
-                      color: list.color,
-                      createdAt: list.created_at || list.createdAt || "",
-                      updatedAt: list.updated_at || list.updatedAt || "",
-                    }}
-                    boardId={board.id}
-                    isOver={list.id === overListId}
-                    activeCard={activeCard}
-                  />
-                ))}
+                {lists
+                  .sort((a, b) => (a.position || 0) - (b.position || 0))
+                  .map((list: any) => (
+                    <ListComponent
+                      key={list.id}
+                      list={{
+                        id: list.id,
+                        title: list.name || list.title || "",
+                        cards: list.cards || [],
+                        color: list.color,
+                        createdAt: list.created_at || list.createdAt || "",
+                        updatedAt: list.updated_at || list.updatedAt || "",
+                      }}
+                      boardId={board.id}
+                      isOver={list.id === overListId}
+                      activeCard={activeCard}
+                    />
+                  ))}
                 {/* Botão '+' só aparece se houver pelo menos uma lista */}
                 {lists.length > 0 && (
                   <button
