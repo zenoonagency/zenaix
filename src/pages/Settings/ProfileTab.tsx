@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { userService } from "../../services/user/user.service";
-import { toast } from "react-toastify";
+import { useToast } from "../../hooks/useToast";
+import { imageService } from "../../services/imageService";
 import { LANGUAGE_OPTIONS } from "../../contexts/LocalizationContext";
 import { TIMEZONE_OPTIONS } from "../../utils/dateUtils";
 import { compressImage } from "../../utils/imageCompression";
@@ -9,6 +10,7 @@ import { Eye, EyeOff } from "lucide-react";
 
 export function ProfileTab() {
   const { user, token, updateUser, logout } = useAuthStore();
+  const { showToast } = useToast();
   const organization = user?.organization;
 
   const [formData, setFormData] = useState({
@@ -25,6 +27,7 @@ export function ProfileTab() {
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -51,7 +54,7 @@ export function ProfileTab() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Por favor, selecione apenas ficheiros de imagem");
+      showToast("Por favor, selecione apenas ficheiros de imagem", "error");
       return;
     }
 
@@ -62,7 +65,7 @@ export function ProfileTab() {
       const result = await compressImage(file, { maxSizeKB: 300 });
 
       if (!result.success || !result.file) {
-        toast.error(result.error || "Erro ao processar imagem");
+        showToast(result.error || "Erro ao processar imagem", "error");
         setIsLoadingAvatar(false);
         return;
       }
@@ -81,11 +84,11 @@ export function ProfileTab() {
         result.compressedSize &&
         result.compressedSize < result.originalSize
       ) {
-        toast.success("Imagem processada com sucesso!");
+        showToast("Imagem processada com sucesso!", "success");
       }
-      toast.success("Avatar atualizado com sucesso!");
+      showToast("Avatar atualizado com sucesso!", "success");
     } catch (error) {
-      toast.error("Erro ao atualizar avatar. Tente novamente.");
+      showToast("Erro ao atualizar avatar. Tente novamente.", "error");
       setPreviewUrl(user?.avatar_url || "");
     } finally {
       setIsLoadingAvatar(false);
@@ -101,9 +104,9 @@ export function ProfileTab() {
       updateUser({ avatar_url: "" });
       setPreviewUrl("");
 
-      toast.success("Avatar removido com sucesso!");
+      showToast("Avatar removido com sucesso!", "success");
     } catch (error) {
-      toast.error("Erro ao remover avatar. Tente novamente.");
+      showToast("Erro ao remover avatar. Tente novamente.", "error");
     } finally {
       setIsLoadingAvatar(false);
     }
@@ -111,12 +114,13 @@ export function ProfileTab() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
-      toast.error("O nome é obrigatório");
+    const { name } = formData;
+    if (!name.trim()) {
+      showToast("O nome é obrigatório", "error");
       return;
     }
     if (!user?.id || !token) {
-      toast.error("Sessão inválida. Por favor, faça login novamente.");
+      showToast("Sessão inválida. Por favor, faça login novamente.", "error");
       return;
     }
 
@@ -124,16 +128,16 @@ export function ProfileTab() {
     try {
       console.log(user.id);
       const updatedUserFromApi = await userService.updateUser(token, user.id, {
-        name: formData.name.trim(),
+        name: name.trim(),
         language: formData.language,
         timezone: formData.timezone,
       });
 
       updateUser(updatedUserFromApi);
 
-      toast.success("Perfil atualizado com sucesso!");
+      showToast("Perfil atualizado com sucesso!", "success");
     } catch (error) {
-      toast.error("Erro ao atualizar perfil.");
+      showToast("Erro ao atualizar perfil.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -141,11 +145,11 @@ export function ProfileTab() {
 
   const handleDeleteAccount = async () => {
     if (!deletePassword) {
-      toast.error("Informe sua senha para deletar a conta.");
+      showToast("Informe sua senha para deletar a conta.", "error");
       return;
     }
     if (!token) {
-      toast.error("Sessão inválida.");
+      showToast("Sessão inválida.", "error");
       return;
     }
 
@@ -160,7 +164,7 @@ export function ProfileTab() {
         error instanceof Error
           ? error.message
           : "Erro ao deletar conta. Verifique sua senha.";
-      toast.error(message);
+      showToast(message, "error");
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);

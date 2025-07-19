@@ -9,7 +9,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Modal } from "../../components/Modal";
-import { toast } from "react-toastify";
+import { useToast } from "../../hooks/useToast";
 import { useAuthStore } from "../../store/authStore";
 import { organizationService } from "../../services/oganization/organization.service";
 import { InputCreateOrgAndSubscribeDTO } from "../../types/organization";
@@ -105,7 +105,7 @@ export function Plans() {
         setShowPaymentModal(true);
       }
     } catch (err: any) {
-      toast.error(err.message || "Erro ao criar organização");
+      showToast(err.message || "Erro ao criar organização", "error");
     } finally {
       setOrgLoading(false);
     }
@@ -402,8 +402,9 @@ export function Plans() {
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(paymentLink);
-                        toast.success(
-                          "Link copiado para a área de transferência!"
+                        showToast(
+                          "Link copiado para a área de transferência!",
+                          "success"
                         );
                       }}
                       className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-base"
@@ -492,8 +493,9 @@ export function Plans() {
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(paymentLink);
-                        toast.success(
-                          "Link copiado para a área de transferência!"
+                        showToast(
+                          "Link copiado para a área de transferência!",
+                          "success"
                         );
                       }}
                       className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-base"
@@ -832,7 +834,10 @@ export function Plans() {
                     );
                   }
                   await Promise.all(promises);
-                  toast.success("Recursos adicionais comprados com sucesso!");
+                  showToast(
+                    "Recursos adicionais comprados com sucesso!",
+                    "success"
+                  );
                   if (
                     manageAddonsFormRef.current &&
                     manageAddonsFormRef.current.resetForm
@@ -840,7 +845,7 @@ export function Plans() {
                     manageAddonsFormRef.current.resetForm();
                   }
                 } catch (err) {
-                  toast.error("Erro ao comprar recursos adicionais.");
+                  showToast("Erro ao comprar recursos adicionais.", "error");
                 } finally {
                   fetchAndSyncUser();
                   setLoadingAddons(false);

@@ -12,6 +12,7 @@ import { TransactionType } from "../types/transaction";
 import { useTeamMembersStore } from "./teamMembersStore";
 import { useInviteStore } from "./inviteStore";
 import { usePermissionsStore } from "./permissionsStore";
+import { useCalendarStore } from "./calendarStore";
 
 interface RealtimeState {
   userChannel: RealtimeChannel | null;
@@ -172,6 +173,15 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
               }
               break;
             }
+            case "CALENDAR_CREATED":
+              useCalendarStore.getState().addEvent(eventData.data);
+              break;
+            case "CALENDAR_UPDATED":
+              useCalendarStore.getState().updateEvent(eventData.data);
+              break;
+            case "CALENDAR_DELETED":
+              useCalendarStore.getState().deleteEventApi(eventData.data.id);
+              break;
           }
         })
         .subscribe((status) => {

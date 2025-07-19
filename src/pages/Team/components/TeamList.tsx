@@ -5,12 +5,17 @@ import { useCustomModal } from "../../../components/CustomModal";
 import { TeamMember } from "../../../types/team.types";
 import { useTeamMembersStore } from "../../../store/teamMembersStore";
 import { useAuthStore } from "../../../store/authStore";
-import { toast } from "react-toastify";
+import { useToast } from "../../../hooks/useToast";
 import { TeamMemberModal } from "./TeamMemberModal";
 
 export function TeamList() {
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const { modal, customConfirm } = useCustomModal();
+  const { token, user } = useAuthStore();
+  const organizationId = user?.organization_id;
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [roleLoadingId, setRoleLoadingId] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const {
     members,
@@ -19,10 +24,6 @@ export function TeamList() {
     updateMemberRole,
     fetchAllMembers,
   } = useTeamMembersStore();
-  const { token, user } = useAuthStore();
-  const organizationId = user?.organization_id;
-  const [removingId, setRemovingId] = useState<string | null>(null);
-  const [roleLoadingId, setRoleLoadingId] = useState<string | null>(null);
 
   const sortedMembers = [...members].sort((a, b) => {
     if (a.role === "MASTER") return -1;
@@ -38,9 +39,9 @@ export function TeamList() {
       await updateMemberRole(token, organizationId, memberId, {
         role: newRole,
       });
-      toast.success("Função atualizada com sucesso!");
+      showToast("Função atualizada com sucesso!", "success");
     } catch (err: any) {
-      toast.error(err?.message || "Erro ao atualizar função do membro.");
+      showToast(err?.message || "Erro ao atualizar função do membro.", "error");
     } finally {
       setRoleLoadingId(null);
     }

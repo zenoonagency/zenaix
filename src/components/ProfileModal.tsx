@@ -13,7 +13,7 @@ import {
   Loader,
   MessageSquare,
 } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { useToast } from "../hooks/useToast";
 import { useWhatsAppConnectionStore } from "../store/whatsAppConnectionStore";
 import { proxyService } from "../services/proxyService";
 import { userService } from "../services/user/user.service";
@@ -35,6 +35,7 @@ type WhatsAppConnectionStatus =
 
 export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { user, token, updateUser } = useAuthStore();
+  const { showToast } = useToast();
   const {
     isConnected: whatsAppIsConnected,
     status: persistedStatus,
@@ -170,9 +171,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         if (connectionStatus !== "connected") {
           setConnectionStatus("connected");
           connectWhatsApp(formData.email); // Usando email em vez de nome
-          toast.success("WhatsApp conectado e ativo!", {
-            id: "connection-active",
-          });
+          showToast("WhatsApp conectado e ativo!", "success");
         }
       } else if (status === "conectando") {
         console.log("Definindo estado como CONECTANDO");
@@ -186,9 +185,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         // Se estava conectado antes, atualize o status
         if (connectionStatus === "connected") {
           setConnectionStatus("idle");
-          toast.error("Conexão WhatsApp inativa ou perdida", {
-            id: "connection-inactive",
-          });
+          showToast("Conexão WhatsApp inativa ou perdida", "error");
         }
       }
 
@@ -224,7 +221,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         if (connectionStatus === "pending") {
           setConnectionStatus("expired");
           setQrCodeData(null);
-          toast.error("O QR code expirou. Gere um novo para continuar.");
+          showToast("O QR code expirou. Gere um novo para continuar.", "error");
         }
       }, 60000); // 60 segundos
 
@@ -316,7 +313,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           statusCheckTimeoutRef.current = null;
         }
 
-        toast.success("WhatsApp conectado com sucesso!");
+        showToast("WhatsApp conectado com sucesso!", "success");
       } else if (data.status === "expired") {
         // QR code expirado
         console.log("Status definido como expired, atualizando interface");
@@ -330,7 +327,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           statusCheckTimeoutRef.current = null;
         }
 
-        toast.error("O QR code expirou. Gere um novo para continuar.");
+        showToast("O QR code expirou. Gere um novo para continuar.", "error");
       } else if (data.status === "pending") {
         // Ainda aguardando conexão, não fazer nada e deixar o timeout de expiração lidar com isso
         console.log("Conexão ainda pendente, aguardando...");
@@ -350,7 +347,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
     if (!file.type.startsWith("image/")) {
       setImageError("Por favor, selecione apenas arquivos de imagem");
-      toast.error("Por favor, selecione apenas arquivos de imagem");
+      showToast("Por favor, selecione apenas arquivos de imagem", "error");
       return;
     } else {
       setImageError(null);
@@ -364,7 +361,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
       if (!result.success || !result.file) {
         setImageError(result.error || "Erro ao processar imagem");
-        toast.error(result.error || "Erro ao processar imagem");
+        showToast(result.error || "Erro ao processar imagem", "error");
         setIsLoadingAvatar(false);
         return;
       }
@@ -383,13 +380,13 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         result.compressedSize &&
         result.compressedSize < result.originalSize
       ) {
-        toast.success("Imagem processada com sucesso!");
+        showToast("Imagem processada com sucesso!", "success");
       }
-      toast.success("Avatar atualizado com sucesso!");
+      showToast("Avatar atualizado com sucesso!", "success");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Erro ao atualizar avatar.";
-      toast.error(message);
+      showToast(message, "error");
       setPreviewUrl(user?.avatar_url || "");
     } finally {
       setIsLoadingAvatar(false);
@@ -404,11 +401,11 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
       updateUser({ avatar_url: "" });
 
-      toast.success("Avatar removido com sucesso!");
+      showToast("Avatar removido com sucesso!", "success");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Erro ao remover avatar.";
-      toast.error(message);
+      showToast(message, "error");
     } finally {
       setIsLoadingAvatar(false);
     }
@@ -418,12 +415,12 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      toast.error("O nome é obrigatório");
+      showToast("O nome é obrigatório", "error");
       return;
     }
 
     if (!user?.id || !token) {
-      toast.error("Sessão inválida. Por favor, faça login novamente.");
+      showToast("Sessão inválida. Por favor, faça login novamente.", "error");
       return;
     }
 
@@ -437,12 +434,12 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
       updateUser(updatedUserFromApi);
 
-      toast.success("Perfil atualizado com sucesso!");
+      showToast("Perfil atualizado com sucesso!", "success");
       onClose();
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Erro ao atualizar perfil.";
-      toast.error(message);
+      showToast(message, "error");
     } finally {
       setIsLoadingProfile(false);
     }
@@ -450,7 +447,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   const handleShowInstructions = () => {
     if (!formData.email.trim()) {
-      toast.error("O email é obrigatório para conectar o WhatsApp");
+      showToast("O email é obrigatório para conectar o WhatsApp", "error");
       return;
     }
 
@@ -481,7 +478,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           phoneNumber: data.phoneNumber || "",
           email: formData.email,
         });
-        toast.success("Já existe uma conexão com esse nome");
+        showToast("Já existe uma conexão com esse nome", "success");
       } else {
         // Não existe conexão, mostrar instruções
         setShowInstructions(true);
@@ -497,7 +494,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   const handleGenerateQrCode = async () => {
     if (!formData.email) {
-      toast.error("O email é obrigatório para gerar o QR code");
+      showToast("O email é obrigatório para gerar o QR code", "error");
       return;
     }
 
@@ -541,7 +538,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             phoneNumber: data.phoneNumber || "",
             email: formData.email,
           });
-          toast.success("Já existe uma conexão com esse nome");
+          showToast("Já existe uma conexão com esse nome", "success");
           setIsLoadingQrCode(false);
           return;
         }
@@ -573,7 +570,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             }
 
             setQrCodeData(qrCodeBase64);
-            toast.success("QR code gerado com sucesso!");
+            showToast("QR code gerado com sucesso!", "success");
 
             // A verificação de status será iniciada automaticamente pelo useEffect
             setIsLoadingQrCode(false);
@@ -624,7 +621,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               // Extrair apenas a parte base64 da string data URL
               const base64Content = base64data.split(",")[1];
               setQrCodeData(base64Content);
-              toast.success("QR code gerado com sucesso!");
+              showToast("QR code gerado com sucesso!", "success");
               setIsLoadingQrCode(false);
 
               // A verificação de status será iniciada automaticamente pelo useEffect
@@ -638,10 +635,10 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
       // Se chegou aqui, não conseguiu extrair o QR code
       setConnectionStatus("failed");
-      toast.error("Não foi possível gerar o QR code. Tente novamente.");
+      showToast("Não foi possível gerar o QR code. Tente novamente.", "error");
     } catch (error) {
       console.error("Erro ao gerar QR code:", error);
-      toast.error("Erro ao gerar QR code. Tente novamente.");
+      showToast("Erro ao gerar QR code. Tente novamente.", "error");
       setConnectionStatus("failed");
     } finally {
       setIsLoadingQrCode(false);
@@ -652,8 +649,9 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setConnectionStatus("idle");
     disconnectWhatsApp();
     setQrCodeData(null);
-    toast.success(
-      "Conexão do WhatsApp removida. Você pode conectar novamente quando desejar."
+    showToast(
+      "Conexão do WhatsApp removida. Você pode conectar novamente quando desejar.",
+      "success"
     );
   };
 
@@ -959,8 +957,9 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                         container.appendChild(textElement);
                       }
 
-                      toast.error(
-                        "Erro ao exibir QR code como imagem. Exibindo como texto."
+                      showToast(
+                        "Erro ao exibir QR code como imagem. Exibindo como texto.",
+                        "error"
                       );
                     }}
                   />

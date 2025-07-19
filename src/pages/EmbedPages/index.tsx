@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Modal } from "../../components/Modal";
-import { toast } from "react-toastify";
 import { InputCreateEmbedDTO, InputUpdateEmbedDTO } from "../../types/embed";
 import { embedService } from "../../services/embed/embed.service";
 import { useAuthStore } from "../../store/authStore";
 import { PERMISSIONS } from "../../config/permissions";
 import { useEmbedPagesStore } from "../../store/embedPagesStore";
 import { EmbedOutput } from "../../types/embed";
+import { useToast } from "../../hooks/useToast";
 
 export function EmbedPages() {
   const [isActionLoading, setIsActionLoading] = useState(false);
@@ -24,7 +24,8 @@ export function EmbedPages() {
     hasPermission: state.hasPermission,
   }));
 
-  const { pages } = useEmbedPagesStore();
+  const { pages, fetchPages, loading } = useEmbedPagesStore();
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (!activePage && pages.length > 0) {
@@ -34,7 +35,7 @@ export function EmbedPages() {
 
   const handleCreatePage = async () => {
     if (!hasPermission(PERMISSIONS.EMBED_CREATE) || !token || !organizationId) {
-      toast.error("Você não tem permissão para esta ação.");
+      showToast("Você não tem permissão para esta ação.", "error");
       return;
     }
 
@@ -46,11 +47,14 @@ export function EmbedPages() {
       };
       const newPage = await embedService.create(token, organizationId, input);
       setActivePage(newPage);
-      toast.success("Página embed criada com sucesso!");
+              showToast("Página embed criada com sucesso!", "success");
       setFormData({ name: "", url: "" });
       setShowCreateModal(false);
     } catch (error: any) {
-      toast.error(error.message || "Ocorreu uma falha ao criar a página.");
+      showToast(
+        "error",
+        error.message || "Ocorreu uma falha ao criar a página."
+      );
     } finally {
       setIsActionLoading(false);
     }
@@ -58,7 +62,10 @@ export function EmbedPages() {
 
   const handleEditPage = async () => {
     if (!hasPermission(PERMISSIONS.EMBED_UPDATE) || !token || !activePage) {
-      toast.error("Você não tem permissão ou nenhuma página está selecionada.");
+      showToast(
+        "error",
+        "Você não tem permissão ou nenhuma página está selecionada."
+      );
       return;
     }
 
@@ -76,11 +83,14 @@ export function EmbedPages() {
         input
       );
       setActivePage(updatedPageData);
-      toast.success("Página embed atualizada com sucesso!");
+      showToast("success", "Página embed atualizada com sucesso!");
       setFormData({ name: "", url: "" });
       setShowEditModal(false);
     } catch (error: any) {
-      toast.error(error.message || "Ocorreu uma falha ao atualizar a página.");
+      showToast(
+        "error",
+        error.message || "Ocorreu uma falha ao atualizar a página."
+      );
     } finally {
       setIsActionLoading(false);
     }
@@ -88,7 +98,10 @@ export function EmbedPages() {
 
   const handleDeletePage = async () => {
     if (!hasPermission(PERMISSIONS.EMBED_DELETE) || !token || !activePage) {
-      toast.error("Você não tem permissão ou nenhuma página está selecionada.");
+      showToast(
+        "error",
+        "Você não tem permissão ou nenhuma página está selecionada."
+      );
       return;
     }
 
@@ -100,10 +113,13 @@ export function EmbedPages() {
       const remainingPages = pages.filter((p) => p.id !== pageIdToDelete);
       setActivePage(remainingPages.length > 0 ? remainingPages[0] : null);
 
-      toast.success("Página embed excluída com sucesso!");
+      showToast("success", "Página embed excluída com sucesso!");
       setShowDeleteModal(false);
     } catch (error: any) {
-      toast.error(error.message || "Ocorreu uma falha ao excluir a página.");
+      showToast(
+        "error",
+        error.message || "Ocorreu uma falha ao excluir a página."
+      );
     } finally {
       setIsActionLoading(false);
     }
@@ -134,7 +150,7 @@ export function EmbedPages() {
         </button>
       </div>
 
-      {isActionLoading && pages.length === 0 ? (
+      {loading && pages.length === 0 ? (
         <div className="text-center py-12">Carregando páginas...</div>
       ) : pages.length === 0 ? (
         <div className="text-center py-12">

@@ -17,30 +17,24 @@ export function CalendarSelector({
 }: CalendarSelectorProps) {
   const { members } = useTeamMembersStore();
 
-  const toggleCalendarVisibility = (memberId: string) => {
-    if (memberId === "all") {
-      // Se "all" está selecionado, desmarcar todos os outros
+  const toggleCalendarVisibility = (calendarId: string) => {
+    if (calendarId === "all") {
       if (visibleCalendars.includes("all")) {
         setVisibleCalendars([]);
       } else {
-        // Se "all" não está selecionado, marcar apenas "all"
         setVisibleCalendars(["all"]);
       }
     } else {
-      // Para membros específicos
-      if (visibleCalendars.includes(memberId)) {
-        // Desmarcar o membro específico
-        const newCalendars = visibleCalendars.filter((id) => id !== memberId);
-        // Se não há mais nenhum selecionado, marcar "all"
-        if (newCalendars.length === 0) {
+      if (visibleCalendars.includes(calendarId)) {
+        const newVisible = visibleCalendars.filter((id) => id !== calendarId);
+        if (newVisible.length === 0) {
           setVisibleCalendars(["all"]);
         } else {
-          setVisibleCalendars(newCalendars);
+          setVisibleCalendars(newVisible);
         }
       } else {
-        // Marcar o membro específico e desmarcar "all"
-        const newCalendars = visibleCalendars.filter((id) => id !== "all");
-        setVisibleCalendars([...newCalendars, memberId]);
+        const newVisible = visibleCalendars.filter((id) => id !== "all");
+        setVisibleCalendars([...newVisible, calendarId]);
       }
     }
   };
@@ -65,8 +59,7 @@ export function CalendarSelector({
           </button>
         </div>
 
-        <div className="p-4">
-          {/* Opção para todos os eventos */}
+        <div className="p-4 space-y-2">
           <div
             className="flex items-center gap-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-dark-700 rounded-lg px-2"
             onClick={() => toggleCalendarVisibility("all")}

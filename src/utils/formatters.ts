@@ -23,17 +23,44 @@ export function formatPhoneNumber(phone: string): string {
 }
 
 export function formatApiError(
-  errorData: ErrorApiResponse,
+  errorData: ErrorApiResponse | any,
   fallback = "Ocorreu um erro."
 ) {
-  let errorMessage = errorData.message || fallback;
+  let errorMessage = fallback;
 
-  if (errorData.errors && typeof errorData.errors === "object") {
-    const details = Object.values(errorData.errors).flat().join(" | ");
-    errorMessage = details || errorMessage;
+  // Se errorData é null ou undefined, usar fallback
+  if (!errorData) {
+    const error = new APIError(errorMessage);
+    (error as any).status = 500;
+    throw error;
   }
 
-  throw new APIError(errorMessage);
+  // Se tem message direta, usar ela
+  if (errorData.message) {
+    errorMessage = errorData.message;
+  }
+
+  // Se tem errors object, extrair detalhes
+  if (errorData.errors && typeof errorData.errors === "object") {
+    const details = Object.values(errorData.errors).flat().join(" | ");
+    if (details) {
+      errorMessage = details;
+    }
+  }
+
+  // Se tem status 400 e message específica, usar ela
+  if (errorData.status === 400 && errorData.message) {
+    errorMessage = errorData.message;
+  }
+
+  const error = new APIError(errorMessage);
+
+  // Preservar o status do erro se existir
+  if (errorData.status) {
+    (error as any).status = errorData.status;
+  }
+
+  throw error;
 }
 
 function formatFieldName(field: string): string {

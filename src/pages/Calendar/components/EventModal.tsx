@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { X, Bell, Hash, Palette, User } from "lucide-react";
 import { useCalendarStore } from "../../../store/calendarStore";
+import { useAuthStore } from "../../../store/authStore";
+import { calendarService } from "../../../services/calendar";
 import { useTeamMembersStore } from "../../../store/teamMembersStore";
 import { Input } from "../../../components/ui/Input";
 import { Select } from "../../../components/ui/Select";
@@ -12,7 +14,7 @@ import {
 } from "../../../types/calendar";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { toast } from "react-hot-toast";
+import { useToast } from "../../../hooks/useToast";
 import { Modal } from "../../../components/Modal";
 
 interface EventModalProps {
@@ -49,8 +51,12 @@ export function EventModal({
   event,
   isEditing,
 }: EventModalProps) {
-  const { createEventApi, updateEventApi } = useCalendarStore();
+  const { fetchEvents } = useCalendarStore();
+  const { token, user } = useAuthStore();
   const { members } = useTeamMembersStore();
+  const { showToast } = useToast();
+  const organizationId = user?.organization_id;
+
   const [title, setTitle] = useState(event?.title || "");
   const [description, setDescription] = useState(event?.description || "");
   const [startDate, setStartDate] = useState(
@@ -119,9 +125,49 @@ export function EventModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("🔄 [EventModal] Iniciando submissão do formulário...");
+
+    // Proteção contra múltiplas submissões
+    if (isSubmitting) {
+      console.log(
+        "⚠️ [EventModal] Já está submetendo, ignorando nova submissão"
+      );
+      showToast("Aguarde, já está processando...", "error");
+      return;
+    }
+
+    console.log("🔍 [EventModal] Verificando autenticação...");
+    if (!token || !organizationId) {
+      console.log(
+        "❌ [EventModal] Erro de autenticação - token ou organizationId ausente"
+      );
+      showToast("Erro de autenticação. Faça login novamente.", "error");
+      return;
+    }
+    console.log("✅ [EventModal] Autenticação válida");
+
+    // Validação de data no frontend
+    console.log("📅 [EventModal] Validando datas:", {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      isValid: endDate >= startDate,
+    });
+
+    if (endDate < startDate) {
+      console.log(
+        "[EventModal] Validação de data falhou - endDate < startDate"
+      );
+      showToast(
+        " Data de fim não pode ser anterior à data de início. Ajuste as datas e tente novamente.",
+        "error"
+      );
+      return;
+    }
     setIsSubmitting(true);
 
     try {
+      console.log("📝 [EventModal] Preparando dados do evento...");
+
       const eventData: InputCreateEventDTO | InputUpdateEventDTO = {
         title,
         description,
@@ -133,21 +179,74 @@ export function EventModal({
         categories: categories.length > 0 ? categories : undefined,
       };
 
+      console.log("📊 [EventModal] Dados do evento preparados:", eventData);
+
       if (isEditing && event) {
-        // Atualizar evento
-        await updateEventApi(event.id, eventData as InputUpdateEventDTO);
-        toast.success(`Evento "${title}" atualizado com sucesso!`);
+        console.log("✏️ [EventModal] Atualizando evento existente...");
+
+        await calendarService.updateEvent(
+          token,
+          organizationId,
+          event.id,
+          eventData as InputUpdateEventDTO
+        );
+        console.log("✅ [EventModal] Evento atualizado com sucesso!");
+        showToast(`Evento "${title}" atualizado com sucesso!`, "success");
+
+        console.log("🔄 [EventModal] Atualizando lista de eventos...");
+        await fetchEvents();
       } else {
-        // Criar novo evento
-        await createEventApi(eventData as InputCreateEventDTO);
-        toast.success(`Evento "${title}" criado com sucesso!`);
+        console.log("➕ [EventModal] Criando novo evento...");
+
+        await calendarService.createEvent(
+          token,
+          organizationId,
+          eventData as InputCreateEventDTO
+        );
+        console.log("✅ [EventModal] Evento criado com sucesso no servidor!");
+        showToast(`Evento "${title}" criado com sucesso!`, "success");
+
+        console.log("🔄 [EventModal] Atualizando lista de eventos...");
+        await fetchEvents();
       }
 
+      console.log("🚪 [EventModal] Fechando modal...");
       onClose();
-    } catch (error) {
-      console.error("Erro ao salvar evento:", error);
-      toast.error("Erro ao salvar evento. Tente novamente.");
+    } catch (error: any) {
+      console.error(
+        "💥 [EventModal] Erro durante a criação/atualização:",
+        error
+      );
+
+      // Capturar mensagem de erro específica
+      let errorMessage = "Erro ao salvar evento. Tente novamente.";
+
+      if (error?.message) {
+        errorMessage = error.message;
+        console.log("📋 [EventModal] Mensagem de erro:", error.message);
+      } else if (error?.name === "APIError") {
+        errorMessage = error.message || errorMessage;
+        console.log("🔌 [EventModal] Erro da API:", error.message);
+      }
+
+      // Verificar se é um erro de permissão específico
+      if (
+        error?.status === 403 ||
+        errorMessage.includes("Acesso negado") ||
+        errorMessage.includes("permissão")
+      ) {
+        errorMessage =
+          "Você não tem permissão para criar eventos no calendário. Entre em contacto com o administrador da organização.";
+        console.log("🚫 [EventModal] Erro de permissão detectado");
+      }
+
+      console.log(
+        "❌ [EventModal] Exibindo erro para o usuário:",
+        errorMessage
+      );
+      showToast(errorMessage, "error");
     } finally {
+      console.log("🏁 [EventModal] Finalizando processo...");
       setIsSubmitting(false);
     }
   };
@@ -366,9 +465,16 @@ export function EventModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              {isSubmitting ? "Salvando..." : isEditing ? "Atualizar" : "Criar"}
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Processando...
+                </>
+              ) : (
+                <>{isEditing ? "Atualizar" : "Criar"}</>
+              )}
             </button>
           </div>
         </form>

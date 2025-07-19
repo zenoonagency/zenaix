@@ -1,11 +1,10 @@
 import { useEffect } from "react";
 import { RouterProvider } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { ToastContainer } from "react-toastify";
+import { Toaster } from "react-hot-toast";
 import { NetworkStatus } from "./components/NetworkStatus";
 import { Notification } from "./components/Notification";
 import { router } from "./routes";
-import "react-toastify/dist/ReactToastify.css";
 import { useAuthStore } from "./store/authStore";
 import { usePlanStore } from "./store/planStore";
 import { useEmbedPagesStore } from "./store/embedPagesStore";
@@ -111,16 +110,15 @@ export function App() {
     <>
       <NetworkStatus />
       <Notification />
-      <ToastContainer
+      <Toaster
         position="top-right"
-        autoClose={3000}
-        hideProgressBar
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: "#363636",
+            color: "#fff",
+          },
+        }}
       />
       <AnimatePresence mode="wait">
         <RouterProvider router={router} />

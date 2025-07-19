@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import { toast } from "react-toastify";
+import { useToast } from "../hooks/useToast";
 import { useAuthStore } from "../store/authStore";
 import { subscriptionService } from "../services/subscription/subscription.service";
 import { formatCurrency } from "../utils/formatters";
@@ -11,14 +11,15 @@ export function ManageResourcesForm({
   addOns,
   valorAtual,
   onClose,
-  fetchAndSyncUser,
 }) {
   const [kanbans, setKanbans] = useState(organization?.extra_boards || 0);
   const [members, setMembers] = useState(organization?.extra_team_members || 0);
   const [triggers, setTriggers] = useState(organization?.extra_triggers || 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState([]);
-  const { token } = useAuthStore();
+  const { token, user, fetchAndSyncUser } = useAuthStore();
+  const { showToast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   // Valores mínimos (não pode ser menor que o plano)
   const minKanbans = 0;
@@ -124,12 +125,12 @@ export function ManageResourcesForm({
           quantity_to_remove: currentTriggers - triggers,
         });
       }
-      toast.success("Recursos atualizados com sucesso!");
+      showToast("Recursos atualizados com sucesso!", "success");
       onClose();
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Erro ao atualizar recursos.";
-      toast.error(message);
+      showToast(message, "error");
     } finally {
       setIsSubmitting(false);
     }

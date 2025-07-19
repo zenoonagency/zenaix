@@ -13,15 +13,21 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCalendarStore } from "../../../store/calendarStore";
+import { useAuthStore } from "../../../store/authStore";
+import { calendarService } from "../../../services/calendar";
 import { Pencil, Trash2 } from "lucide-react";
 import { EventModal } from "./EventModal";
 import { EventDetailModal } from "./EventDetailModal";
 import { CalendarEvent } from "../../../types/calendar";
-import { toast } from "react-hot-toast";
+import { useToast } from "../../../hooks/useToast";
 import { Modal } from "../../../components/Modal";
 
 export function UpcomingEvents() {
-  const { events, deleteEventApi } = useCalendarStore();
+  const { events, fetchEvents } = useCalendarStore();
+  const { token, user } = useAuthStore();
+  const { showToast } = useToast();
+  const organizationId = user?.organization_id;
+
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
     null
   );
@@ -42,14 +48,10 @@ export function UpcomingEvents() {
         const eventStart = new Date(event.start_at);
         const eventEnd = new Date(event.end_at);
 
-        // Incluir eventos que:
-        // 1. Ainda não começaram (estão no futuro)
-        // 2. Já começaram mas ainda não terminaram (estão acontecendo agora)
         return (
           (isAfter(eventStart, now) &&
             isBefore(eventStart, endOfDay(nextWeek))) ||
           (isBefore(eventStart, now) && isAfter(eventEnd, now)) ||
-          // Incluir eventos que começam hoje (mesmo que já tenham começado)
           startOfDay(eventStart).getTime() === startOfDay(now).getTime()
         );
       })
@@ -65,7 +67,6 @@ export function UpcomingEvents() {
     const eventStart = new Date(event.start_at);
     const eventEnd = new Date(event.end_at);
 
-    // Evento está acontecendo agora
     if (isBefore(eventStart, now) && isAfter(now, eventEnd)) {
       const minutesLeft = differenceInMinutes(eventEnd, now);
       if (minutesLeft < 60) {
@@ -84,7 +85,6 @@ export function UpcomingEvents() {
       }
     }
 
-    // Evento vai acontecer hoje
     if (
       isAfter(eventStart, now) &&
       startOfDay(eventStart).getTime() === startOfDay(now).getTime()
@@ -106,7 +106,6 @@ export function UpcomingEvents() {
       }
     }
 
-    // Evento vai acontecer nos próximos dias
     const daysToStart = differenceInDays(eventStart, now);
     return {
       status: "upcoming",
@@ -121,7 +120,7 @@ export function UpcomingEvents() {
   };
 
   const handleEditClick = (event: CalendarEvent, e: React.MouseEvent) => {
-    e.stopPropagation(); // Impede que o clique propague para o card do evento
+    e.stopPropagation();
     setSelectedEvent(event);
     setShowEditModal(true);
   };
@@ -132,24 +131,40 @@ export function UpcomingEvents() {
   };
 
   const handleDeleteClick = (event: CalendarEvent, e: React.MouseEvent) => {
-    e.stopPropagation(); // Impede que o clique propague para o card do evento
+    e.stopPropagation();
     setEventToDelete(event);
     setShowConfirmModal(true);
   };
 
   const confirmDelete = async () => {
-    if (eventToDelete) {
-      setIsDeleting(true);
-      try {
-        await deleteEventApi(eventToDelete.id);
-        toast.success(`Evento "${eventToDelete.title}" excluído com sucesso!`);
-        setEventToDelete(null);
-      } catch (error) {
-        console.error("Erro ao excluir evento:", error);
-        toast.error("Erro ao excluir evento. Tente novamente.");
-      } finally {
-        setIsDeleting(false);
+    if (!token || !organizationId || !eventToDelete) {
+      showToast("Erro de autenticação", "error");
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await calendarService.deleteEvent(
+        token,
+        organizationId,
+        eventToDelete.id
+      );
+      showToast(
+        `Evento "${eventToDelete.title}" excluído com sucesso!`,
+        "success"
+      );
+      setEventToDelete(null);
+    } catch (error: any) {
+      console.error("Erro ao excluir evento:", error);
+
+      let errorMessage = "Erro ao excluir evento. Tente novamente.";
+      if (error?.message) {
+        errorMessage = error.message;
       }
+
+      showToast(errorMessage, "error");
+    } finally {
+      setIsDeleting(false);
     }
     setShowConfirmModal(false);
   };
@@ -250,7 +265,6 @@ export function UpcomingEvents() {
         })}
       </div>
 
-      {/* Modal de detalhes do evento */}
       {selectedEvent && (
         <EventDetailModal
           isOpen={showDetailModal}
@@ -260,7 +274,6 @@ export function UpcomingEvents() {
         />
       )}
 
-      {/* Modal de edição do evento */}
       {selectedEvent && (
         <EventModal
           isOpen={showEditModal}
@@ -273,7 +286,6 @@ export function UpcomingEvents() {
         />
       )}
 
-      {/* Modal de confirmação de exclusão */}
       <Modal
         isOpen={showConfirmModal}
         onClose={isDeleting ? () => {} : () => setShowConfirmModal(false)}

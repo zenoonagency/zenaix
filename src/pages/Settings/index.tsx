@@ -1,5 +1,5 @@
-import  { useState } from "react";
-import { toast } from "react-toastify";
+import { useState } from "react";
+import { useToast } from "../../hooks/useToast";
 import { ProfileTab } from "./ProfileTab";
 import { SubscriptionTab } from "./SubscriptionTab";
 import { useAuthStore } from "../../store/authStore";
@@ -10,10 +10,11 @@ export function Settings() {
   );
 
   const { user, organization } = useAuthStore();
+  const { showToast } = useToast();
   const isMaster = organization?.master_user_id === user?.id;
 
   const handleSave = () => {
-    toast.success("Configurações salvas com sucesso!");
+    showToast("Configurações salvas com sucesso!", "success");
   };
 
   return (

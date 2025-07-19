@@ -1,9 +1,8 @@
-import React from "react";
-import { X } from "lucide-react";
+import React, { Fragment } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { X, Calendar, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Dialog, Transition } from "@headlessui/react";
-import { Fragment } from "react";
 import { CalendarEvent } from "../../../types/calendar";
 
 interface DayEventsModalProps {
@@ -51,26 +50,25 @@ export function DayEventsModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="relative bg-white dark:bg-dark-800 rounded-xl shadow-xl w-full max-w-md transform transition-all">
-                {/* Cabeçalho */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                  <div>
-                    <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
+              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-dark-800 p-6 text-left align-middle shadow-xl transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <Dialog.Title
+                    as="h3"
+                    className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-[#7f00ff]" />
                       {formattedDate}
-                    </Dialog.Title>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {events.length} evento{events.length !== 1 ? "s" : ""}
-                    </p>
-                  </div>
+                    </div>
+                  </Dialog.Title>
                   <button
                     onClick={onClose}
-                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
-                    <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                {/* Lista de eventos */}
                 <div className="p-4 max-h-[60vh] overflow-y-auto">
                   {events.length === 0 ? (
                     <p className="text-center text-gray-500 dark:text-gray-400">
@@ -85,37 +83,26 @@ export function DayEventsModal({
                           className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 cursor-pointer transition-all"
                         >
                           <div className="flex items-start gap-3">
-                            {/* Horário */}
                             <div className="flex-shrink-0 text-sm text-gray-400">
                               {format(new Date(event.start_at), "HH:mm")}
                             </div>
 
-                            {/* Detalhes */}
-                            <div className="flex-grow">
-                              <h4 className="text-white font-medium mb-1">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 dark:text-gray-100 truncate">
                                 {event.title}
                               </h4>
                               {event.description && (
-                                <p className="text-sm text-gray-400 line-clamp-2">
+                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
                                   {event.description}
                                 </p>
                               )}
-                              {event.categories?.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                  {event.categories.map((category) => (
-                                    <span
-                                      key={category.id}
-                                      className="px-2 py-0.5 text-xs rounded-full"
-                                      style={{
-                                        backgroundColor: `${category.color}20`,
-                                        color: category.color,
-                                      }}
-                                    >
-                                      {category.name}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
+                              <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
+                                <Clock className="w-3 h-3" />
+                                <span>
+                                  {format(new Date(event.start_at), "HH:mm")} -{" "}
+                                  {format(new Date(event.end_at), "HH:mm")}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>

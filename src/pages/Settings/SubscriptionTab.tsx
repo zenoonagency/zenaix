@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { Check, Loader2, ExternalLink } from "lucide-react";
 import { subscriptionService } from "../../services/subscription/subscription.service";
-import { toast } from "react-toastify";
+import { useToast } from "../../hooks/useToast";
 import { usePlanStore } from "../../store/planStore";
 import { useNavigate } from "react-router-dom";
 import { InputCreateSubscriptionDTO } from "../../types/subscription";
@@ -23,6 +23,7 @@ export function SubscriptionTab() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showAddonsModal, setShowAddonsModal] = useState(false);
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const totalMonthlyCost = useMemo(() => {
     if (!plan || !organization) return 0;
@@ -51,12 +52,15 @@ export function SubscriptionTab() {
     try {
       await subscriptionService.cancel(token, organization.id);
       await fetchAndSyncUser();
-      toast.success("Assinatura agendada para cancelamento com sucesso!");
+      showToast(
+        "Assinatura agendada para cancelamento com sucesso!",
+        "success"
+      );
       setShowCancelModal(false);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Erro ao cancelar assinatura.";
-      toast.error(message);
+      showToast(message, "error");
     } finally {
       setIsSubmittingManage(false);
     }
@@ -72,10 +76,10 @@ export function SubscriptionTab() {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Erro ao reativar assinatura.";
-      toast.error(message);
+      showToast(message, "error");
     } finally {
       setIsSubmittingManage(false);
-      toast.success("Assinatura reativada com sucesso!");
+      showToast("Assinatura reativada com sucesso!", "success");
     }
   };
 
@@ -91,7 +95,7 @@ export function SubscriptionTab() {
         error instanceof Error
           ? error.message
           : "Erro ao gerenciar assinatura.";
-      toast.error(message);
+      showToast(message, "error");
     } finally {
       setIsSubmittingManage(false);
     }

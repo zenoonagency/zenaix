@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Plus, Edit2, Trash2 } from "lucide-react";
-import { toast } from "react-toastify";
+import { useToast } from "../../hooks/useToast";
 
 import { useTagStore } from "../../store/tagStore";
 import { useAuthStore } from "../../store/authStore";
@@ -26,10 +26,11 @@ export function TagList() {
   const [showModal, setShowModal] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [deletingTagId, setDeletingTagId] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const handleSave = async (tagData: { name: string; color: string }) => {
     if (!token || !organizationId) {
-      toast.error("Autenticação inválida.");
+      showToast("Autenticação inválida.", "error");
       return;
     }
 
@@ -43,16 +44,19 @@ export function TagList() {
           editingTag.id,
           dto
         );
-        toast.success("Marcador atualizado com sucesso!");
+        showToast("Marcador atualizado com sucesso!", "success");
       } else {
         const dto: InputCreateTagDTO = tagData;
         const newTag = await tagService.create(token, organizationId, dto);
-        toast.success("Marcador criado com sucesso!");
+        showToast("Marcador criado com sucesso!", "success");
       }
       setShowModal(false);
       setEditingTag(null);
     } catch (error: any) {
-      toast.error(error.message || "Ocorreu um erro ao salvar o marcador.");
+      showToast(
+        error.message || "Ocorreu um erro ao salvar o marcador.",
+        "error"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -60,16 +64,16 @@ export function TagList() {
 
   const handleDelete = async (tagId: string) => {
     if (!token || !organizationId) {
-      toast.error("Autenticação inválida.");
+      showToast("Autenticação inválida.", "error");
       return;
     }
 
     setDeletingTagId(tagId);
     try {
       await tagService.delete(token, organizationId, tagId);
-      toast.success("Marcador apagado com sucesso!");
+      showToast("Marcador apagado com sucesso!", "success");
     } catch (error: any) {
-      toast.error(error.message || "Falha ao apagar o marcador.");
+      showToast(error.message || "Falha ao apagar o marcador.", "error");
     } finally {
       setDeletingTagId(null);
     }

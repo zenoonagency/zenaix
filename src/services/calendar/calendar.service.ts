@@ -29,12 +29,23 @@ export const calendarService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw formatApiError(errorData, "Falha ao criar evento.");
+
+        // Adicionar status ao erro para melhor tratamento
+        const error = formatApiError(errorData, "Falha ao criar evento.");
+        (error as any).status = response.status;
+
+        throw error;
       }
       const responseData: ApiResponse<CalendarEvent> = await response.json();
       return responseData.data;
     } catch (error) {
-      if (error instanceof APIError) throw error;
+      if (error instanceof APIError) {
+        // Preservar o status se existir
+        if ((error as any).status) {
+          (error as any).status = (error as any).status;
+        }
+        throw error;
+      }
       throw new APIError("Ocorreu um erro inesperado ao criar o evento.");
     }
   },
@@ -63,12 +74,23 @@ export const calendarService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw formatApiError(errorData, "Falha ao buscar eventos.");
+
+        // Adicionar status ao erro para melhor tratamento
+        const error = formatApiError(errorData, "Falha ao buscar eventos.");
+        (error as any).status = response.status;
+
+        throw error;
       }
       const responseData: ApiResponse<CalendarEvent[]> = await response.json();
       return responseData.data;
     } catch (error) {
-      if (error instanceof APIError) throw error;
+      if (error instanceof APIError) {
+        // Preservar o status se existir
+        if ((error as any).status) {
+          (error as any).status = (error as any).status;
+        }
+        throw error;
+      }
       throw new APIError("Ocorreu um erro inesperado ao buscar os eventos.");
     }
   },
@@ -90,12 +112,23 @@ export const calendarService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw formatApiError(errorData, "Falha ao buscar evento.");
+
+        // Adicionar status ao erro para melhor tratamento
+        const error = formatApiError(errorData, "Falha ao buscar evento.");
+        (error as any).status = response.status;
+
+        throw error;
       }
       const responseData: ApiResponse<CalendarEvent> = await response.json();
       return responseData.data;
     } catch (error) {
-      if (error instanceof APIError) throw error;
+      if (error instanceof APIError) {
+        // Preservar o status se existir
+        if ((error as any).status) {
+          (error as any).status = (error as any).status;
+        }
+        throw error;
+      }
       throw new APIError("Ocorreu um erro inesperado ao buscar o evento.");
     }
   },
@@ -119,12 +152,23 @@ export const calendarService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw formatApiError(errorData, "Falha ao atualizar evento.");
+
+        // Adicionar status ao erro para melhor tratamento
+        const error = formatApiError(errorData, "Falha ao atualizar evento.");
+        (error as any).status = response.status;
+
+        throw error;
       }
       const responseData: ApiResponse<CalendarEvent> = await response.json();
       return responseData.data;
     } catch (error) {
-      if (error instanceof APIError) throw error;
+      if (error instanceof APIError) {
+        // Preservar o status se existir
+        if ((error as any).status) {
+          (error as any).status = (error as any).status;
+        }
+        throw error;
+      }
       throw new APIError("Ocorreu um erro inesperado ao atualizar o evento.");
     }
   },
@@ -146,10 +190,21 @@ export const calendarService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw formatApiError(errorData, "Falha ao apagar evento.");
+
+        // Adicionar status ao erro para melhor tratamento
+        const error = formatApiError(errorData, "Falha ao apagar evento.");
+        (error as any).status = response.status;
+
+        throw error;
       }
     } catch (error) {
-      if (error instanceof APIError) throw error;
+      if (error instanceof APIError) {
+        // Preservar o status se existir
+        if ((error as any).status) {
+          (error as any).status = (error as any).status;
+        }
+        throw error;
+      }
       throw new APIError("Ocorreu um erro inesperado ao apagar o evento.");
     }
   },
