@@ -35,6 +35,7 @@ import {
   AttachmentDTO,
   InputCreateSubtaskDTO,
   InputUpdateSubtaskDTO,
+  CardPriority,
 } from "../../../types/card";
 
 interface CardModalProps {
@@ -45,12 +46,6 @@ interface CardModalProps {
   boardId: string;
   listId: string;
   card?: any;
-}
-
-interface CustomFieldInput {
-  id: string;
-  name: string;
-  value: string;
 }
 
 interface Subtask {
@@ -77,6 +72,7 @@ export function CardModal({
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [isCreatingSubtask, setIsCreatingSubtask] = useState(false);
   const [isUpdatingSubtask, setIsUpdatingSubtask] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState(card?.title || "");
   const [description, setDescription] = useState(card?.description || "");
   const [value, setValue] = useState(card?.value?.toString() || "");
@@ -88,24 +84,12 @@ export function CardModal({
   const [scheduledDate, setScheduledDate] = useState(card?.scheduledDate || "");
   const [scheduledTime, setScheduledTime] = useState(card?.scheduledTime || "");
   const [responsibleId, setResponsibleId] = useState(card?.responsibleId || "");
-  const [customFields, setCustomFields] = useState<CustomFieldInput[]>(
-    card?.customFields
-      ? Object.entries(card.customFields).map(([name, field]) => ({
-          id: generateId(),
-          name,
-          value: field.value.toString(),
-        }))
-      : []
-  );
   const [subtasks, setSubtasks] = useState<Subtask[]>(card?.subtasks || []);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [newSubtaskDescription, setNewSubtaskDescription] = useState("");
   const [showNewSubtaskForm, setShowNewSubtaskForm] = useState(false);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [showConfirmDeleteField, setShowConfirmDeleteField] = useState<
-    string | null
-  >(null);
   const [attachments, setAttachments] = useState<Attachment[]>(
     card?.attachments || []
   );
@@ -127,15 +111,6 @@ export function CardModal({
       scheduledTime !== card.scheduledTime ||
       responsibleId !== card.responsibleId ||
       JSON.stringify(selectedTagIds) !== JSON.stringify(card.tagIds) ||
-      JSON.stringify(customFields) !==
-        JSON.stringify(
-          Object.entries(card.customFields).map(([name, field]) => ({
-            id: name,
-            name,
-            type: field.type,
-            value: field.value,
-          }))
-        ) ||
       JSON.stringify(subtasks) !== JSON.stringify(card.subtasks)
     );
   };
@@ -146,34 +121,6 @@ export function CardModal({
     } else {
       onClose();
     }
-  };
-
-  const handleUpdateCustomField = (
-    id: string,
-    field: string,
-    value: string
-  ) => {
-    setCustomFields(
-      customFields.map((f) => (f.id === id ? { ...f, [field]: value } : f))
-    );
-  };
-
-  const handleRemoveCustomField = (fieldId: string) => {
-    setShowConfirmDeleteField(fieldId);
-  };
-
-  const confirmDeleteField = (fieldId: string) => {
-    setCustomFields((prev) => prev.filter((field) => field.id !== fieldId));
-    setShowConfirmDeleteField(null);
-    showToast("Campo personalizado removido com sucesso!", "success");
-  };
-
-  const handleAddCustomField = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    setCustomFields([
-      ...customFields,
-      { id: generateId(), name: "", value: "" },
-    ]);
   };
 
   const handleAddSubtask = async () => {
@@ -495,7 +442,7 @@ export function CardModal({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim()) {
@@ -503,31 +450,33 @@ export function CardModal({
       return;
     }
 
-    const cardData = {
-      title: title.trim(),
-      description: description.trim(),
-      value: value ? parseFloat(value) : 0,
-      phone: phone.trim(),
-      priority: priority as Card["priority"],
-      tagIds: selectedTagIds,
-      scheduledDate,
-      scheduledTime,
-      responsibleId,
-      customFields: customFields.reduce(
-        (acc, field) => ({
-          ...acc,
-          [field.name]: { type: "text", value: field.value },
-        }),
-        {}
-      ),
-      subtasks,
-      // attachments são gerenciados separadamente via attachmentService
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    setIsSubmitting(true);
 
-    onSave(cardData);
-    onClose();
+    try {
+      const cardData = {
+        title: title.trim(),
+        description: description.trim(),
+        value: value ? parseFloat(value) : 0,
+        phone: phone.trim(),
+        priority: priority as CardPriority,
+        tagIds: selectedTagIds,
+        scheduledDate,
+        scheduledTime,
+        responsibleId,
+        subtasks,
+        // attachments são gerenciados separadamente via attachmentService
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await onSave(cardData);
+      onClose();
+    } catch (error: any) {
+      console.error("Erro ao salvar card:", error);
+      showToast(error.message || "Erro ao salvar card", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -817,76 +766,6 @@ export function CardModal({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <ListTodo className="w-4 h-4 text-pink-500" />
-                    <label
-                      className={`block text-sm font-medium ${
-                        isDark ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      Campos Personalizados
-                    </label>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleAddCustomField}
-                    className="flex items-center gap-1 px-2 py-1 text-sm text-[#7f00ff] hover:bg-[#7f00ff]/10 rounded-md transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Adicionar Campo
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {customFields.map((field) => (
-                    <div key={field.id} className="flex gap-3">
-                      <Input
-                        type="text"
-                        value={field.name}
-                        onChange={(e) =>
-                          handleUpdateCustomField(
-                            field.id,
-                            "name",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Nome do campo"
-                        className={`flex-1 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
-                          isDark
-                            ? "bg-dark-800 text-gray-100 border-gray-600"
-                            : "bg-white border-gray-300 text-gray-900"
-                        }`}
-                      />
-                      <Input
-                        type="text"
-                        value={field.value}
-                        onChange={(e) =>
-                          handleUpdateCustomField(
-                            field.id,
-                            "value",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Valor"
-                        className={`flex-1 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
-                          isDark
-                            ? "bg-dark-800 text-gray-100 border-gray-600"
-                            : "bg-white border-gray-300 text-gray-900"
-                        }`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveCustomField(field.id)}
-                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
                     <CheckSquare className="w-4 h-4 text-cyan-500" />
                     <label
                       className={`block text-sm font-medium ${
@@ -1130,9 +1009,10 @@ export function CardModal({
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Salvar
+                {isSubmitting ? "Salvando..." : "Salvar"}
               </button>
             </div>
           </form>
@@ -1147,18 +1027,6 @@ export function CardModal({
         message="Tem certeza que deseja cancelar? Todas as alterações serão perdidas."
         confirmText="Sim, cancelar"
         cancelText="Não, continuar editando"
-      />
-
-      <ConfirmationModal
-        isOpen={!!showConfirmDeleteField}
-        onClose={() => setShowConfirmDeleteField(null)}
-        onConfirm={() =>
-          showConfirmDeleteField && confirmDeleteField(showConfirmDeleteField)
-        }
-        title="Remover campo"
-        message="Tem certeza que deseja remover este campo personalizado?"
-        confirmText="Sim, remover"
-        cancelText="Não, manter"
       />
     </>
   );
