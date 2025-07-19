@@ -3,10 +3,13 @@ import { X, Users, UserCheck, Settings } from "lucide-react";
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { useKanbanStore } from "../store/kanbanStore";
+import { useBoardStore } from "../../../store/boardStore";
 import { useThemeStore } from "../../../store/themeStore";
 import { useTeamMembersStore } from "../../../store/teamMembersStore";
 import { useToast } from "../../../hooks/useToast";
+import { boardService } from "../../../services/board.service";
+import { useAuthStore } from "../../../store/authStore";
+import { BoardAccessLevel } from "../../../types/board";
 
 interface BoardConfigModalProps {
   isOpen: boolean;
@@ -15,8 +18,8 @@ interface BoardConfigModalProps {
 }
 
 interface BoardConfig {
-  visibility: "all" | "creator" | "selected";
-  allowedUsers: string[];
+  access_level: BoardAccessLevel;
+  member_ids: string[];
 }
 
 export function BoardConfigModal({
@@ -24,66 +27,92 @@ export function BoardConfigModal({
   onClose,
   boardId,
 }: BoardConfigModalProps) {
-  const { boards, updateBoard } = useKanbanStore();
+  const { boards, updateBoard } = useBoardStore();
   const { theme } = useThemeStore();
   const { members } = useTeamMembersStore();
   const { showToast } = useToast();
+  const { token, organization } = useAuthStore();
   const isDark = theme === "dark";
+  const [isSaving, setIsSaving] = useState(false);
 
   const currentBoard = boards.find((b) => b.id === boardId);
 
   // Inicializa a configuração a partir do board atual ou com valores padrão
   const [config, setConfig] = useState<BoardConfig>({
-    visibility: currentBoard?.config?.visibility || "all",
-    allowedUsers: currentBoard?.config?.allowedUsers || [],
+    access_level: currentBoard?.access_level || "TEAM_WIDE",
+    member_ids: currentBoard?.membersWithAccess?.map((m) => m.id) || [],
   });
 
   // Atualiza o estado quando o board muda
   useEffect(() => {
-    if (currentBoard?.config) {
-      setConfig(currentBoard.config);
+    if (currentBoard) {
+      setConfig({
+        access_level: currentBoard.access_level,
+        member_ids: currentBoard.membersWithAccess?.map((m) => m.id) || [],
+      });
     } else {
       setConfig({
-        visibility: "all",
-        allowedUsers: [],
+        access_level: "TEAM_WIDE",
+        member_ids: [],
       });
     }
   }, [currentBoard]);
 
-  const handleSaveConfig = () => {
-    if (!currentBoard) return;
+  const handleSaveConfig = async () => {
+    if (!currentBoard || !token || !organization?.id) {
+      showToast("Erro: dados de autenticação não disponíveis", "error");
+      return;
+    }
 
-    updateBoard(boardId, {
-      ...currentBoard,
-      config,
-    });
+    setIsSaving(true);
+    try {
+      // Chamar o service para atualizar o quadro
+      const updatedBoard = await boardService.updateBoard(
+        token,
+        organization.id,
+        boardId,
+        {
+          access_level: config.access_level,
+          member_ids: config.member_ids,
+        }
+      );
 
-    showToast("Configurações do quadro salvas com sucesso!", "success");
-    onClose();
+      // Atualizar na store
+      updateBoard(updatedBoard);
+
+      showToast("Configurações do quadro salvas com sucesso!", "success");
+      onClose();
+    } catch (error: any) {
+      console.error("Erro ao salvar configurações:", error);
+      showToast(
+        error.message || "Erro ao salvar configurações do quadro",
+        "error"
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleVisibilityChange = (
-    visibility: "all" | "creator" | "selected"
-  ) => {
+  const handleVisibilityChange = (access_level: BoardAccessLevel) => {
     setConfig((prev) => ({
       ...prev,
-      visibility,
+      access_level,
     }));
   };
 
   const handleToggleUser = (userId: string) => {
     setConfig((prev) => {
-      const isSelected = prev.allowedUsers.includes(userId);
+      const isSelected = prev.member_ids.includes(userId);
 
       if (isSelected) {
         return {
           ...prev,
-          allowedUsers: prev.allowedUsers.filter((id) => id !== userId),
+          member_ids: prev.member_ids.filter((id) => id !== userId),
         };
       } else {
         return {
           ...prev,
-          allowedUsers: [...prev.allowedUsers, userId],
+          member_ids: [...prev.member_ids, userId],
         };
       }
     });
@@ -146,7 +175,7 @@ export function BoardConfigModal({
                     <div className="space-y-2">
                       <label
                         className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer ${
-                          config.visibility === "all"
+                          config.access_level === "TEAM_WIDE"
                             ? isDark
                               ? "bg-dark-700 border border-[#7f00ff]/50"
                               : "bg-purple-50 border border-[#7f00ff]/20"
@@ -158,20 +187,20 @@ export function BoardConfigModal({
                         <input
                           type="radio"
                           name="visibility"
-                          checked={config.visibility === "all"}
-                          onChange={() => handleVisibilityChange("all")}
+                          checked={config.access_level === "TEAM_WIDE"}
+                          onChange={() => handleVisibilityChange("TEAM_WIDE")}
                           className="sr-only"
                         />
                         <div
                           className={`flex items-center justify-center w-5 h-5 rounded-full ${
-                            config.visibility === "all"
+                            config.access_level === "TEAM_WIDE"
                               ? "bg-[#7f00ff] ring-2 ring-[#7f00ff]/20"
                               : isDark
                               ? "bg-dark-600 border border-gray-600"
                               : "bg-white border border-gray-300"
                           }`}
                         >
-                          {config.visibility === "all" && (
+                          {config.access_level === "TEAM_WIDE" && (
                             <div className="w-2 h-2 rounded-full bg-white" />
                           )}
                         </div>
@@ -204,7 +233,7 @@ export function BoardConfigModal({
 
                       <label
                         className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer ${
-                          config.visibility === "creator"
+                          config.access_level === "CREATOR_ONLY"
                             ? isDark
                               ? "bg-dark-700 border border-[#7f00ff]/50"
                               : "bg-purple-50 border border-[#7f00ff]/20"
@@ -216,20 +245,22 @@ export function BoardConfigModal({
                         <input
                           type="radio"
                           name="visibility"
-                          checked={config.visibility === "creator"}
-                          onChange={() => handleVisibilityChange("creator")}
+                          checked={config.access_level === "CREATOR_ONLY"}
+                          onChange={() =>
+                            handleVisibilityChange("CREATOR_ONLY")
+                          }
                           className="sr-only"
                         />
                         <div
                           className={`flex items-center justify-center w-5 h-5 rounded-full ${
-                            config.visibility === "creator"
+                            config.access_level === "CREATOR_ONLY"
                               ? "bg-[#7f00ff] ring-2 ring-[#7f00ff]/20"
                               : isDark
                               ? "bg-dark-600 border border-gray-600"
                               : "bg-white border border-gray-300"
                           }`}
                         >
-                          {config.visibility === "creator" && (
+                          {config.access_level === "CREATOR_ONLY" && (
                             <div className="w-2 h-2 rounded-full bg-white" />
                           )}
                         </div>
@@ -262,7 +293,7 @@ export function BoardConfigModal({
 
                       <label
                         className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer ${
-                          config.visibility === "selected"
+                          config.access_level === "SELECTED_MEMBERS"
                             ? isDark
                               ? "bg-dark-700 border border-[#7f00ff]/50"
                               : "bg-purple-50 border border-[#7f00ff]/20"
@@ -274,20 +305,22 @@ export function BoardConfigModal({
                         <input
                           type="radio"
                           name="visibility"
-                          checked={config.visibility === "selected"}
-                          onChange={() => handleVisibilityChange("selected")}
+                          checked={config.access_level === "SELECTED_MEMBERS"}
+                          onChange={() =>
+                            handleVisibilityChange("SELECTED_MEMBERS")
+                          }
                           className="sr-only"
                         />
                         <div
                           className={`flex items-center justify-center w-5 h-5 rounded-full ${
-                            config.visibility === "selected"
+                            config.access_level === "SELECTED_MEMBERS"
                               ? "bg-[#7f00ff] ring-2 ring-[#7f00ff]/20"
                               : isDark
                               ? "bg-dark-600 border border-gray-600"
                               : "bg-white border border-gray-300"
                           }`}
                         >
-                          {config.visibility === "selected" && (
+                          {config.access_level === "SELECTED_MEMBERS" && (
                             <div className="w-2 h-2 rounded-full bg-white" />
                           )}
                         </div>
@@ -320,7 +353,7 @@ export function BoardConfigModal({
                     </div>
                   </div>
 
-                  {config.visibility === "selected" && (
+                  {config.access_level === "SELECTED_MEMBERS" && (
                     <div>
                       <h4
                         className={`text-base font-medium mb-3 ${
@@ -351,22 +384,20 @@ export function BoardConfigModal({
                             >
                               <input
                                 type="checkbox"
-                                checked={config.allowedUsers.includes(
-                                  member.id
-                                )}
+                                checked={config.member_ids.includes(member.id)}
                                 onChange={() => handleToggleUser(member.id)}
                                 className="sr-only"
                               />
                               <div
                                 className={`flex items-center justify-center w-5 h-5 rounded ${
-                                  config.allowedUsers.includes(member.id)
+                                  config.member_ids.includes(member.id)
                                     ? "bg-[#7f00ff] text-white"
                                     : isDark
                                     ? "border-2 border-gray-600"
                                     : "border-2 border-gray-300"
                                 }`}
                               >
-                                {config.allowedUsers.includes(member.id) && (
+                                {config.member_ids.includes(member.id) && (
                                   <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     className="h-3 w-3"
@@ -418,9 +449,10 @@ export function BoardConfigModal({
                   </button>
                   <button
                     onClick={handleSaveConfig}
-                    className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 transition-colors"
+                    disabled={isSaving}
+                    className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Salvar Configurações
+                    {isSaving ? "Salvando..." : "Salvar Configurações"}
                   </button>
                 </div>
               </Dialog.Panel>

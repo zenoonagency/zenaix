@@ -16,7 +16,6 @@ import {
   Upload,
   Paperclip,
 } from "lucide-react";
-import { useKanbanStore } from "../store/kanbanStore";
 import { useTagStore } from "../../../store/tagStore";
 import { useTeamMembersStore } from "../../../store/teamMembersStore";
 import { CustomFieldType, Attachment } from "../types";

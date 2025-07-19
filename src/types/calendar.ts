@@ -1,4 +1,7 @@
 export interface CalendarEvent {
+  start: string | number | Date;
+  end: string | number | Date;
+  responsible: any;
   id: string;
   title: string;
   description?: string;

@@ -5,6 +5,8 @@ import { contractService } from "../services/contract/contract.service";
 import { APIError } from "../services/errors/api.errors";
 
 export interface ContractState {
+  initialized: any;
+  initialize(): any;
   contracts: ContractOutput[];
   isLoading: boolean;
   error: string | null;

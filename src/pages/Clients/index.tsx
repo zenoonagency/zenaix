@@ -1,11 +1,9 @@
-// src/pages/Clients/index.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Plus,
   Edit2,
   Copy,
   Trash2,
-  ChevronDown,
   LayoutGrid,
   CheckSquare,
   Search,
@@ -13,40 +11,43 @@ import {
   Zap,
   Settings,
 } from "lucide-react";
-import { useKanbanStore } from "./store/kanbanStore";
+import { useBoardStore } from "../../store/boardStore";
 import { KanbanBoard } from "./components/KanbanBoard";
 import { useThemeStore } from "../../store/themeStore";
-import { BoardList } from "./components/BoardList";
 import { useCustomModal } from "../../components/CustomModal";
-import { api } from "../../services/api";
-import { mutate } from "swr";
 import { useToast } from "../../hooks/useToast";
 import { BoardSelector } from "./components/BoardSelector";
-import { CompletedListSelectorModal } from "./components/CompletedListSelectorModal";
+import { Board } from "../../types/board";
 import { SearchCardModal } from "./components/SearchCardModal";
 import { CardDetailModal } from "./components/CardDetailModal";
-import { CardModal } from "./components/CardModal";
 import { AutomationModal } from "./components/AutomationModal";
-import { Board, Card } from "./types";
 import { BoardConfigModal } from "./components/BoardConfigModal";
+import { boardService } from "../../services/board.service";
+import { useAuthStore } from "../../store/authStore";
+import { InputCreateBoardDTO } from "../../types/board";
+import { OutputCardDTO } from "../../types/card";
 
 export function Clients() {
   const { theme } = useThemeStore();
   const isDark = theme === "dark";
   const { showToast } = useToast();
+  const { token, organization } = useAuthStore();
+
+  // BoardStore (dados do backend)
   const {
     boards,
-    activeBoard: activeBoardId,
-    setActiveBoard,
+    activeBoard,
+    isLoading: boardStoreLoading,
+    fetchAllBoards,
     addBoard,
     updateBoard,
-    deleteBoard,
-    duplicateBoard,
-    toggleBoardVisibility,
-    setCompletedList,
-    getCompletedListId,
-  } = useKanbanStore();
-  const { modal, customPrompt, customConfirm } = useCustomModal();
+    removeBoard,
+    activeBoardId,
+    setActiveBoardId,
+    selectAndLoadBoard,
+  } = useBoardStore();
+
+  const { modal, customConfirm } = useCustomModal();
   const [showEditModal, setShowEditModal] = useState(false);
   const [editBoardTitle, setEditBoardTitle] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -57,47 +58,97 @@ export function Clients() {
   const [showListSelector, setShowListSelector] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [selectedCard, setSelectedCard] = useState<OutputCardDTO | null>(null);
   const [showEditCardModal, setShowEditCardModal] = useState(false);
-  const [selectedCardForEdit, setSelectedCardForEdit] = useState<Card | null>(
-    null
-  );
+  const [selectedCardForEdit, setSelectedCardForEdit] =
+    useState<OutputCardDTO | null>(null);
   const [showAutomationModal, setShowAutomationModal] = useState(false);
   const [showBoardConfigModal, setShowBoardConfigModal] = useState(false);
+  const [isCreatingBoard, setIsCreatingBoard] = useState(false);
+  const [isEditingBoard, setIsEditingBoard] = useState(false);
+  const [isDeletingBoard, setIsDeletingBoard] = useState(false);
 
   const handleAddBoard = () => {
     setShowCreateModal(true);
   };
 
-  const handleCreateNewBoard = () => {
+  const handleCreateNewBoard = async () => {
     if (!newBoardTitle.trim()) return;
+    setIsCreatingBoard(true);
+    try {
+      if (!token || !organization?.id) throw new Error("Sem autenticação");
+      const dto: InputCreateBoardDTO = {
+        name: newBoardTitle.trim(),
+        description: "",
+        access_level: "TEAM_WIDE",
+      };
+      const newBoard = await boardService.createBoard(
+        token,
+        organization.id,
+        dto
+      );
 
-    // Adiciona o novo quadro
-    addBoard(newBoardTitle.trim());
+      // Adicionar à boardStore
+      addBoard(newBoard);
 
-    // Pega o quadro recém-criado (último da lista)
-    const newBoard = boards[boards.length - 1];
-
-    setNewBoardTitle("");
-    setShowCreateModal(false);
-    setActiveBoard(newBoard.id);
-    showToast("Quadro criado com sucesso!", "success");
+      showToast("Quadro criado com sucesso!", "success");
+      setNewBoardTitle("");
+      setShowCreateModal(false);
+    } catch (err: any) {
+      showToast(err.message || "Erro ao criar quadro", "error");
+    } finally {
+      setIsCreatingBoard(false);
+    }
   };
 
-  const handleEditBoard = () => {
+  const handleEditBoard = async () => {
     if (editBoardTitle.trim() && activeBoardId) {
-      updateBoard(activeBoardId, { title: editBoardTitle.trim() });
-      setEditBoardTitle("");
-      setShowEditModal(false);
+      setIsEditingBoard(true);
+      try {
+        if (!token || !organization?.id) throw new Error("Sem autenticação");
+
+        // Atualizar no backend
+        const updatedBoard = await boardService.updateBoard(
+          token,
+          organization.id,
+          activeBoardId,
+          { name: editBoardTitle.trim() }
+        );
+
+        // Atualizar na boardStore
+        updateBoard(updatedBoard);
+
+        showToast("Quadro atualizado com sucesso!", "success");
+        setEditBoardTitle("");
+        setShowEditModal(false);
+      } catch (err: any) {
+        showToast(err.message || "Erro ao atualizar quadro", "error");
+      } finally {
+        setIsEditingBoard(false);
+      }
     }
   };
 
   const handleDeleteBoard = async () => {
     if (boardToDelete) {
-      // Se for o último quadro, a função deleteBoard já mostrará a notificação
-      deleteBoard(boardToDelete);
-      setShowDeleteModal(false);
-      setBoardToDelete(null);
+      setIsDeletingBoard(true);
+      try {
+        if (!token || !organization?.id) throw new Error("Sem autenticação");
+
+        // Deletar no backend
+        await boardService.deleteBoard(token, organization.id, boardToDelete);
+
+        // Remover da boardStore
+        removeBoard(boardToDelete);
+
+        showToast("Quadro excluído com sucesso!", "success");
+        setShowDeleteModal(false);
+        setBoardToDelete(null);
+      } catch (err: any) {
+        showToast(err.message || "Erro ao excluir quadro", "error");
+      } finally {
+        setIsDeletingBoard(false);
+      }
     }
   };
 
@@ -114,8 +165,8 @@ export function Clients() {
     }
   };
 
-  const currentBoard = boards.find((b) => b.id === activeBoardId);
-  const currentBoardTitle = currentBoard?.title || "Selecione um quadro";
+  const currentBoard = activeBoard; // Usar o board ativo que já vem com listas e cards
+  const currentBoardTitle = currentBoard?.name || "Selecione um quadro";
 
   // Garantir que as listas e cards existam antes de usar
   const allCards =
@@ -144,47 +195,46 @@ export function Clients() {
         </div>
         <div className="flex gap-4">
           <div className="flex items-center space-x-4">
-            {boards.length > 0 && (
-              <button
-                onClick={() => setShowBoardSelector(true)}
-                className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
-              >
-                <span className="mr-2">Escolher Quadro</span>
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-            )}
-            {activeBoardId && currentBoard && (
-              <>
-                <button
-                  onClick={handleAddList}
-                  className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
-                >
-                  <span className="mr-2">Lista de Concluídos</span>
-                  <CheckSquare className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setShowSearchModal(true)}
-                  className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
-                >
-                  <span className="mr-2">Procurar Cartão</span>
-                  <Search className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setShowAutomationModal(true)}
-                  className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
-                >
-                  <span className="mr-2">Criar Automação</span>
-                  <Zap className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setShowBoardConfigModal(true)}
-                  className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
-                >
-                  <span className="mr-2">Configurar Quadro</span>
-                  <Settings className="w-4 h-4" />
-                </button>
-              </>
-            )}
+            <button
+              onClick={() => setShowBoardSelector(true)}
+              className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
+              disabled={boards.length === 0}
+            >
+              <span className="mr-2">Escolher Quadro</span>
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleAddList}
+              className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
+              disabled={!activeBoardId}
+            >
+              <span className="mr-2">Lista de Concluídos</span>
+              <CheckSquare className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setShowSearchModal(true)}
+              className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
+              disabled={!activeBoardId}
+            >
+              <span className="mr-2">Procurar Cartão</span>
+              <Search className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setShowAutomationModal(true)}
+              className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
+              disabled={!activeBoardId}
+            >
+              <span className="mr-2">Criar Automação</span>
+              <Zap className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setShowBoardConfigModal(true)}
+              className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
+              disabled={!activeBoardId}
+            >
+              <span className="mr-2">Configurar Quadro</span>
+              <Settings className="w-4 h-4" />
+            </button>
           </div>
           <div className="flex  space-x-2">
             <button
@@ -194,49 +244,62 @@ export function Clients() {
               <Plus className="w-4 h-4 mr-1" />
               Novo Quadro
             </button>
-            {activeBoardId && currentBoard && (
-              <>
-                <button
-                  onClick={() => {
-                    const board = boards.find((b) => b.id === activeBoardId);
-                    if (board) {
-                      setEditBoardTitle(board.title);
-                      setShowEditModal(true);
-                    }
-                  }}
-                  className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
-                >
-                  <Edit2 className="w-4 h-4 mr-1" />
-                  Editar
-                </button>
-                <button
-                  onClick={() => duplicateBoard(activeBoardId)}
-                  className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
-                >
-                  <Copy className="w-4 h-4 mr-1" />
-                  Duplicar
-                </button>
-                <button
-                  onClick={() => {
-                    setBoardToDelete(activeBoardId);
-                    setShowDeleteModal(true);
-                  }}
-                  className="flex items-center px-4 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50"
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Excluir
-                </button>
-              </>
-            )}
+            <button
+              onClick={() => {
+                const board = boards.find((b) => b.id === activeBoardId);
+                if (board) {
+                  setEditBoardTitle(board.name || "");
+                  setShowEditModal(true);
+                }
+              }}
+              className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
+              disabled={!activeBoardId}
+            >
+              <Edit2 className="w-4 h-4 mr-1" />
+              Editar
+            </button>
+            <button
+              onClick={() => {
+                // The duplicateBoard function was removed from useBoardStore,
+                // so this button will now just show a toast.
+                showToast(
+                  "Funcionalidade de duplicar quadro não disponível no momento.",
+                  "info"
+                );
+              }}
+              className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
+              disabled={!activeBoardId}
+            >
+              <Copy className="w-4 h-4 mr-1" />
+              Duplicar
+            </button>
+            <button
+              onClick={() => {
+                setBoardToDelete(activeBoardId);
+                setShowDeleteModal(true);
+              }}
+              className="flex items-center px-4 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50"
+              disabled={!activeBoardId}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Excluir
+            </button>
           </div>
         </div>
       </div>
       <div className="flex-1 overflow-hidden bg-background dark:bg-background">
-        {activeBoardId && currentBoard ? (
-          <>
-            <BoardList />
-            <KanbanBoard />
-          </>
+        <div>{/* Sempre mostra o header de menus */}</div>
+        {boardStoreLoading ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7f00ff] mx-auto mb-4"></div>
+              <p className="text-gray-500 dark:text-gray-400">
+                Carregando quadros...
+              </p>
+            </div>
+          </div>
+        ) : activeBoardId && currentBoard ? (
+          <KanbanBoard />
         ) : (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
@@ -260,9 +323,9 @@ export function Clients() {
 
       {showBoardSelector && boards.length > 0 && (
         <BoardSelector
-          boards={boards}
-          activeBoard={activeBoardId}
-          onSelectBoard={setActiveBoard}
+          boards={boards.map((b: Board) => ({ id: b.id, name: b.name }))}
+          activeBoardId={activeBoardId}
+          onSelectBoard={selectAndLoadBoard}
           isOpen={showBoardSelector}
           onClose={() => setShowBoardSelector(false)}
           onCreateBoard={handleAddBoard}
@@ -290,6 +353,7 @@ export function Clients() {
                   setNewBoardTitle("");
                 }}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-full"
+                disabled={isCreatingBoard}
               >
                 <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </button>
@@ -315,6 +379,7 @@ export function Clients() {
                   } focus:outline-none focus:ring-2 focus:ring-[#7f00ff]`}
                   placeholder="Digite o nome do novo quadro"
                   autoFocus
+                  disabled={isCreatingBoard}
                 />
               </div>
             </div>
@@ -330,15 +395,16 @@ export function Clients() {
                     ? "text-gray-300 hover:bg-gray-700"
                     : "text-gray-700 hover:bg-gray-100"
                 }`}
+                disabled={isCreatingBoard}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleCreateNewBoard}
-                disabled={!newBoardTitle.trim()}
+                disabled={!newBoardTitle.trim() || isCreatingBoard}
                 className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Criar
+                {isCreatingBoard ? "Criando..." : "Criar"}
               </button>
             </div>
           </div>
@@ -365,7 +431,8 @@ export function Clients() {
                   setShowEditModal(false);
                   setEditBoardTitle("");
                 }}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-full"
+                disabled={isEditingBoard}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </button>
@@ -384,11 +451,12 @@ export function Clients() {
                   type="text"
                   value={editBoardTitle}
                   onChange={(e) => setEditBoardTitle(e.target.value)}
+                  disabled={isEditingBoard}
                   className={`w-full px-4 py-2.5 rounded-lg border ${
                     isDark
                       ? "bg-dark-700 border-gray-600 text-gray-100"
                       : "bg-white border-gray-300 text-gray-900"
-                  } focus:outline-none focus:ring-2 focus:ring-[#7f00ff]`}
+                  } focus:outline-none focus:ring-2 focus:ring-[#7f00ff] disabled:opacity-50 disabled:cursor-not-allowed`}
                   placeholder="Digite o novo nome do quadro"
                   autoFocus
                 />
@@ -401,20 +469,21 @@ export function Clients() {
                   setShowEditModal(false);
                   setEditBoardTitle("");
                 }}
+                disabled={isEditingBoard}
                 className={`px-4 py-2 rounded-lg ${
                   isDark
                     ? "text-gray-300 hover:bg-gray-700"
                     : "text-gray-700 hover:bg-gray-100"
-                }`}
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleEditBoard}
-                disabled={!editBoardTitle.trim()}
+                disabled={!editBoardTitle.trim() || isEditingBoard}
                 className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Salvar
+                {isEditingBoard ? "Salvando..." : "Salvar"}
               </button>
             </div>
           </div>
@@ -447,37 +516,56 @@ export function Clients() {
                   setShowDeleteModal(false);
                   setBoardToDelete(null);
                 }}
+                disabled={isDeletingBoard}
                 className={`px-4 py-2 rounded-lg ${
                   isDark
                     ? "text-gray-300 hover:bg-gray-700"
                     : "text-gray-700 hover:bg-gray-100"
-                }`}
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleDeleteBoard}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                disabled={isDeletingBoard}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Excluir
+                {isDeletingBoard ? "Excluindo..." : "Excluir"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {activeBoardId && currentBoard && (
-        <CompletedListSelectorModal
-          lists={currentBoard.lists || []}
-          selectedListId={getCompletedListId(activeBoardId)}
-          onSelectList={(listId) => {
-            setCompletedList(activeBoardId, listId);
-            setShowListSelector(false);
-            showToast("Lista de concluídos atualizada com sucesso!", "success");
-          }}
-          isOpen={showListSelector}
-          onClose={() => setShowListSelector(false)}
-        />
+      {/* Temporariamente removido até implementar corretamente com as novas stores */}
+      {showListSelector && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div
+            className={`w-full max-w-md p-6 rounded-lg shadow-xl ${
+              isDark ? "bg-dark-800" : "bg-white"
+            }`}
+          >
+            <h3
+              className={`text-lg font-medium mb-4 ${
+                isDark ? "text-gray-100" : "text-gray-900"
+              }`}
+            >
+              Lista de Concluídos
+            </h3>
+            <p className={`mb-6 ${isDark ? "text-gray-300" : "text-gray-600"}`}>
+              Funcionalidade em desenvolvimento. Em breve você poderá selecionar
+              uma lista de concluídos.
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowListSelector(false)}
+                className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {currentBoard && showSearchModal && (
@@ -507,33 +595,38 @@ export function Clients() {
         />
       )}
 
-      {showEditCardModal && selectedCardForEdit && currentBoard && (
-        <CardModal
-          isOpen={showEditCardModal}
-          onClose={() => {
-            setShowEditCardModal(false);
-            setSelectedCardForEdit(null);
-          }}
-          onSave={(updatedCard) => {
-            if (!currentBoard?.lists) return;
-
-            updateBoard(activeBoardId!, {
-              lists: currentBoard.lists.map((list) => ({
-                ...list,
-                cards: (list.cards || []).map((card) =>
-                  card.id === selectedCardForEdit.id ? updatedCard : card
-                ),
-              })),
-            });
-            setShowEditCardModal(false);
-            setSelectedCardForEdit(null);
-            showToast("Cartão atualizado com sucesso!", "success");
-          }}
-          mode="edit"
-          boardId={activeBoardId!}
-          listId={currentList?.id || ""}
-          card={selectedCardForEdit}
-        />
+      {/* Temporariamente removido até implementar corretamente com as novas stores */}
+      {showEditCardModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div
+            className={`w-full max-w-md p-6 rounded-lg shadow-xl ${
+              isDark ? "bg-dark-800" : "bg-white"
+            }`}
+          >
+            <h3
+              className={`text-lg font-medium mb-4 ${
+                isDark ? "text-gray-100" : "text-gray-900"
+              }`}
+            >
+              Editar Cartão
+            </h3>
+            <p className={`mb-6 ${isDark ? "text-gray-300" : "text-gray-600"}`}>
+              Funcionalidade em desenvolvimento. Em breve você poderá editar
+              cartões.
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setShowEditCardModal(false);
+                  setSelectedCardForEdit(null);
+                }}
+                className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showAutomationModal && (

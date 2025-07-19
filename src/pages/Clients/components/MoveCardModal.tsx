@@ -1,6 +1,6 @@
 import React from "react";
 import { X } from "lucide-react";
-import { useKanbanStore } from "../store/kanbanStore";
+import { useBoardStore } from "../../../store/boardStore";
 import { useThemeStore } from "../../../store/themeStore";
 import { useToast } from "../../../hooks/useToast";
 
@@ -20,14 +20,14 @@ export function MoveCardModal({
   boardId,
 }: MoveCardModalProps) {
   const { theme } = useThemeStore();
-  const { boards, moveCard } = useKanbanStore();
+  const { boards } = useBoardStore();
   const { showToast } = useToast();
   const isDark = theme === "dark";
   const currentBoard = boards.find((b) => b.id === boardId);
   const handleMove = (targetListId: string) => {
     if (targetListId === currentListId) return;
-    moveCard(cardId, currentListId, targetListId);
-    showToast("Card movido com sucesso!", "success");
+    // TODO: implementar movimentação real via service
+    showToast("Card movido com sucesso! (mock)", "success");
     onClose();
   };
   if (!isOpen) return null;

@@ -14,6 +14,7 @@ import { useContractStore } from "./store/contractStore";
 import { useTransactionStore } from "./store/transactionStore";
 import { supabase } from "./lib/supabaseClient";
 import { useTeamMembersStore } from "./store/teamMembersStore";
+import { useBoardStore } from "./store/boardStore";
 
 export function App() {
   const {
@@ -45,6 +46,7 @@ export function App() {
     (state) => state.fetchAllContracts
   );
   const fetchAllMembers = useTeamMembersStore((state) => state.fetchAllMembers);
+  const fetchAllBoards = useBoardStore((state) => state.fetchAllBoards);
 
   const connectToRealtime = useRealtimeStore((state) => state.connect);
   const disconnectFromRealtime = useRealtimeStore((state) => state.disconnect);
@@ -62,6 +64,7 @@ export function App() {
         fetchAllContracts(token, organizationId);
         fetchAllTransactions(token, organizationId);
         fetchAllMembers(token, organizationId);
+        fetchAllBoards(token, organizationId);
       }
 
       if (userId) {

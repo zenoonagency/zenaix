@@ -8,10 +8,11 @@ import {
   Tag as TagIcon,
 } from "lucide-react";
 import { Modal } from "../../../components/Modal";
-import { useKanbanStore } from "../store/kanbanStore";
+import { useBoardStore } from "../../../store/boardStore";
 import { useThemeStore } from "../../../store/themeStore";
 import { useToast } from "../../../hooks/useToast";
-import { Board, List } from "../types";
+import { Board } from "../../types/board";
+import { List } from "../../types/list";
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
@@ -41,7 +42,7 @@ export function AutomationModal({
   onClose,
   boardId,
 }: AutomationModalProps) {
-  const { boards } = useKanbanStore();
+  const { boards } = useBoardStore();
   const { theme } = useThemeStore();
   const { showToast } = useToast();
   const { members } = useTeamMembersStore();

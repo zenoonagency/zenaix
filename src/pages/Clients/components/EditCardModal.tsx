@@ -1,8 +1,9 @@
 import React, { useState, useRef } from "react";
 import { X, Upload, Paperclip } from "lucide-react";
 import { useThemeStore } from "../../../store/themeStore";
-import { Card, Attachment } from "../types";
-import { useKanbanStore } from "../store/kanbanStore";
+import { Card } from "../../types/card";
+import { Attachment } from "../types";
+// Temporariamente removido até implementar com as novas stores
 import { useToast } from "../../../hooks/useToast";
 
 interface EditCardModalProps {
@@ -22,7 +23,13 @@ export const EditCardModal: React.FC<EditCardModalProps> = ({
 }) => {
   const { theme } = useThemeStore();
   const isDark = theme === "dark";
-  const { updateCard } = useKanbanStore();
+  // Temporariamente removido até implementar com as novas stores
+  const updateCard = () => {
+    showToast(
+      "Funcionalidade de atualizar cartão não disponível no momento.",
+      "info"
+    );
+  };
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(card.title);

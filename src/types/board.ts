@@ -1,4 +1,7 @@
-export type BoardAccessLevel = "TEAM_WIDE" | "CREATOR_ONLY" | "SELECTED_MEMBERS";
+export type BoardAccessLevel =
+  | "TEAM_WIDE"
+  | "CREATOR_ONLY"
+  | "SELECTED_MEMBERS";
 
 export interface BoardMember {
   id: string;
@@ -21,6 +24,8 @@ export interface BoardList {
   board_id: string;
   created_at: string;
   updated_at: string;
+  is_deletable?: boolean;
+  cards: BoardCard[];
 }
 
 export interface BoardCard {
@@ -64,7 +69,8 @@ export interface Board {
   access_level: BoardAccessLevel;
   created_at: string;
   updated_at: string;
-  lists?: BoardList[];
+  completed_list_id?: string;
+  lists: BoardList[];
   membersWithAccess?: BoardMember[];
 }
 
@@ -122,4 +128,4 @@ export interface TopSeller {
 
 export interface TopSellersResponse {
   data: TopSeller[];
-} 
+}

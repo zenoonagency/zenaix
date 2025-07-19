@@ -15,7 +15,7 @@ interface CardState {
   isLoading: boolean;
   error: string | null;
   selectedCard: OutputCardDTO | null;
-  lastFetched: number | null; 
+  lastFetched: number | null;
 
   setCards: (cards: OutputCardDTO[]) => void;
   addCard: (card: OutputCardDTO) => void;
@@ -27,22 +27,6 @@ interface CardState {
     boardId: string,
     listId: string,
     title?: string
-  ) => Promise<void>;
-  createCardApi: (
-    boardId: string,
-    listId: string,
-    data: InputCreateCardDTO
-  ) => Promise<OutputCardDTO | null>;
-  updateCardApi: (
-    boardId: string,
-    listId: string,
-    cardId: string,
-    data: InputUpdateCardDTO
-  ) => Promise<OutputCardDTO | null>;
-  deleteCardApi: (
-    boardId: string,
-    listId: string,
-    cardId: string
   ) => Promise<void>;
 }
 
@@ -102,57 +86,6 @@ export const useCardStore = create<CardState>()(
             error instanceof APIError ? error.message : "Erro ao buscar cards";
           set({ error: errorMessage, isLoading: false });
           useToastStore.getState().addToast(errorMessage, "error");
-        }
-      },
-
-      createCardApi: async (boardId, listId, data) => {
-        const { token } = useAuthStore.getState();
-        if (!token) return null;
-
-        try {
-          return await cardService.createCard(token, boardId, listId, data);
-        } catch (error: any) {
-          const errorMessage =
-            error instanceof APIError ? error.message : "Erro ao criar card";
-          set({ error: errorMessage });
-          useToastStore.getState().addToast(errorMessage, "error");
-          throw error;
-        }
-      },
-      updateCardApi: async (boardId, listId, cardId, data) => {
-        const { token } = useAuthStore.getState();
-        if (!token) return null;
-
-        try {
-          return await cardService.updateCard(
-            token,
-            boardId,
-            listId,
-            cardId,
-            data
-          );
-        } catch (error: any) {
-          const errorMessage =
-            error instanceof APIError
-              ? error.message
-              : "Erro ao atualizar card";
-          set({ error: errorMessage });
-          useToastStore.getState().addToast(errorMessage, "error");
-          throw error;
-        }
-      },
-      deleteCardApi: async (boardId, listId, cardId) => {
-        const { token } = useAuthStore.getState();
-        if (!token) return;
-
-        try {
-          await cardService.deleteCard(token, boardId, listId, cardId);
-        } catch (error: any) {
-          const errorMessage =
-            error instanceof APIError ? error.message : "Erro ao apagar card";
-          set({ error: errorMessage });
-          useToastStore.getState().addToast(errorMessage, "error");
-          throw error;
         }
       },
     }),

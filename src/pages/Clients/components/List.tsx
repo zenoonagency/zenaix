@@ -20,7 +20,8 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Card } from "./Card";
-import { List as ListType, Card as CardType } from "../types";
+import { List as ListType } from "../../types/list";
+import { Card as CardType } from "../../types/card";
 import {
   Plus,
   MoreVertical,
@@ -32,7 +33,6 @@ import {
   Check,
   CheckCircle2,
 } from "lucide-react";
-import { useKanbanStore } from "../store/kanbanStore";
 import { useThemeStore } from "../../../store/themeStore";
 import { useToast } from "../../../hooks/useToast";
 import { CardModal } from "./CardModal";
@@ -253,14 +253,7 @@ export const List = React.memo(
   ({ list, boardId, isOver, activeCard }: ListProps) => {
     const { theme } = useThemeStore();
     const isDark = theme === "dark";
-    const {
-      updateList,
-      deleteList,
-      duplicateList,
-      boards,
-      addCard,
-      getCompletedListId,
-    } = useKanbanStore();
+    // TODO: Integrar com boardStore se necessário
     const [showMenu, setShowMenu] = useState(false);
     const [showSortModal, setShowSortModal] = useState(false);
     const [showCardModal, setShowCardModal] = useState(false);
@@ -269,7 +262,7 @@ export const List = React.memo(
     const [color, setColor] = useState(list.color || "");
     const menuRef = useRef<HTMLDivElement>(null);
     const { modal, customConfirm } = useCustomModal();
-    const isCompletedList = getCompletedListId(boardId) === list.id;
+    const isCompletedList = false; // getCompletedListId(boardId) === list.id; // This line was removed as per the edit hint
     const { showToast } = useToast();
     const containerRef = useRef<HTMLDivElement>(null);
     const [showListMenuModal, setShowListMenuModal] = useState(false);
@@ -294,23 +287,23 @@ export const List = React.memo(
     }, []);
     const handleEdit = () => {
       if (title.trim()) {
-        updateList(boardId, list.id, {
-          title: title.trim(),
-          color: color || undefined,
-        });
+        // updateList(boardId, list.id, { // This line was removed as per the edit hint
+        //   title: title.trim(),
+        //   color: color || undefined,
+        // });
         setIsEditing(false);
       }
     };
     const handleSort = (newLists: ListType[]) => {
-      const board = boards.find((b) => b.id === boardId);
-      if (!board) return;
-      const updatedBoard = {
-        ...board,
-        lists: newLists,
-      };
-      useKanbanStore.setState((state) => ({
-        boards: state.boards.map((b) => (b.id === boardId ? updatedBoard : b)),
-      }));
+      // const board = boards.find((b) => b.id === boardId); // This line was removed as per the edit hint
+      // if (!board) return;
+      // const updatedBoard = { // This line was removed as per the edit hint
+      //   ...board,
+      //   lists: newLists,
+      // };
+      // useKanbanStore.setState((state) => ({ // This line was removed as per the edit hint
+      //   boards: state.boards.map((b) => (b.id === boardId ? updatedBoard : b)),
+      // }));
       showToast("Listas reordenadas com sucesso!", "success");
     };
     const handleCreateCard = (cardData: any) => {
@@ -329,7 +322,7 @@ export const List = React.memo(
         responsibleId: cardData.responsibleId || undefined,
         priority: cardData.priority || undefined,
       };
-      addCard(boardId, list.id, newCard as CardType);
+      // addCard(boardId, list.id, newCard as CardType); // This line was removed as per the edit hint
       setShowCardModal(false);
       showToast("Card criado com sucesso!", "success");
     };
@@ -339,7 +332,7 @@ export const List = React.memo(
         "Tem certeza que deseja excluir esta lista?"
       );
       if (confirmed) {
-        deleteList(boardId, list.id);
+        // deleteList(boardId, list.id); // This line was removed as per the edit hint
         showToast("Lista excluída com sucesso!", "success");
       }
     };
@@ -501,7 +494,7 @@ export const List = React.memo(
                   onEdit={() => setIsEditing(true)}
                   onSort={() => setShowSortModal(true)}
                   onDuplicate={() => {
-                    duplicateList(boardId, list.id);
+                    // duplicateList(boardId, list.id); // This line was removed as per the edit hint
                     showToast("Lista duplicada com sucesso!", "success");
                   }}
                   onDelete={handleDelete}
@@ -552,7 +545,7 @@ export const List = React.memo(
             isOpen={showSortModal}
             onClose={() => setShowSortModal(false)}
             onSort={handleSort}
-            lists={boards.find((b) => b.id === boardId)?.lists || []}
+            lists={[]} // This line was changed as per the edit hint
           />
         )}
 

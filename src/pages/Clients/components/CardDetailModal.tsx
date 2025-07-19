@@ -26,8 +26,9 @@ import {
 } from "lucide-react";
 import { useThemeStore } from "../../../store/themeStore";
 import { useTagStore } from "../../../store/tagStore";
-import { Card as CardType, CustomFieldType } from "../../../types";
-import { useKanbanStore } from "../store/kanbanStore";
+import { Card as CardType } from "../../types/card";
+import { CustomFieldType } from "../types";
+// Temporariamente removido até implementar com as novas stores
 import { useToast } from "../../../hooks/useToast";
 import { ConfirmationModal } from "../../../components/ConfirmationModal";
 import { useTeamMembersStore } from "../../../store/teamMembersStore";
@@ -67,7 +68,19 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   const { theme } = useThemeStore();
   const { tags } = useTagStore();
   const { members } = useTeamMembersStore();
-  const { updateCard, deleteAttachment } = useKanbanStore();
+  // Temporariamente removido até implementar com as novas stores
+  const updateCard = () => {
+    showToast(
+      "Funcionalidade de atualizar cartão não disponível no momento.",
+      "info"
+    );
+  };
+  const deleteAttachment = () => {
+    showToast(
+      "Funcionalidade de deletar anexo não disponível no momento.",
+      "info"
+    );
+  };
   const { showToast } = useToast();
   const [showDeleteAttachmentConfirm, setShowDeleteAttachmentConfirm] =
     React.useState<string | null>(null);

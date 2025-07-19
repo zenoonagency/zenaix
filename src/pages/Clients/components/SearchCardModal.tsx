@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Search, X } from "lucide-react";
-import { Card } from "../types";
+import { Card } from "../../types/card";
 
 interface SearchCardModalProps {
   isOpen: boolean;

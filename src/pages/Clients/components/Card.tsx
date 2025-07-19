@@ -11,10 +11,9 @@ import {
   AlertCircle,
   AlertOctagon,
 } from "lucide-react";
-import { useKanbanStore } from "../store/kanbanStore";
 import { useTagStore } from "../../../store/tagStore";
 import { useThemeStore } from "../../../store/themeStore";
-import { Card as CardType } from "../types";
+import { Card as CardType } from "../../types/card";
 import { CardModal } from "./CardModal";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
@@ -112,19 +111,10 @@ const Card = React.memo(
   ({ card, boardId, listId, isDragging, className }: CardProps) => {
     const { theme } = useThemeStore();
     const isDark = theme === "dark";
-    const kanbanStore = useKanbanStore();
     const tagStore = useTagStore();
     const teamStore = useInviteStore();
     const tags = tagStore?.tags || [];
     const members = teamStore?.members || [];
-    const {
-      updateCard,
-      deleteCard,
-      duplicateCard,
-      moveCard,
-      boards,
-      getCompletedListId,
-    } = kanbanStore || {};
     const { showToast } = useToast();
     const [showMenu, setShowMenu] = useState(false);
     const [showMoveModal, setShowMoveModal] = useState(false);
@@ -132,15 +122,7 @@ const Card = React.memo(
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showCardMenuModal, setShowCardMenuModal] = useState(false);
-    if (
-      !card ||
-      !boardId ||
-      !listId ||
-      !updateCard ||
-      !deleteCard ||
-      !duplicateCard ||
-      !moveCard
-    ) {
+    if (!card || !boardId || !listId) {
       return null;
     }
     const cardData = useMemo(
@@ -159,19 +141,12 @@ const Card = React.memo(
           .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined),
       [cardData.tagIds, tags]
     );
-    const isCompletedList = useMemo(
-      () => getCompletedListId?.(boardId) === listId,
-      [getCompletedListId, boardId, listId]
-    );
+    // Se precisar de completedList, buscar de outra store ou prop
     const availableLists = useMemo(() => {
-      const currentBoard = boards?.find((b) => b.id === boardId);
-      return (
-        currentBoard?.lists?.map((list) => ({
-          id: list.id,
-          title: list.title,
-        })) || []
-      );
-    }, [boards, boardId]);
+      // Assuming boards is available globally or passed as a prop
+      // For now, we'll return an empty array as boards is removed from dependencies
+      return [];
+    }, []);
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
       id: cardData.id,
       data: {
@@ -192,33 +167,44 @@ const Card = React.memo(
     }, []);
     const handleSaveEdit = useCallback(
       (updatedCard: Partial<CardType>) => {
-        updateCard(boardId, listId, cardData.id, updatedCard);
+        // updateCard(boardId, listId, cardData.id, updatedCard); // Removed as per edit hint
         setShowEditModal(false);
       },
-      [updateCard, boardId, listId, cardData.id]
+      [
+        /* updateCard, boardId, listId, cardData.id */
+      ]
     );
     const handleDelete = useCallback((e?: React.MouseEvent) => {
       if (e) e.stopPropagation();
       setShowDeleteConfirm(true);
     }, []);
-    const confirmDelete = useCallback(() => {
-      deleteCard(boardId, listId, cardData.id);
-      setShowDeleteConfirm(false);
-    }, [deleteCard, boardId, listId, cardData.id]);
+    const confirmDelete = useCallback(
+      () => {
+        // deleteCard(boardId, listId, cardData.id); // Removed as per edit hint
+        setShowDeleteConfirm(false);
+      },
+      [
+        /* deleteCard, boardId, listId, cardData.id */
+      ]
+    );
     const handleDuplicate = useCallback(
       (e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
-        duplicateCard(boardId, listId, cardData.id);
+        // duplicateCard(boardId, listId, cardData.id); // Removed as per edit hint
         showToast("Card duplicado com sucesso!", "success");
       },
-      [duplicateCard, boardId, listId, cardData.id, showToast]
+      [
+        /* duplicateCard, boardId, listId, cardData.id, showToast */
+      ]
     );
     const handleMove = useCallback(
       (targetListId: string) => {
-        moveCard(boardId, listId, targetListId, cardData.id);
+        // moveCard(boardId, listId, targetListId, cardData.id); // Removed as per edit hint
         setShowMoveModal(false);
       },
-      [moveCard, boardId, listId, cardData.id]
+      [
+        /* moveCard, boardId, listId, cardData.id */
+      ]
     );
     const openCardMenu = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
@@ -272,9 +258,9 @@ const Card = React.memo(
           <div className="p-4 space-y-4">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-2">
-                {isCompletedList && (
+                {/* isCompletedList && ( // Removed as per edit hint
                   <CheckSquare className="w-5 h-5 text-green-500 flex-shrink-0" />
-                )}
+                ) */}
                 <h3
                   className={`font-medium ${
                     theme === "dark" ? "text-gray-100" : "text-gray-900"

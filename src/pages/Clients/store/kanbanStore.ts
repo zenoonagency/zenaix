@@ -56,48 +56,6 @@ interface KanbanState {
   cleanupStorage: () => void;
 }
 
-// Criar quadro inicial com listas padrão
-const initialBoardId = generateId();
-const pendingListId = generateId();
-const inProgressListId = generateId();
-const completedListId = generateId();
-
-const initialBoard: ExtendedBoard = {
-  id: initialBoardId,
-  title: "Meu Primeiro Quadro",
-  lists: [
-    {
-      id: pendingListId,
-      title: "Pendente",
-      cards: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: inProgressListId,
-      title: "Em Andamento",
-      cards: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: completedListId,
-      title: "Concluído",
-      cards: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ],
-  hidden: false,
-  completedListId: null,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  config: {
-    visibility: "all",
-    allowedUsers: [],
-  },
-};
-
 // Função auxiliar para executar webhooks
 const executeWebhook = async (url: string, data: any) => {
   try {
@@ -251,8 +209,8 @@ const processAutomations = async (
 export const useKanbanStore = create<KanbanState>()(
   persist(
     (set, get) => ({
-      boards: [initialBoard],
-      activeBoard: initialBoardId,
+      boards: [],
+      activeBoard: null,
 
       setActiveBoard: (boardId) => set({ activeBoard: boardId }),
 
@@ -759,19 +717,8 @@ export const useKanbanStore = create<KanbanState>()(
     {
       name: "kanban-store",
       onRehydrateStorage: () => (state) => {
-        // Garante que sempre exista pelo menos o quadro padrão
-        if (!state || !state.boards || state.boards.length === 0) {
-          state = {
-            ...state,
-            boards: [initialBoard],
-            activeBoard: initialBoardId,
-          };
-        }
-
-        // Executar limpeza ao recarregar
-        if (state?.cleanupStorage) {
-          state.cleanupStorage();
-        }
+        // Não injeta mais board inicial
+        return state;
       },
     }
   )

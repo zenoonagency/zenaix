@@ -15,7 +15,10 @@ interface BoardState {
   isLoading: boolean;
   error: string | null;
   selectedBoard: Board | null;
-  lastFetched: number | null; // Adicionado para consistência
+  lastFetched: number | null;
+  activeBoardId: string | null; // ID do quadro ativo
+  lastUsedBoardId: string | null; // ID do último quadro usado
+  activeBoard: Board | null; // Board completo ativo (com listas e cards)
 
   // Ações síncronas (para a RealtimeStore e componentes)
   setBoards: (boards: Board[]) => void;
@@ -23,15 +26,14 @@ interface BoardState {
   updateBoard: (board: Board) => void;
   removeBoard: (boardId: string) => void;
   setSelectedBoard: (board: Board | null) => void;
+  setActiveBoardId: (boardId: string | null) => void;
+  setLastUsedBoardId: (boardId: string | null) => void;
+  setActiveBoard: (board: Board | null) => void;
+  selectActiveBoard: (boards: Board[]) => void;
 
-  fetchBoards: () => Promise<void>;
+  fetchAllBoards: (token: string, organizationId: string) => Promise<void>;
   fetchBoardById: (boardId: string) => Promise<void>;
-  createBoardApi: (data: InputCreateBoardDTO) => Promise<Board | null>;
-  updateBoardApi: (
-    boardId: string,
-    data: InputUpdateBoardDTO
-  ) => Promise<Board | null>;
-  deleteBoardApi: (boardId: string) => Promise<void>;
+  selectAndLoadBoard: (boardId: string) => Promise<void>;
 }
 
 export const useBoardStore = create<BoardState>()(
@@ -42,31 +44,103 @@ export const useBoardStore = create<BoardState>()(
       error: null,
       selectedBoard: null,
       lastFetched: null,
+      activeBoardId: null,
+      lastUsedBoardId: null,
+      activeBoard: null,
 
-      setBoards: (boards) => set({ boards }),
+      setBoards: (boards) => {
+        set({ boards });
+        // Após definir os boards, selecionar o ativo automaticamente
+        get().selectActiveBoard(boards);
+      },
+
       addBoard: (board) => {
         set((state) => ({
           boards: state.boards.some((b) => b.id === board.id)
             ? state.boards
             : [...state.boards, board],
         }));
+        // Após adicionar um board, selecioná-lo como ativo
+        get().setActiveBoardId(board.id);
+        get().setLastUsedBoardId(board.id);
       },
+
       updateBoard: (board) => {
         set((state) => ({
           boards: state.boards.map((b) => (b.id === board.id ? board : b)),
         }));
       },
+
       removeBoard: (boardId) => {
-        set((state) => ({
-          boards: state.boards.filter((b) => b.id !== boardId),
-        }));
+        set((state) => {
+          const newBoards = state.boards.filter((b) => b.id !== boardId);
+
+          // Se o board removido era o ativo, selecionar outro
+          let newActiveBoardId = state.activeBoardId;
+          if (state.activeBoardId === boardId) {
+            newActiveBoardId = newBoards.length > 0 ? newBoards[0].id : null;
+          }
+
+          // Se o board removido era o último usado, limpar
+          let newLastUsedBoardId = state.lastUsedBoardId;
+          if (state.lastUsedBoardId === boardId) {
+            newLastUsedBoardId = newBoards.length > 0 ? newBoards[0].id : null;
+          }
+
+          return {
+            boards: newBoards,
+            activeBoardId: newActiveBoardId,
+            lastUsedBoardId: newLastUsedBoardId,
+          };
+        });
       },
+
       setSelectedBoard: (board) => set({ selectedBoard: board }),
 
-      // --- AÇÕES ASSÍNCRONAS ---
-      fetchBoards: async () => {
-        const { token, organization } = useAuthStore.getState();
-        if (!token || !organization.id) return;
+      setActiveBoardId: (boardId) => {
+        set({ activeBoardId: boardId });
+        // Quando um board é selecionado, salvá-lo como último usado
+        if (boardId) {
+          get().setLastUsedBoardId(boardId);
+        }
+      },
+
+      setLastUsedBoardId: (boardId) => set({ lastUsedBoardId: boardId }),
+
+      setActiveBoard: (board) => set({ activeBoard: board }),
+
+      // Função para selecionar automaticamente o board ativo
+      selectActiveBoard: (boards: Board[]) => {
+        const state = get();
+
+        if (boards.length === 0) {
+          set({ activeBoardId: null });
+          return;
+        }
+
+        // Se já há um board ativo e ele ainda existe na lista, mantê-lo
+        if (
+          state.activeBoardId &&
+          boards.some((b) => b.id === state.activeBoardId)
+        ) {
+          return;
+        }
+
+        // Se há um último board usado e ele ainda existe, selecioná-lo
+        if (
+          state.lastUsedBoardId &&
+          boards.some((b) => b.id === state.lastUsedBoardId)
+        ) {
+          set({ activeBoardId: state.lastUsedBoardId });
+          return;
+        }
+
+        // Caso contrário, selecionar o primeiro board
+        set({ activeBoardId: boards[0].id });
+      },
+
+      fetchAllBoards: async (token: string, organizationId: string) => {
+        if (!token || !organizationId) return;
 
         if (get().isLoading) return;
         if (get().boards.length === 0) {
@@ -74,13 +148,16 @@ export const useBoardStore = create<BoardState>()(
         }
 
         try {
-          const boards = await boardService.getBoards(token, organization.id);
+          const boards = await boardService.getBoards(token, organizationId);
           set({
             boards,
             isLoading: false,
             error: null,
             lastFetched: Date.now(),
           });
+
+          // Após carregar os boards, selecionar o ativo automaticamente
+          get().selectActiveBoard(boards);
         } catch (error: any) {
           const errorMessage =
             error instanceof APIError
@@ -104,7 +181,12 @@ export const useBoardStore = create<BoardState>()(
           );
           // Atualiza a store com o quadro completo
           get().updateBoard(board);
-          set({ selectedBoard: board, isLoading: false, error: null });
+          set({
+            selectedBoard: board,
+            activeBoard: board, // Define como board ativo completo
+            isLoading: false,
+            error: null,
+          });
         } catch (error: any) {
           const errorMessage =
             error instanceof APIError ? error.message : "Erro ao buscar quadro";
@@ -113,58 +195,16 @@ export const useBoardStore = create<BoardState>()(
         }
       },
 
-      createBoardApi: async (data) => {
-        const { token, organization } = useAuthStore.getState();
-        if (!token || !organization.id) return null;
-
-        try {
-          // Apenas chama o serviço. A atualização virá via Realtime.
-          return await boardService.createBoard(token, organization.id, data);
-        } catch (error: any) {
-          const errorMessage =
-            error instanceof APIError ? error.message : "Erro ao criar quadro";
-          set({ error: errorMessage });
-          useToastStore.getState().addToast(errorMessage, "error");
-          throw error;
-        }
-      },
-
-      updateBoardApi: async (boardId, data) => {
-        const { token, organization } = useAuthStore.getState();
-        if (!token || !organization.id) return null;
-
-        try {
-          return await boardService.updateBoard(
-            token,
-            organization.id,
-            boardId,
-            data
-          );
-        } catch (error: any) {
-          const errorMessage =
-            error instanceof APIError
-              ? error.message
-              : "Erro ao atualizar quadro";
-          set({ error: errorMessage });
-          useToastStore.getState().addToast(errorMessage, "error");
-          throw error;
-        }
-      },
-
-      deleteBoardApi: async (boardId) => {
+      selectAndLoadBoard: async (boardId: string) => {
         const { token, organization } = useAuthStore.getState();
         if (!token || !organization.id) return;
 
-        try {
-          // Apenas chama o serviço. A atualização virá via Realtime.
-          await boardService.deleteBoard(token, organization.id, boardId);
-        } catch (error: any) {
-          const errorMessage =
-            error instanceof APIError ? error.message : "Erro ao apagar quadro";
-          set({ error: errorMessage });
-          useToastStore.getState().addToast(errorMessage, "error");
-          throw error;
-        }
+        // Primeiro, definir o board como ativo
+        get().setActiveBoardId(boardId);
+        get().setLastUsedBoardId(boardId);
+
+        // Depois, carregar o board completo com listas e cards
+        await get().fetchBoardById(boardId);
       },
     }),
     {
@@ -172,6 +212,9 @@ export const useBoardStore = create<BoardState>()(
       partialize: (state) => ({
         boards: state.boards,
         lastFetched: state.lastFetched,
+        activeBoardId: state.activeBoardId,
+        lastUsedBoardId: state.lastUsedBoardId,
+        activeBoard: state.activeBoard,
       }),
     }
   )

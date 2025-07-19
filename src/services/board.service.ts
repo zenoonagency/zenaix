@@ -107,7 +107,7 @@ export const boardService = {
         boardId
       )}`;
       const response = await fetchWithAuth(url, {
-        method: "PATCH",
+        method: "PUT",
         headers: getAuthHeaders(token),
         body: JSON.stringify(data),
       });

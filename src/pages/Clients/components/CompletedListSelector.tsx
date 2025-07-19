@@ -1,27 +1,28 @@
-import React from 'react';
-import { useKanbanStore } from '../store/kanbanStore';
-import { List } from '../types';
+import React from "react";
+import { useBoardStore } from "../../../store/boardStore";
+import { List } from "../../types/list";
 
 interface CompletedListSelectorProps {
   boardId: string;
   lists: List[];
 }
 
-export function CompletedListSelector({ boardId, lists }: CompletedListSelectorProps) {
-  const { setCompletedList, getCompletedListId } = useKanbanStore();
-  const completedListId = getCompletedListId(boardId);
+export function CompletedListSelector({
+  boardId,
+  lists,
+}: CompletedListSelectorProps) {
+  // TODO: implementar integração real com a store de boards se necessário
+  const completedListId = null;
 
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const listId = event.target.value;
-    setCompletedList(boardId, listId);
+    // setCompletedList(boardId, listId); // This line was removed as per the edit hint
     // Força a atualização do estado do Kanban
-    useKanbanStore.setState(state => ({
+    useBoardStore.setState((state) => ({
       ...state,
-      boards: state.boards.map(board => 
-        board.id === boardId 
-          ? { ...board, completedListId: listId }
-          : board
-      )
+      boards: state.boards.map((board) =>
+        board.id === boardId ? { ...board, completedListId: listId } : board
+      ),
     }));
   };
 
@@ -31,7 +32,7 @@ export function CompletedListSelector({ boardId, lists }: CompletedListSelectorP
         Lista de Concluídos:
       </label>
       <select
-        value={completedListId || ''}
+        value={completedListId || ""}
         onChange={handleChange}
         className="p-2 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100"
       >
@@ -44,4 +45,4 @@ export function CompletedListSelector({ boardId, lists }: CompletedListSelectorP
       </select>
     </div>
   );
-} 
+}

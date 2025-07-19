@@ -5,12 +5,10 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { useKanbanStore } from "../Clients/store/kanbanStore";
 import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ptBR } from "date-fns/locale";
 import { useContractStore } from "../../store/contractStore";
-import { useInviteStore, useTeamStore } from "../../store/inviteStore";
 import {
   Download,
   ChevronDown,
@@ -40,6 +38,8 @@ import { BoardSelector } from "../Clients/components/BoardSelector";
 import { useCalendarStore } from "../../store/calendarStore";
 import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../services/authService";
+import { useBoardStore } from "../../store/boardStore";
+import { useInviteStore } from "../../store/inviteStore";
 
 // Registrar locale ptBR para o DatePicker
 registerLocale("pt-BR", ptBR);
@@ -110,14 +110,20 @@ export function Dashboard() {
     };
   }, [showAllSellersModal, showExportModal, showBoardSelector]);
 
-  const kanbanStore = useKanbanStore();
+  const {
+    boards,
+    activeBoard,
+    activeBoardId,
+    fetchAllBoards,
+    selectAndLoadBoard,
+  } = useBoardStore();
   const contractStore = useContractStore();
   const { invites: members } = useInviteStore();
 
-  const boards = kanbanStore?.boards ?? [];
   const transactions = [];
   const contracts = contractStore?.contracts ?? [];
-  const getCompletedListId = kanbanStore?.getCompletedListId;
+  // Temporariamente removido até implementar com as novas stores
+  const getCompletedListId = () => null;
 
   // Melhorar a inicialização dos stores com useCallback
   const initializeStores = useCallback(async () => {
@@ -125,33 +131,27 @@ export function Dashboard() {
       setIsLoading(true);
       setError(null);
 
+      const { token, organization } = useAuthStore.getState();
+      if (!token || !organization.id) {
+        throw new Error("Token ou organização não disponível");
+      }
+
+      // Carregar todos os boards primeiro (se necessário)
+      await fetchAllBoards(token, organization.id);
+
       // Garantir que os stores estão inicializados
-      if (!kanbanStore?.initialized || !contractStore?.initialized) {
-        await Promise.all([
-          kanbanStore?.initialize?.(),
-          contractStore?.initialize?.(),
-        ]);
+      if (!contractStore?.initialized) {
+        await Promise.all([contractStore?.initialize?.()]);
       }
 
       // Verificar se os stores estão disponíveis
-      if (!kanbanStore || !contractStore) {
+      if (!contractStore) {
         throw new Error("Falha ao carregar dados dos stores");
       }
 
-      // Verificar se os dados necessários estão disponíveis e são válidos
-      if (!Array.isArray(boards)) {
-        console.warn("Boards não é um array:", boards);
-        throw new Error("Dados do quadro inválidos");
-      }
-
-      if (!Array.isArray(transactions)) {
-        console.warn("Transactions não é um array:", transactions);
-        throw new Error("Dados financeiros inválidos");
-      }
-
-      if (!Array.isArray(contracts)) {
-        console.warn("Contracts não é um array:", contracts);
-        throw new Error("Dados de contratos inválidos");
+      // Se há um board ativo, carregar ele completo (se necessário)
+      if (activeBoardId) {
+        await selectAndLoadBoard(activeBoardId);
       }
 
       setIsLoading(false);
@@ -169,7 +169,13 @@ export function Dashboard() {
         }, 2000);
       }
     }
-  }, [kanbanStore, contractStore, retryCount, boards, transactions, contracts]);
+  }, [
+    contractStore,
+    retryCount,
+    fetchAllBoards,
+    activeBoardId,
+    selectAndLoadBoard,
+  ]);
 
   // Usar useEffect para inicialização e cleanup
   useEffect(() => {
@@ -202,23 +208,8 @@ export function Dashboard() {
     };
   }, [initializeStores]);
 
-  useEffect(() => {
-    // Se não houver quadro selecionado, selecionar o primeiro disponível
-    if (boards.length > 0 && !selectedBoard) {
-      setSelectedBoard(boards[0].id);
-    }
-  }, [boards, selectedBoard]);
-
-  // Adicionar verificações de segurança extras nos cálculos
-  const selectedKanbanBoard = React.useMemo(() => {
-    try {
-      if (!Array.isArray(boards)) return null;
-      return boards.find((b) => b?.id === selectedBoard);
-    } catch {
-      console.warn("Erro ao buscar quadro selecionado");
-      return null;
-    }
-  }, [boards, selectedBoard]);
+  // Usar o activeBoard que já vem com listas e cards
+  const selectedKanbanBoard = activeBoard;
 
   const completedListId = React.useMemo(() => {
     try {
@@ -1262,9 +1253,9 @@ export function Dashboard() {
                             onChange={(e) => {
                               const listId = e.target.value;
                               if (listId && selectedBoard) {
-                                // Configurar a lista selecionada como concluída
-                                kanbanStore.setCompletedList(
-                                  selectedBoard,
+                                // Temporariamente removido até implementar com as novas stores
+                                console.log(
+                                  "Configurando lista como concluída:",
                                   listId
                                 );
                                 // Forçar a atualização
@@ -1291,8 +1282,9 @@ export function Dashboard() {
                                 .previousSibling as HTMLSelectElement;
                               const listId = select.value;
                               if (listId && selectedBoard) {
-                                kanbanStore.setCompletedList(
-                                  selectedBoard,
+                                // Temporariamente removido até implementar com as novas stores
+                                console.log(
+                                  "Configurando lista como concluída:",
                                   listId
                                 );
                                 // Forçar a atualização
@@ -1353,10 +1345,7 @@ export function Dashboard() {
                                 "Configurando automaticamente a última lista como concluída:",
                                 lastList.id
                               );
-                              kanbanStore.setCompletedList(
-                                selectedBoard,
-                                lastList.id
-                              );
+                              // Temporariamente removido até implementar com as novas stores
                             }
                           }
 

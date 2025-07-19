@@ -22,16 +22,6 @@ interface ListState {
   removeList: (listId: string) => void;
 
   fetchLists: (boardId: string) => Promise<void>;
-  createListApi: (
-    boardId: string,
-    data: InputCreateListDTO
-  ) => Promise<OutputListDTO | null>;
-  updateListApi: (
-    boardId: string,
-    listId: string,
-    data: InputUpdateListDTO
-  ) => Promise<OutputListDTO | null>;
-  deleteListApi: (boardId: string, listId: string) => Promise<void>;
 }
 
 export const useListStore = create<ListState>()(
@@ -83,51 +73,6 @@ export const useListStore = create<ListState>()(
             error instanceof APIError ? error.message : "Erro ao buscar listas";
           set({ error: errorMessage, isLoading: false });
           useToastStore.getState().addToast(errorMessage, "error");
-        }
-      },
-
-      createListApi: async (boardId, data) => {
-        const { token } = useAuthStore.getState();
-        if (!token) return null;
-
-        try {
-          return await listService.createList(token, boardId, data);
-        } catch (error: any) {
-          const errorMessage =
-            error instanceof APIError ? error.message : "Erro ao criar lista";
-          set({ error: errorMessage });
-          useToastStore.getState().addToast(errorMessage, "error");
-          throw error;
-        }
-      },
-      updateListApi: async (boardId, listId, data) => {
-        const { token } = useAuthStore.getState();
-        if (!token) return null;
-
-        try {
-          return await listService.updateList(token, boardId, listId, data);
-        } catch (error: any) {
-          const errorMessage =
-            error instanceof APIError
-              ? error.message
-              : "Erro ao atualizar lista";
-          set({ error: errorMessage });
-          useToastStore.getState().addToast(errorMessage, "error");
-          throw error;
-        }
-      },
-      deleteListApi: async (boardId, listId) => {
-        const { token } = useAuthStore.getState();
-        if (!token) return;
-
-        try {
-          await listService.deleteList(token, boardId, listId);
-        } catch (error: any) {
-          const errorMessage =
-            error instanceof APIError ? error.message : "Erro ao apagar lista";
-          set({ error: errorMessage });
-          useToastStore.getState().addToast(errorMessage, "error");
-          throw error;
         }
       },
     }),

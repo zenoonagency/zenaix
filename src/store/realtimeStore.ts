@@ -13,6 +13,7 @@ import { useTeamMembersStore } from "./teamMembersStore";
 import { useInviteStore } from "./inviteStore";
 import { usePermissionsStore } from "./permissionsStore";
 import { useCalendarStore } from "./calendarStore";
+import { useBoardStore } from "./boardStore";
 
 interface RealtimeState {
   userChannel: RealtimeChannel | null;
@@ -187,6 +188,15 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
               break;
             case "CALENDAR_ALL_EVENTS_DELETED":
               useCalendarStore.getState().removeAllEvents();
+              break;
+            case "BOARD_CREATED":
+              useBoardStore.getState().addBoard(eventData.data);
+              break;
+            case "BOARD_UPDATED":
+              useBoardStore.getState().updateBoard(eventData.data);
+              break;
+            case "BOARD_DELETED":
+              useBoardStore.getState().removeBoard(eventData.data.id);
               break;
           }
         })
