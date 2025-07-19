@@ -25,12 +25,14 @@ import { useThemeStore } from "../../../store/themeStore";
 import { useToast } from "../../../hooks/useToast";
 import { boardService } from "../../../services/board.service";
 import { listService } from "../../../services/list.service";
+import { cardService } from "../../../services/card.service";
 import { useAuthStore } from "../../../store/authStore";
 import { useBoardStore } from "../../../store/boardStore";
 import { useListStore } from "../../../store/listStore";
+import { useCardStore } from "../../../store/cardStore";
 import { InputCreateBoardDTO } from "../../../types/board";
 import { InputCreateListDTO, InputUpdateListDTO } from "../../../types/list";
-import { OutputCardDTO } from "../../../types/card";
+import { OutputCardDTO, InputUpdateCardDTO } from "../../../types/card";
 
 const PREDEFINED_COLORS = [
   "#FF4136",
@@ -305,6 +307,7 @@ export function KanbanBoard() {
     selectAndLoadBoard,
   } = useBoardStore();
   const { lists, addList, fetchLists } = useListStore();
+  const { updateCard } = useCardStore();
   const { token, organization } = useAuthStore();
   const [activeCard, setActiveCard] = useState<OutputCardDTO | null>(null);
   const [activeListId, setActiveListId] = useState<string | null>(null);
@@ -381,12 +384,52 @@ export function KanbanBoard() {
     [overListId]
   );
 
-  // Não manipula mais a store, apenas mantém o board local
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    setActiveCard(null);
-    setActiveListId(null);
-    setOverListId(null);
-  }, []);
+  // Manipular drag & drop de cards
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      if (active && over && active.data.current?.type === "card") {
+        const { cardId, listId: fromListId } = active.data.current;
+        const toListId = over.id as string;
+
+        // Se o card foi movido para uma lista diferente
+        if (fromListId !== toListId) {
+          try {
+            // Calcular nova posição (última posição da lista de destino)
+            const newPosition = 1000; // Posição padrão para novos cards
+
+            // Atualizar o card no backend
+            const dto: InputUpdateCardDTO = {
+              list_id: toListId,
+              position: newPosition,
+            };
+
+            const updatedCard = await cardService.updateCard(
+              token,
+              organization.id,
+              activeBoardId,
+              fromListId,
+              cardId,
+              dto
+            );
+
+            // Atualizar na cardStore
+            updateCard(updatedCard);
+
+            showToast("Card movido com sucesso!", "success");
+          } catch (err: any) {
+            showToast(err.message || "Erro ao mover card", "error");
+          }
+        }
+      }
+
+      setActiveCard(null);
+      setActiveListId(null);
+      setOverListId(null);
+    },
+    [activeBoardId, lists, token, organization?.id, updateCard, showToast]
+  );
 
   const handleAddList = useCallback(() => {
     setShowCreateListModal(true);
