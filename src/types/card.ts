@@ -1,5 +1,62 @@
 export type CardPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 
+// Tipos para Anexos
+export interface AttachmentDTO {
+  id: string;
+  file_name: string;
+  file_url: string;
+  fileType: string;
+  fileSize: number;
+  card_id: string;
+  created_at: string;
+}
+
+export interface AttachmentResponse {
+  message: string;
+  data: AttachmentDTO[];
+  status: number;
+}
+
+export interface AttachmentDownloadResponse {
+  message: string;
+  data: {
+    url: string;
+  };
+  status: number;
+}
+
+// Tipos para Subtarefas
+export interface InputCreateSubtaskDTO {
+  title: string;
+  description?: string;
+}
+
+export interface InputUpdateSubtaskDTO {
+  title?: string;
+  description?: string;
+  is_completed?: boolean;
+}
+
+export interface SubtaskDTO {
+  id: string;
+  title: string;
+  description?: string | null;
+  is_completed: boolean;
+  card_id: string;
+}
+
+export interface SubtaskResponse {
+  message: string;
+  data: SubtaskDTO[];
+  status: number;
+}
+
+export interface SubtaskSingleResponse {
+  message: string;
+  data: SubtaskDTO;
+  status: number;
+}
+
 export interface InputCreateCardDTO {
   title: string;
   description?: string;
@@ -59,7 +116,7 @@ export interface OutputCardDTO {
     is_completed: boolean;
     card_id: string;
   }>;
-  attachments?: Array<any>;
+  attachments?: Array<AttachmentDTO>;
   created_at: string;
   updated_at: string;
   list?: any;

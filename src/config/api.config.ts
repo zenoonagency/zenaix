@@ -225,5 +225,87 @@ export const API_CONFIG = {
       cardId: string
     ) =>
       `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}`,
+    // Anexos endpoints
+    attachments: {
+      create: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/attachments`,
+      findAll: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/attachments`,
+      download: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        attachmentId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/attachments/${attachmentId}/download`,
+      update: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        attachmentId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/attachments/${attachmentId}`,
+      delete: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        attachmentId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/attachments/${attachmentId}`,
+    },
+    // Subtarefas endpoints
+    subtasks: {
+      create: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/subtasks`,
+      findAll: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/subtasks`,
+      findById: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        subtaskId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/subtasks/${subtaskId}`,
+      update: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        subtaskId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/subtasks/${subtaskId}`,
+      delete: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        subtaskId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/subtasks/${subtaskId}`,
+    },
   },
 };
