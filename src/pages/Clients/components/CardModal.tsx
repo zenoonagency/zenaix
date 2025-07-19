@@ -29,8 +29,13 @@ import { Input } from "../../../components/ui/Input";
 import { Select } from "../../../components/ui/Select";
 import { Textarea } from "../../../components/ui/Textarea";
 import { attachmentService } from "../../../services/attachment.service";
+import { subtaskService } from "../../../services/subtask.service";
 import { useAuthStore } from "../../../store/authStore";
-import { AttachmentDTO } from "../../../types/card";
+import {
+  AttachmentDTO,
+  InputCreateSubtaskDTO,
+  InputUpdateSubtaskDTO,
+} from "../../../types/card";
 
 interface CardModalProps {
   isOpen: boolean;
@@ -70,6 +75,8 @@ export function CardModal({
   const { showToast } = useToast();
   const { token, organization } = useAuthStore();
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const [isCreatingSubtask, setIsCreatingSubtask] = useState(false);
+  const [isUpdatingSubtask, setIsUpdatingSubtask] = useState(false);
   const [title, setTitle] = useState(card?.title || "");
   const [description, setDescription] = useState(card?.description || "");
   const [value, setValue] = useState(card?.value?.toString() || "");
@@ -169,34 +176,158 @@ export function CardModal({
     ]);
   };
 
-  const handleAddSubtask = () => {
+  const handleAddSubtask = async () => {
     if (!newSubtaskTitle.trim()) return;
 
-    const newSubtask: Subtask = {
-      id: generateId(),
-      title: newSubtaskTitle.trim(),
-      description: newSubtaskDescription.trim(),
-      completed: false,
-    };
+    // Para criação de card (mode === "add"), manter comportamento local
+    if (mode === "add") {
+      const newSubtask: Subtask = {
+        id: generateId(),
+        title: newSubtaskTitle.trim(),
+        description: newSubtaskDescription.trim(),
+        completed: false,
+      };
 
-    setSubtasks((prev) => [...prev, newSubtask]);
-    setNewSubtaskTitle("");
-    setNewSubtaskDescription("");
-    setShowNewSubtaskForm(false);
-    showToast("success", "Subtarefa adicionada com sucesso!");
+      setSubtasks((prev) => [...prev, newSubtask]);
+      setNewSubtaskTitle("");
+      setNewSubtaskDescription("");
+      setShowNewSubtaskForm(false);
+      showToast("Subtarefa adicionada com sucesso!", "success");
+      return;
+    }
+
+    // Para edição de card (mode === "edit"), usar API
+    if (!token || !organization?.id || !card?.id) {
+      showToast("Erro de autenticação", "error");
+      return;
+    }
+
+    setIsCreatingSubtask(true);
+
+    try {
+      const subtaskData: InputCreateSubtaskDTO = {
+        title: newSubtaskTitle.trim(),
+        description: newSubtaskDescription.trim() || undefined,
+      };
+
+      const createdSubtasks = await subtaskService.createSubtask(
+        token,
+        organization.id,
+        boardId,
+        listId,
+        card.id,
+        subtaskData
+      );
+
+      // Converter para formato local
+      const newSubtasks = createdSubtasks.map((subtask) => ({
+        id: subtask.id,
+        title: subtask.title,
+        description: subtask.description || "",
+        completed: subtask.is_completed,
+      }));
+
+      setSubtasks((prev) => [...prev, ...newSubtasks]);
+      setNewSubtaskTitle("");
+      setNewSubtaskDescription("");
+      setShowNewSubtaskForm(false);
+      showToast("Subtarefa adicionada com sucesso!", "success");
+    } catch (error: any) {
+      console.error("Erro ao criar subtarefa:", error);
+      showToast(error.message || "Erro ao criar subtarefa", "error");
+    } finally {
+      setIsCreatingSubtask(false);
+    }
   };
 
-  const handleToggleSubtask = (id: string) => {
-    setSubtasks(
-      subtasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
-    );
+  const handleToggleSubtask = async (id: string) => {
+    const subtask = subtasks.find((task) => task.id === id);
+    if (!subtask) return;
+
+    // Para criação de card (mode === "add"), manter comportamento local
+    if (mode === "add") {
+      setSubtasks(
+        subtasks.map((task) =>
+          task.id === id ? { ...task, completed: !task.completed } : task
+        )
+      );
+      return;
+    }
+
+    // Para edição de card (mode === "edit"), usar API
+    if (!token || !organization?.id || !card?.id) {
+      showToast("Erro de autenticação", "error");
+      return;
+    }
+
+    setIsUpdatingSubtask(true);
+
+    try {
+      const updateData: InputUpdateSubtaskDTO = {
+        is_completed: !subtask.completed,
+      };
+
+      const updatedSubtask = await subtaskService.updateSubtask(
+        token,
+        organization.id,
+        boardId,
+        listId,
+        card.id,
+        id,
+        updateData
+      );
+
+      // Atualizar estado local
+      setSubtasks(
+        subtasks.map((task) =>
+          task.id === id
+            ? {
+                ...task,
+                completed: updatedSubtask.is_completed,
+                title: updatedSubtask.title,
+                description: updatedSubtask.description || "",
+              }
+            : task
+        )
+      );
+    } catch (error: any) {
+      console.error("Erro ao atualizar subtarefa:", error);
+      showToast(error.message || "Erro ao atualizar subtarefa", "error");
+    } finally {
+      setIsUpdatingSubtask(false);
+    }
   };
 
-  const handleDeleteSubtask = (id: string) => {
-    setSubtasks(subtasks.filter((task) => task.id !== id));
-    showToast("Subtarefa removida com sucesso!", "success");
+  const handleDeleteSubtask = async (id: string) => {
+    // Para criação de card (mode === "add"), manter comportamento local
+    if (mode === "add") {
+      setSubtasks(subtasks.filter((task) => task.id !== id));
+      showToast("Subtarefa removida com sucesso!", "success");
+      return;
+    }
+
+    // Para edição de card (mode === "edit"), usar API
+    if (!token || !organization?.id || !card?.id) {
+      showToast("Erro de autenticação", "error");
+      return;
+    }
+
+    try {
+      await subtaskService.deleteSubtask(
+        token,
+        organization.id,
+        boardId,
+        listId,
+        card.id,
+        id
+      );
+
+      setSubtasks(subtasks.filter((task) => task.id !== id));
+      showToast("Subtarefa removida com sucesso!", "success");
+    } catch (error: any) {
+      console.error("Erro ao remover subtarefa:", error);
+      showToast(error.message || "Erro ao remover subtarefa", "error");
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -821,10 +952,12 @@ export function CardModal({
                         <button
                           type="button"
                           onClick={handleAddSubtask}
-                          disabled={!newSubtaskTitle.trim()}
+                          disabled={
+                            !newSubtaskTitle.trim() || isCreatingSubtask
+                          }
                           className="px-3 py-1.5 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Adicionar
+                          {isCreatingSubtask ? "Criando..." : "Adicionar"}
                         </button>
                       </div>
                     </div>
@@ -842,12 +975,17 @@ export function CardModal({
                       <button
                         type="button"
                         onClick={() => handleToggleSubtask(task.id)}
+                        disabled={isUpdatingSubtask}
                         className={`mt-1 ${
                           task.completed
                             ? "text-[#7f00ff]"
                             : isDark
                             ? "text-gray-600"
                             : "text-gray-400"
+                        } ${
+                          isUpdatingSubtask
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
                         }`}
                       >
                         {task.completed ? (
