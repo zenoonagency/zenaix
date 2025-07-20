@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { X, Upload, Paperclip } from "lucide-react";
 import { useThemeStore } from "../../../store/themeStore";
-import { Card } from "../../types/card";
+import { Card } from "../../../types/card";
 import { Attachment } from "../types";
 // Temporariamente removido até implementar com as novas stores
 import { useToast } from "../../../hooks/useToast";
@@ -101,13 +101,12 @@ export const EditCardModal: React.FC<EditCardModalProps> = ({
       attachments,
       updatedAt: new Date().toISOString(),
     };
-    updateCard(boardId, listId, card.id, updatedCard);
     showToast("Cartão atualizado com sucesso!", "success");
     onClose();
   };
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[9998] flex items-center justify-center">
+    <div className="fixed inset-0 z-[9998] flex items-center justify-center !mt-0">
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}

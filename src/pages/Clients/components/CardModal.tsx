@@ -82,7 +82,7 @@ export function CardModal({
   const [phone, setPhone] = useState(initialData?.phone || "");
   const [priority, setPriority] = useState(initialData?.priority || "");
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
-    initialData?.tag_ids || []
+    initialData?.tags?.map((tag: any) => tag.id) || []
   );
   const [scheduledDate, setScheduledDate] = useState(
     initialData?.scheduledDate || ""
@@ -110,6 +110,14 @@ export function CardModal({
   const [removingSubtaskId, setRemovingSubtaskId] = useState<string | null>(
     null
   );
+
+  React.useEffect(() => {
+    if (initialData?.tags) {
+      setSelectedTagIds(initialData.tags.map((tag: any) => tag.id));
+    } else {
+      setSelectedTagIds([]);
+    }
+  }, [initialData?.tags]);
 
   const isDark = theme === "dark";
 

@@ -32,6 +32,7 @@ import { useTeamMembersStore } from "../../../store/teamMembersStore";
 import { subtaskService } from "../../../services/subtask.service";
 import { useAuthStore } from "../../../store/authStore";
 import { cardService } from "../../../services/card.service";
+import { attachmentService } from "../../../services/attachment.service";
 
 interface CardDetailModalProps {
   isOpen: boolean;
@@ -78,6 +79,9 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   const [showDeleteCardConfirm, setShowDeleteCardConfirm] =
     React.useState(false);
   const [isDeletingCard, setIsDeletingCard] = React.useState(false);
+  const [downloadingAttachmentId, setDownloadingAttachmentId] = React.useState<
+    string | null
+  >(null);
 
   React.useEffect(() => {
     setSubtasks(card.subtasks || []);
@@ -229,52 +233,71 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
     setShowDeleteAttachmentConfirm(null);
   };
 
-  const handleOpenAttachment = (url: string) => {
-    // Se for uma URL base64, criar um objeto URL temporário
-    if (url.startsWith("data:")) {
-      const newWindow = window.open();
-      if (newWindow) {
-        newWindow.document.write(`
-          <iframe src="${url}" style="width:100%; height:100%; border:none;"></iframe>
-        `);
-      }
-    } else {
+  // Função para abrir anexo em nova guia
+  const handleOpenAttachment = async (attachment: any) => {
+    if (!token || !organization?.id) return;
+    setDownloadingAttachmentId(attachment.id);
+    try {
+      console.log({
+        token,
+        organizationId: organization.id,
+        boardId,
+        listId,
+        cardId: card.id,
+        attachmentId: attachment.id,
+      });
+      const url = await attachmentService.downloadAttachment(
+        token,
+        organization.id,
+        boardId,
+        listId,
+        card.id,
+        attachment.id
+      );
       window.open(url, "_blank");
+    } catch (error: any) {
+      showToast(error.message || "Erro ao abrir anexo", "error");
+    } finally {
+      setDownloadingAttachmentId(null);
     }
   };
-
-  const handleDownloadAttachment = async (url: string, filename: string) => {
+  // Função para baixar anexo
+  const handleDownloadAttachment = async (attachment: any) => {
+    if (!token || !organization?.id) return;
+    setDownloadingAttachmentId(attachment.id);
     try {
-      // Se for uma URL base64
-      if (url.startsWith("data:")) {
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = downloadUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(downloadUrl);
-      }
-    } catch (error) {
-      console.error("Erro ao baixar arquivo:", error);
-      showToast("Erro ao baixar o arquivo", "error");
+      console.log({
+        token,
+        organizationId: organization.id,
+        boardId,
+        listId,
+        attachmentId: attachment.id,
+      });
+      const url = await attachmentService.downloadAttachment(
+        token,
+        organization.id,
+        boardId,
+        listId,
+        card.id, // cardId correto
+        attachment.id
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = attachment.file_name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error: any) {
+      showToast(error.message || "Erro ao baixar anexo", "error");
+    } finally {
+      setDownloadingAttachmentId(null);
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9998] flex items-center justify-center">
+    <div className="fixed inset-0 z-[9998] flex items-center justify-center !mt-0">
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
@@ -308,16 +331,17 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
             </div>
           )}
           <div className="flex items-center gap-2">
-            {onEdit && (
-              <button
-                onClick={onEdit}
-                className={`p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors`}
-                title="Editar card"
-                disabled={isDeletingCard}
-              >
-                <Edit2 className="w-5 h-5" />
-              </button>
-            )}
+            <button
+              onClick={() => {
+                onClose();
+                if (onEdit) onEdit();
+              }}
+              className="p-2 rounded-full text-[#7f00ff] hover:text-purple-700 transition-colors"
+              title="Editar card"
+              disabled={isDeletingCard}
+            >
+              <Edit2 className="w-5 h-5" />
+            </button>
             <button
               onClick={() => setShowDeleteCardConfirm(true)}
               className="p-2 rounded-full text-red-500 hover:text-red-600 transition-colors"
@@ -506,7 +530,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
           )}
 
           {/* 9. Marcadores */}
-          {card.tag_ids?.length > 0 && (
+          {card.tags && card.tags.length > 0 && (
             <div className="p-4 rounded-lg border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
               <h4
                 className={`text-sm font-medium ${
@@ -516,19 +540,15 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                 Marcadores
               </h4>
               <div className="flex flex-wrap gap-2">
-                {card.tag_ids.map((tagId) => {
-                  const tag = tags.find((t) => t.id === tagId);
-                  if (!tag) return null;
-                  return (
-                    <span
-                      key={tag.id}
-                      className="px-3 py-1 rounded-full text-sm font-medium"
-                      style={{ backgroundColor: tag.color, color: "#fff" }}
-                    >
-                      {tag.name}
-                    </span>
-                  );
-                })}
+                {card.tags.map((tag: any) => (
+                  <span
+                    key={tag.id}
+                    className="px-3 py-1 rounded-full text-sm font-medium"
+                    style={{ backgroundColor: tag.color, color: "#fff" }}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
               </div>
             </div>
           )}
@@ -627,25 +647,64 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                     </div>
                     <div className="flex items-center gap-2 ml-auto">
                       <button
-                        onClick={() =>
-                          handleOpenAttachment(attachment.file_url)
-                        }
+                        onClick={() => handleOpenAttachment(attachment)}
                         className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
                         title="Visualizar anexo"
+                        disabled={downloadingAttachmentId === attachment.id}
                       >
-                        <ExternalLink className="w-4 h-4 text-blue-500" />
+                        {downloadingAttachmentId === attachment.id ? (
+                          <svg
+                            className="animate-spin w-4 h-4 text-blue-500"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              fill="none"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                            />
+                          </svg>
+                        ) : (
+                          <ExternalLink className="w-4 h-4 text-blue-500" />
+                        )}
                       </button>
                       <button
-                        onClick={() =>
-                          handleDownloadAttachment(
-                            attachment.file_url,
-                            attachment.file_name
-                          )
-                        }
+                        onClick={() => handleDownloadAttachment(attachment)}
                         className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
                         title="Baixar anexo"
+                        disabled={downloadingAttachmentId === attachment.id}
                       >
-                        <Download className="w-4 h-4 text-blue-500" />
+                        {downloadingAttachmentId === attachment.id ? (
+                          <svg
+                            className="animate-spin w-4 h-4 text-blue-500"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              fill="none"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                            />
+                          </svg>
+                        ) : (
+                          <Download className="w-4 h-4 text-blue-500" />
+                        )}
                       </button>
                       <button
                         onClick={() =>
