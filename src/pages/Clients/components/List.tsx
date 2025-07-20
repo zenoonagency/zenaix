@@ -1,4 +1,3 @@
-// src/pages/Clients/components/List.tsx
 import React, { useState, useRef, useMemo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import {
@@ -10,12 +9,6 @@ import { BoardList, BoardCard } from "../../../types/board";
 import {
   Plus,
   MoreVertical,
-  Edit2,
-  Copy,
-  Trash2,
-  ArrowUpDown,
-  Check,
-  CheckCircle2,
 } from "lucide-react";
 import { useThemeStore } from "../../../store/themeStore";
 import { useToast } from "../../../hooks/useToast";
@@ -27,11 +20,9 @@ import { useCardStore } from "../../../store/cardStore";
 import { useAuthStore } from "../../../store/authStore";
 import { InputUpdateListDTO } from "../../../types/list";
 import { InputCreateCardDTO } from "../../../types/card";
-import { mutate } from "swr";
-import { VariableSizeList as VirtualList } from "react-window";
-import AutoSizer from "react-virtualized-auto-sizer";
 import "../../../styles/scrollbar.css";
 import { ListMenuModal } from "./ListMenuModal";
+import { CardModal } from "./CardModal";
 
 interface ListProps {
   list: BoardList;
@@ -341,7 +332,7 @@ export const List = React.memo(
           </div>
 
           <div
-            className="p-2 pb-2 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar transition-all duration-200 kanban-cards-area"
+            className="py-6 px-3 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar transition-all duration-200 kanban-cards-area"
             style={{
               minHeight: list.cards.length === 0 ? "100px" : "auto",
             }}
@@ -384,6 +375,16 @@ export const List = React.memo(
             </button>
           </div>
         </div>
+        {showCardModal && (
+          <CardModal
+            isOpen={showCardModal}
+            onClose={() => setShowCardModal(false)}
+            onSave={handleCreateCard}
+            mode="add"
+            boardId={boardId}
+            listId={list.id}
+          />
+        )}
         {modal}
       </>
     );

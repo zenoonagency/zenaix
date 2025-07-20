@@ -11,7 +11,7 @@ import { useToastStore } from "../components/Notification";
 import { useListStore } from "./listStore";
 import { APIError } from "../services/errors/api.errors";
 import { OutputListDTO } from "../types/list";
-import { OutputCardDTO } from "../types/card";
+import { AttachmentDTO, OutputCardDTO, SubtaskDTO } from "../types/card";
 
 interface BoardState {
   boards: Board[];
@@ -40,9 +40,18 @@ interface BoardState {
   addCardToActiveBoard: (card: OutputCardDTO) => void;
   updateCardInActiveBoard: (card: OutputCardDTO) => void;
   removeCardFromActiveBoard: (cardId: string, listId: string) => void;
+  addSubtaskToCard: (subtask: SubtaskDTO) => void;
+  updateSubtaskInCard: (subtask: SubtaskDTO) => void;
+  removeSubtaskFromCard: (subtask: { id: string; card_id: string }) => void;
+  addAttachmentToCard: (attachment: AttachmentDTO) => void;
+  updateAttachmentInCard: (attachment: AttachmentDTO) => void;
+  removeAttachmentFromCard: (attachment: {
+    id: string;
+    card_id: string;
+  }) => void;
 
   fetchAllBoards: (token: string, organizationId: string) => Promise<void>;
-  fetchBoardById: (boardId: string) => Promise<void>;
+  fetchFullBoard: (boardId: string) => Promise<void>;
   selectAndLoadBoard: (boardId: string) => Promise<void>;
 }
 
@@ -219,7 +228,6 @@ export const useBoardStore = create<BoardState>()(
 
       setActiveBoardId: (boardId) => {
         set({ activeBoardId: boardId });
-        // Quando um board é selecionado, salvá-lo como último usado
         if (boardId) {
           get().setLastUsedBoardId(boardId);
         }
@@ -229,7 +237,6 @@ export const useBoardStore = create<BoardState>()(
 
       setActiveBoard: (board) => set({ activeBoard: board }),
 
-      // Função para selecionar automaticamente o board ativo
       selectActiveBoard: (boards: Board[]) => {
         const state = get();
 
@@ -281,6 +288,12 @@ export const useBoardStore = create<BoardState>()(
           });
 
           get().selectActiveBoard(boards);
+
+          const activeId = get().activeBoardId;
+          if (activeId) {
+            console.log(`[BoardStore] A revalidar o quadro ativo: ${activeId}`);
+            get().fetchFullBoard(activeId);
+          }
         } catch (error: any) {
           console.error("Erro ao buscar quadros:", error);
           const errorMessage =
@@ -292,7 +305,7 @@ export const useBoardStore = create<BoardState>()(
         }
       },
 
-      fetchBoardById: async (boardId) => {
+      fetchFullBoard: async (boardId) => {
         const { token, organization } = useAuthStore.getState();
         if (!token || !organization.id) {
           console.error("Token ou organização não encontrados");
@@ -336,13 +349,173 @@ export const useBoardStore = create<BoardState>()(
           get().setActiveBoardId(boardId);
           get().setLastUsedBoardId(boardId);
 
-          await get().fetchBoardById(boardId);
+          await get().fetchFullBoard(boardId);
         } catch (error: any) {
           console.error("Erro ao carregar board:", error);
           const errorMessage =
             error?.message || error?.error || "Erro ao carregar quadro";
           useToastStore.getState().addToast(errorMessage, "error");
         }
+      },
+
+      addSubtaskToCard: (subtask) => {
+        set((state) => {
+          if (!state.activeBoard) return {};
+          return {
+            activeBoard: {
+              ...state.activeBoard,
+              lists: state.activeBoard.lists.map((list) => ({
+                ...list,
+                cards: list.cards.map((card) => {
+                  if (card.id === subtask.card_id) {
+                    // Adiciona a nova subtarefa, prevenindo duplicados
+                    const subtaskExists = card.subtasks.some(
+                      (s) => s.id === subtask.id
+                    );
+                    return {
+                      ...card,
+                      subtasks: subtaskExists
+                        ? card.subtasks
+                        : [...card.subtasks, subtask],
+                    };
+                  }
+                  return card;
+                }),
+              })),
+            },
+          };
+        });
+      },
+
+      updateSubtaskInCard: (updatedSubtask) => {
+        set((state) => {
+          if (!state.activeBoard) return {};
+          return {
+            activeBoard: {
+              ...state.activeBoard,
+              lists: state.activeBoard.lists.map((list) => ({
+                ...list,
+                cards: list.cards.map((card) => {
+                  if (card.id === updatedSubtask.card_id) {
+                    return {
+                      ...card,
+                      subtasks: card.subtasks.map((subtask) =>
+                        subtask.id === updatedSubtask.id
+                          ? updatedSubtask
+                          : subtask
+                      ),
+                    };
+                  }
+                  return card;
+                }),
+              })),
+            },
+          };
+        });
+      },
+
+      removeSubtaskFromCard: (subtaskInfo) => {
+        set((state) => {
+          if (!state.activeBoard) return {};
+          return {
+            activeBoard: {
+              ...state.activeBoard,
+              lists: state.activeBoard.lists.map((list) => ({
+                ...list,
+                cards: list.cards.map((card) => {
+                  if (card.id === subtaskInfo.card_id) {
+                    return {
+                      ...card,
+                      subtasks: card.subtasks.filter(
+                        (subtask) => subtask.id !== subtaskInfo.id
+                      ),
+                    };
+                  }
+                  return card;
+                }),
+              })),
+            },
+          };
+        });
+      },
+      addAttachmentToCard: (attachment) => {
+        set((state) => {
+          if (!state.activeBoard) return {};
+          return {
+            activeBoard: {
+              ...state.activeBoard,
+              lists: state.activeBoard.lists.map((list) => ({
+                ...list,
+                cards: list.cards.map((card) => {
+                  if (card.id === attachment.card_id) {
+                    const attachmentExists = card.attachments.some(
+                      (a) => a.id === attachment.id
+                    );
+                    return {
+                      ...card,
+                      attachments: attachmentExists
+                        ? card.attachments
+                        : [...card.attachments, attachment],
+                    };
+                  }
+                  return card;
+                }),
+              })),
+            },
+          };
+        });
+      },
+
+      updateAttachmentInCard: (updatedAttachment) => {
+        set((state) => {
+          if (!state.activeBoard) return {};
+          return {
+            activeBoard: {
+              ...state.activeBoard,
+              lists: state.activeBoard.lists.map((list) => ({
+                ...list,
+                cards: list.cards.map((card) => {
+                  if (card.id === updatedAttachment.card_id) {
+                    return {
+                      ...card,
+                      attachments: card.attachments.map((attachment) =>
+                        attachment.id === updatedAttachment.id
+                          ? updatedAttachment
+                          : attachment
+                      ),
+                    };
+                  }
+                  return card;
+                }),
+              })),
+            },
+          };
+        });
+      },
+
+      removeAttachmentFromCard: (attachmentInfo) => {
+        set((state) => {
+          if (!state.activeBoard) return {};
+          return {
+            activeBoard: {
+              ...state.activeBoard,
+              lists: state.activeBoard.lists.map((list) => ({
+                ...list,
+                cards: list.cards.map((card) => {
+                  if (card.id === attachmentInfo.card_id) {
+                    return {
+                      ...card,
+                      attachments: card.attachments.filter(
+                        (attachment) => attachment.id !== attachmentInfo.id
+                      ),
+                    };
+                  }
+                  return card;
+                }),
+              })),
+            },
+          };
+        });
       },
     }),
     {

@@ -1,10 +1,16 @@
-import React, { SelectHTMLAttributes } from 'react';
+import React, { SelectHTMLAttributes } from "react";
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
 }
 
-export function Select({ label, className = '', children, ...props }: SelectProps) {
+export function Select({
+  label,
+  className = "",
+  children,
+  ...props
+}: SelectProps) {
+  const isDisabled = props.disabled;
   return (
     <div>
       {label && (
@@ -13,14 +19,20 @@ export function Select({ label, className = '', children, ...props }: SelectProp
         </label>
       )}
       <div className="relative">
-        <div className="absolute -inset-[1px] bg-gradient-to-r from-[#7f00ff] to-[#e100ff] rounded-lg opacity-50"></div>
+        {!isDisabled && (
+          <div className="absolute -inset-[1px] bg-gradient-to-r from-[#7f00ff] to-[#e100ff] rounded-lg opacity-50"></div>
+        )}
         <select
           {...props}
-          className={`relative w-full px-3 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg text-gray-900 dark:text-white focus:outline-none ${className}`}
+          className={`relative w-full px-3 py-2 ${
+            isDisabled
+              ? "bg-white dark:bg-dark-700"
+              : "bg-gray-50 dark:bg-dark-700"
+          } rounded-lg text-gray-900 dark:text-white focus:outline-none ${className}`}
         >
           {children}
         </select>
       </div>
     </div>
   );
-} 
+}

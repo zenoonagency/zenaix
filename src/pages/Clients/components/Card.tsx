@@ -129,6 +129,7 @@ const Card = React.memo(
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showCardMenuModal, setShowCardMenuModal] = useState(false);
+    const [isDeletingCard, setIsDeletingCard] = useState(false);
     if (!card || !boardId || !listId) {
       return null;
     }
@@ -235,7 +236,7 @@ const Card = React.memo(
     }, []);
     const confirmDelete = useCallback(async () => {
       if (!token || !organization?.id) return;
-
+      setIsDeletingCard(true);
       try {
         await cardService.deleteCard(
           token,
@@ -244,10 +245,7 @@ const Card = React.memo(
           listId,
           cardData.id
         );
-
-        // Remover da cardStore
         removeCard(cardData.id);
-
         setShowDeleteConfirm(false);
         showToast("Card excluído com sucesso!", "success");
       } catch (err: any) {
@@ -255,6 +253,8 @@ const Card = React.memo(
         const errorMessage =
           err?.message || err?.error || "Erro ao excluir card";
         showToast(errorMessage, "error");
+      } finally {
+        setIsDeletingCard(false);
       }
     }, [
       token,
@@ -467,13 +467,14 @@ const Card = React.memo(
         {showDeleteConfirm && (
           <ConfirmationModal
             isOpen={showDeleteConfirm}
-            onClose={closeDeleteConfirm}
+            onClose={isDeletingCard ? undefined : closeDeleteConfirm}
             onConfirm={confirmDelete}
             title="Excluir Card"
             message={`Tem certeza que deseja excluir o card "${cardData.title}"? Esta ação não pode ser desfeita.`}
             confirmText="Excluir"
             cancelText="Cancelar"
-            confirmButtonClass="danger"
+            confirmButtonClass="bg-red-500 hover:bg-red-600"
+            isLoading={isDeletingCard}
           />
         )}
 
@@ -508,6 +509,7 @@ const Card = React.memo(
             card={cardData}
             boardId={boardId}
             listId={listId}
+            onEdit={handleEdit}
           />
         )}
       </>

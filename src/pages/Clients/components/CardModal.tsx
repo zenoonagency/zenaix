@@ -7,7 +7,6 @@ import {
   Calendar,
   Clock,
   User,
-  ListTodo,
   CheckSquare,
   Square,
   DollarSign,
@@ -18,13 +17,11 @@ import {
 } from "lucide-react";
 import { useTagStore } from "../../../store/tagStore";
 import { useTeamMembersStore } from "../../../store/teamMembersStore";
-import { CustomFieldType, Attachment } from "../types";
+import { Attachment } from "../types";
 import { useThemeStore } from "../../../store/themeStore";
 import { ConfirmationModal } from "../../../components/ConfirmationModal";
 import { useToast } from "../../../hooks/useToast";
 import { generateId } from "../../../utils/generateId";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Input } from "../../../components/ui/Input";
 import { Select } from "../../../components/ui/Select";
 import { Textarea } from "../../../components/ui/Textarea";
@@ -38,6 +35,7 @@ import {
   InputUpdateSubtaskDTO,
   CardPriority,
   OutputCardDTO,
+  SubtaskDTO,
 } from "../../../types/card";
 
 interface CardModalProps {
@@ -50,11 +48,12 @@ interface CardModalProps {
   initialData?: any;
 }
 
-interface Subtask {
-  id: string;
-  title: string;
-  description: string;
-  completed: boolean;
+// Função utilitária para normalizar nomes de arquivos
+function normalizeFileName(name: string) {
+  return name
+    .replace(/\s+/g, "_") // espaços por underline
+    .replace(/[^a-zA-Z0-9._-]/g, "") // remove caracteres especiais
+    .replace(/_+/g, "_"); // múltiplos underlines para um só
 }
 
 export function CardModal({
@@ -83,7 +82,7 @@ export function CardModal({
   const [phone, setPhone] = useState(initialData?.phone || "");
   const [priority, setPriority] = useState(initialData?.priority || "");
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
-    initialData?.tagIds || []
+    initialData?.tag_ids || []
   );
   const [scheduledDate, setScheduledDate] = useState(
     initialData?.scheduledDate || ""
@@ -94,18 +93,23 @@ export function CardModal({
   const [responsibleId, setResponsibleId] = useState(
     initialData?.responsibleId || ""
   );
-  const [subtasks, setSubtasks] = useState<Subtask[]>(
+  const [subtasks, setSubtasks] = useState<SubtaskDTO[]>(
     initialData?.subtasks || []
   );
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [newSubtaskDescription, setNewSubtaskDescription] = useState("");
   const [showNewSubtaskForm, setShowNewSubtaskForm] = useState(false);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>(
     initialData?.attachments || []
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [removingAttachmentId, setRemovingAttachmentId] = useState<
+    string | null
+  >(null);
+  const [removingSubtaskId, setRemovingSubtaskId] = useState<string | null>(
+    null
+  );
 
   const isDark = theme === "dark";
 
@@ -122,7 +126,7 @@ export function CardModal({
       scheduledDate !== initialData.scheduledDate ||
       scheduledTime !== initialData.scheduledTime ||
       responsibleId !== initialData.responsibleId ||
-      JSON.stringify(selectedTagIds) !== JSON.stringify(initialData.tagIds) ||
+      JSON.stringify(selectedTagIds) !== JSON.stringify(initialData.tag_ids) ||
       JSON.stringify(subtasks) !== JSON.stringify(initialData.subtasks)
     );
   };
@@ -144,11 +148,12 @@ export function CardModal({
 
     // Para criação de card (mode === "add"), manter comportamento local
     if (mode === "add") {
-      const newSubtask: Subtask = {
-        id: generateId(), // ID temporário apenas para UI
+      const newSubtask: SubtaskDTO = {
+        id: generateId(),
         title: newSubtaskTitle.trim(),
         description: newSubtaskDescription.trim(),
-        completed: false,
+        is_completed: false,
+        card_id: initialData?.id || "",
       };
 
       setSubtasks((prev) => [...prev, newSubtask]);
@@ -187,7 +192,8 @@ export function CardModal({
         id: subtask.id,
         title: subtask.title,
         description: subtask.description || "",
-        completed: subtask.is_completed,
+        is_completed: subtask.is_completed,
+        card_id: subtask.card_id,
       }));
 
       setSubtasks((prev) => [...prev, ...newSubtasks]);
@@ -211,7 +217,13 @@ export function CardModal({
     if (mode === "add") {
       setSubtasks(
         subtasks.map((task) =>
-          task.id === id ? { ...task, completed: !task.completed } : task
+          task.id === id
+            ? {
+                ...task,
+                is_completed: !task.is_completed,
+                card_id: task.card_id,
+              }
+            : task
         )
       );
       return;
@@ -227,7 +239,7 @@ export function CardModal({
 
     try {
       const updateData: InputUpdateSubtaskDTO = {
-        is_completed: !subtask.completed,
+        is_completed: !subtask.is_completed,
       };
 
       const updatedSubtask = await subtaskService.updateSubtask(
@@ -246,7 +258,7 @@ export function CardModal({
           task.id === id
             ? {
                 ...task,
-                completed: updatedSubtask.is_completed,
+                is_completed: updatedSubtask.is_completed,
                 title: updatedSubtask.title,
                 description: updatedSubtask.description || "",
               }
@@ -262,19 +274,20 @@ export function CardModal({
   };
 
   const handleDeleteSubtask = async (id: string) => {
+    setRemovingSubtaskId(id);
     // Para criação de card (mode === "add"), manter comportamento local
     if (mode === "add") {
       setSubtasks(subtasks.filter((task) => task.id !== id));
       showToast("Subtarefa removida com sucesso!", "success");
+      setRemovingSubtaskId(null);
       return;
     }
-
     // Para edição de card (mode === "edit"), usar API
     if (!token || !organization?.id || !initialData?.id) {
       showToast("Erro de autenticação", "error");
+      setRemovingSubtaskId(null);
       return;
     }
-
     try {
       await subtaskService.deleteSubtask(
         token,
@@ -284,12 +297,13 @@ export function CardModal({
         initialData.id,
         id
       );
-
       setSubtasks(subtasks.filter((task) => task.id !== id));
       showToast("Subtarefa removida com sucesso!", "success");
     } catch (error: any) {
       console.error("Erro ao remover subtarefa:", error);
       showToast(error.message || "Erro ao remover subtarefa", "error");
+    } finally {
+      setRemovingSubtaskId(null);
     }
   };
 
@@ -297,10 +311,6 @@ export function CardModal({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    console.log("[CardModal] handleFileUpload iniciado");
-    console.log("[CardModal] Arquivos selecionados:", files);
-
-    // Limite conforme documentação: 1 anexo por card, 5MB
     const maxSize = 5 * 1024 * 1024;
     const allowedTypes = [
       "image/jpeg",
@@ -310,13 +320,6 @@ export function CardModal({
       "text/plain",
     ];
 
-    // Verificar se já atingiu o limite de anexos (1 por card conforme doc)
-    if (attachments.length >= 1) {
-      showToast("Limite máximo de 1 anexo por cartão atingido", "error");
-      return;
-    }
-
-    // Para criação de card (mode === "add"), apenas selecionar o arquivo
     if (mode === "add") {
       console.log("[CardModal] Modo 'add' - armazenando arquivo localmente");
 
@@ -409,6 +412,11 @@ export function CardModal({
         }
 
         let finalFile = file;
+        const normalizedFileName = normalizeFileName(file.name);
+        if (file.name !== normalizedFileName) {
+          // Cria um novo File com o nome normalizado
+          finalFile = new File([file], normalizedFileName, { type: file.type });
+        }
 
         // Se for uma imagem, comprimir antes do upload
         if (file.type.startsWith("image/")) {
@@ -424,28 +432,66 @@ export function CardModal({
         }
 
         // Upload via API
-        const uploadedAttachments = await attachmentService.createAttachment(
-          token,
-          organization.id,
-          boardId,
-          listId,
-          initialData.id,
-          finalFile
-        );
-
-        // Converter para formato local
-        const newAttachments = uploadedAttachments.map(
-          (attachment: AttachmentDTO) => ({
+        let newAttachments = [];
+        if (attachments.length > 0) {
+          // Já existe anexo, substituir o primeiro
+          const existing = attachments[0];
+          const updated: any = await attachmentService.updateAttachment(
+            token,
+            organization.id,
+            boardId,
+            listId,
+            initialData.id,
+            existing.id,
+            finalFile
+          );
+          // O backend pode retornar array ou objeto único
+          let updatedArray = [];
+          if (Array.isArray(updated)) {
+            updatedArray = updated;
+          } else if (updated?.data) {
+            updatedArray = [updated.data];
+          } else if (updated) {
+            updatedArray = [updated];
+          }
+          newAttachments = updatedArray.map((attachment: any) => ({
             id: attachment.id,
             name: attachment.file_name,
             url: attachment.file_url,
-            size: attachment.fileSize,
+            size: attachment.file_size,
             createdAt: attachment.created_at,
-          })
-        );
-
-        setAttachments((prev) => [...prev, ...newAttachments]);
-        showToast(`Arquivo ${file.name} adicionado com sucesso!`, "success");
+          }));
+          setAttachments(newAttachments); // substitui o antigo
+          showToast(`Arquivo ${file.name} atualizado com sucesso!`, "success");
+        } else {
+          // Não existe anexo, criar
+          const uploadedAttachments: any =
+            await attachmentService.createAttachment(
+              token,
+              organization.id,
+              boardId,
+              listId,
+              initialData.id,
+              finalFile
+            );
+          let attachmentsArray = [];
+          if (Array.isArray(uploadedAttachments)) {
+            attachmentsArray = uploadedAttachments;
+          } else if (uploadedAttachments?.data) {
+            attachmentsArray = [uploadedAttachments.data];
+          } else if (uploadedAttachments) {
+            attachmentsArray = [uploadedAttachments];
+          }
+          newAttachments = attachmentsArray.map((attachment: any) => ({
+            id: attachment.id,
+            name: attachment.file_name,
+            url: attachment.file_url,
+            size: attachment.file_size,
+            createdAt: attachment.created_at,
+          }));
+          setAttachments((prev) => [...prev, ...newAttachments]);
+          showToast(`Arquivo ${file.name} adicionado com sucesso!`, "success");
+        }
       }
     } catch (error: any) {
       console.error("Erro ao fazer upload:", error);
@@ -461,9 +507,11 @@ export function CardModal({
   };
 
   const handleRemoveAttachment = async (attachmentId: string) => {
+    setRemovingAttachmentId(attachmentId);
     if (!token || !organization?.id || !initialData?.id) {
       // Para cards novos, apenas remover do estado local
       setAttachments(attachments.filter((a) => a.id !== attachmentId));
+      setRemovingAttachmentId(null);
       return;
     }
 
@@ -482,6 +530,8 @@ export function CardModal({
     } catch (error: any) {
       console.error("Erro ao remover anexo:", error);
       showToast(error.message || "Erro ao remover anexo", "error");
+    } finally {
+      setRemovingAttachmentId(null);
     }
   };
 
@@ -580,574 +630,578 @@ export function CardModal({
 
   if (!isOpen) return null;
 
-  const completedSubtasks = subtasks.filter((task) => task.completed).length;
+  const completedSubtasks = subtasks.filter((task) => task.is_completed).length;
   const progress =
     subtasks.length > 0 ? (completedSubtasks / subtasks.length) * 100 : 0;
 
   return (
-    <>
+    <div className="fixed inset-0 flex items-center justify-center z-[999] !mt-0">
       <div
-        className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[9998]"
-        onClick={isSubmitting ? undefined : handleClose}
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+        onClick={handleClose}
+      />
+      <div
+        className="relative max-w-4xl w-full bg-white dark:bg-dark-900 rounded-lg shadow-xl p-8 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div
-          className={`${
-            isDark
-              ? "bg-dark-900 border border-white/10"
-              : "bg-white border border-gray-200"
-          } 
-            rounded-lg w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto shadow-xl
-          `}
-          onClick={(e) => {
-            if (!isSubmitting) {
-              e.stopPropagation();
-            }
-          }}
-        >
-          <div className="flex justify-between items-center mb-6">
-            <h2
-              className={`text-xl font-semibold ${
-                isDark ? "text-gray-200" : "text-gray-800"
-              }`}
-            >
-              {mode === "edit" ? "Editar Cartão" : "Novo Cartão"}
-            </h2>
-            <button
-              onClick={onClose}
-              disabled={isSubmitting}
-              className={`${
-                isDark
-                  ? "text-gray-400 hover:text-gray-300"
-                  : "text-gray-500 hover:text-gray-700"
-              } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              <X size={20} />
-            </button>
+        <div className="flex justify-between items-center mb-6">
+          <h2
+            className={`text-xl font-semibold ${
+              isDark ? "text-gray-200" : "text-gray-800"
+            }`}
+          >
+            {mode === "edit" ? "Editar Cartão" : "Novo Cartão"}
+          </h2>
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className={`${
+              isDark
+                ? "text-gray-400 hover:text-gray-300"
+                : "text-gray-500 hover:text-gray-700"
+            } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-6">
+            <div>
+              <label
+                className={`block text-sm font-medium ${
+                  isDark ? "text-gray-300" : "text-gray-700"
+                } mb-1`}
+              >
+                Título
+              </label>
+              <Input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                disabled={isSubmitting}
+                className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                className={`block text-sm font-medium ${
+                  isDark ? "text-gray-300" : "text-gray-700"
+                } mb-1`}
+              >
+                Descrição
+              </label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                disabled={isSubmitting}
+                className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                rows={4}
+                placeholder="Digite a descrição do cartão..."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <DollarSign className="w-4 h-4 text-green-500" />
+                  <label
+                    className={`block text-sm font-medium ${
+                      isDark ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Valor
+                  </label>
+                </div>
+                <Input
+                  type="number"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  disabled={isSubmitting}
+                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                  step="0.01"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Phone className="w-4 h-4 text-blue-500" />
+                  <label
+                    className={`block text-sm font-medium ${
+                      isDark ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Telefone
+                  </label>
+                </div>
+                <Input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  disabled={isSubmitting}
+                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Calendar className="w-4 h-4 text-purple-500" />
+                  <label
+                    className={`block text-sm font-medium ${
+                      isDark ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Data
+                  </label>
+                </div>
+                <Input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  disabled={isSubmitting}
+                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="w-4 h-4 text-indigo-500" />
+                  <label
+                    className={`block text-sm font-medium ${
+                      isDark ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Hora
+                  </label>
+                </div>
+                <Input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <User className="w-4 h-4 text-orange-500" />
+                <label
+                  className={`block text-sm font-medium ${
+                    isDark ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  Responsável
+                </label>
+              </div>
+              <Select
+                value={responsibleId}
+                onChange={(e) => setResponsibleId(e.target.value)}
+                disabled={isSubmitting}
+                className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+              >
+                <option value="">Selecione um responsável</option>
+                {members.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                <label
+                  className={`block text-sm font-medium ${
+                    isDark ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  Prioridade
+                </label>
+              </div>
+              <Select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+                disabled={isSubmitting}
+                required
+                className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+              >
+                <option value="">Selecione a prioridade</option>
+                <option value="LOW">Baixa</option>
+                <option value="MEDIUM">Média</option>
+                <option value="HIGH">Alta</option>
+                <option value="URGENT">Urgente</option>
+              </Select>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <TagIcon className="w-4 h-4 text-emerald-500" />
+                <label
+                  className={`block text-sm font-medium ${
+                    isDark ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  Marcadores
+                </label>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTagIds((prev) =>
+                        prev.includes(tag.id)
+                          ? prev.filter((id) => id !== tag.id)
+                          : [...prev, tag.id]
+                      );
+                    }}
+                    disabled={isSubmitting}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                      selectedTagIds.includes(tag.id)
+                        ? "bg-opacity-100"
+                        : "bg-opacity-20"
+                    }`}
+                    style={{
+                      backgroundColor: selectedTagIds.includes(tag.id)
+                        ? tag.color
+                        : `${tag.color}20`,
+                      color: selectedTagIds.includes(tag.id)
+                        ? "#fff"
+                        : tag.color,
+                    }}
+                  >
+                    <TagIcon className="w-3.5 h-3.5" />
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <CheckSquare className="w-4 h-4 text-cyan-500" />
+                  <label
+                    className={`block text-sm font-medium ${
+                      isDark ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Subtarefas
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowNewSubtaskForm(true)}
+                  disabled={isSubmitting}
+                  className="flex items-center gap-1 px-2 py-1 text-sm text-[#7f00ff] hover:bg-[#7f00ff]/10 rounded-md transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar Subtarefa
+                </button>
+              </div>
+
+              {showNewSubtaskForm && (
+                <div className="mb-4 p-4 rounded-lg border border-[#7f00ff]/20 bg-[#7f00ff]/5">
+                  <div className="space-y-3">
+                    <Input
+                      type="text"
+                      value={newSubtaskTitle}
+                      onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                      placeholder="Título da subtarefa"
+                      disabled={isSubmitting}
+                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                    />
+                    <Textarea
+                      value={newSubtaskDescription}
+                      onChange={(e) => setNewSubtaskDescription(e.target.value)}
+                      placeholder="Descrição da subtarefa"
+                      rows={2}
+                      disabled={isSubmitting}
+                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowNewSubtaskForm(false);
+                          setNewSubtaskTitle("");
+                          setNewSubtaskDescription("");
+                        }}
+                        disabled={isSubmitting}
+                        className={`px-3 py-1.5 rounded-md ${
+                          isDark
+                            ? "text-gray-300 hover:bg-gray-700"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleAddSubtask}
+                        disabled={
+                          !newSubtaskTitle.trim() ||
+                          isCreatingSubtask ||
+                          isSubmitting
+                        }
+                        className="px-3 py-1.5 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isCreatingSubtask ? "Criando..." : "Adicionar"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {subtasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className={`p-3 rounded-lg border ${
+                      isDark ? "border-gray-700" : "border-gray-200"
+                    } flex items-start gap-3`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSubtask(task.id)}
+                      disabled={isUpdatingSubtask || isSubmitting}
+                      className={`mt-1 ${
+                        task.is_completed
+                          ? "text-[#7f00ff]"
+                          : isDark
+                          ? "text-gray-600"
+                          : "text-gray-400"
+                      } ${
+                        isUpdatingSubtask || isSubmitting
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
+                      }`}
+                    >
+                      {task.is_completed ? (
+                        <CheckSquare className="w-4 h-4" />
+                      ) : (
+                        <Square className="w-4 h-4" />
+                      )}
+                    </button>
+                    <div className="flex-1">
+                      <h4
+                        className={`text-sm font-medium ${
+                          task.is_completed ? "line-through opacity-50" : ""
+                        }`}
+                      >
+                        {task.title}
+                      </h4>
+                      {task.description && (
+                        <p
+                          className={`text-sm mt-1 ${
+                            isDark ? "text-gray-400" : "text-gray-500"
+                          } ${
+                            task.is_completed ? "line-through opacity-50" : ""
+                          }`}
+                        >
+                          {task.description}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSubtask(task.id)}
+                      disabled={isSubmitting || removingSubtaskId === task.id}
+                      className={`p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors ${
+                        isSubmitting || removingSubtaskId === task.id
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
+                      }`}
+                    >
+                      {removingSubtaskId === task.id ? (
+                        <svg
+                          className="animate-spin w-4 h-4"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                          />
+                        </svg>
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {subtasks.length > 0 && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span
+                      className={isDark ? "text-gray-400" : "text-gray-500"}
+                    >
+                      {completedSubtasks} de {subtasks.length} concluídas
+                    </span>
+                    <span
+                      className={isDark ? "text-gray-400" : "text-gray-500"}
+                    >
+                      {Math.round(progress)}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#7f00ff] rounded-full transition-all duration-300"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  className={`flex items-center gap-2 text-sm font-medium ${
+                    isDark ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  <Paperclip className="w-4 h-4 text-blue-500" />
+                  Anexos
+                </label>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingAttachment || isSubmitting}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Upload className="w-4 h-4" />
+                  {isUploadingAttachment
+                    ? "Enviando..."
+                    : attachments.length > 0
+                    ? "Substituir Anexo"
+                    : "Adicionar Anexo"}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={handleFileUpload}
+                  disabled={isSubmitting}
+                  className="hidden"
+                  accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                />
+              </div>
+
+              <div className="space-y-2">
+                {attachments.map((attachment) => (
+                  <div
+                    key={attachment.id}
+                    className={`flex items-center justify-between p-3 rounded-lg ${
+                      isDark
+                        ? "bg-dark-800/80 border border-blue-900/30"
+                        : "bg-blue-50 border border-blue-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Paperclip className="w-4 h-4 text-blue-500" />
+                      <span
+                        className={`text-sm ${
+                          isDark ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        {attachment.name || "Arquivo sem nome"}
+                      </span>
+                      {typeof attachment.size === "number" &&
+                        !isNaN(attachment.size) && (
+                          <span className="text-xs text-gray-400">
+                            ({(attachment.size / 1024 / 1024).toFixed(2)} MB)
+                          </span>
+                        )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAttachment(attachment.id)}
+                      disabled={
+                        isSubmitting || removingAttachmentId === attachment.id
+                      }
+                      className={`p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 ${
+                        isDark ? "text-red-400" : "text-red-500"
+                      } ${
+                        isSubmitting || removingAttachmentId === attachment.id
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
+                      }`}
+                    >
+                      {removingAttachmentId === attachment.id ? (
+                        <svg
+                          className="animate-spin w-4 h-4"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                          />
+                        </svg>
+                      ) : (
+                        <X className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-6">
-              <div>
-                <label
-                  className={`block text-sm font-medium ${
-                    isDark ? "text-gray-300" : "text-gray-700"
-                  } mb-1`}
-                >
-                  Título
-                </label>
-                <Input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  disabled={isSubmitting}
-                  className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
-                    isDark
-                      ? "bg-dark-800 text-gray-100 border-gray-600"
-                      : "bg-white border-gray-300 text-gray-900"
-                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-                  required
-                />
-              </div>
-
-              <div>
-                <label
-                  className={`block text-sm font-medium ${
-                    isDark ? "text-gray-300" : "text-gray-700"
-                  } mb-1`}
-                >
-                  Descrição
-                </label>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  disabled={isSubmitting}
-                  className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
-                    isDark
-                      ? "bg-dark-800 text-gray-100 border-gray-600"
-                      : "bg-white border-gray-300 text-gray-900"
-                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-                  rows={4}
-                  placeholder="Digite a descrição do cartão..."
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <DollarSign className="w-4 h-4 text-green-500" />
-                    <label
-                      className={`block text-sm font-medium ${
-                        isDark ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      Valor
-                    </label>
-                  </div>
-                  <Input
-                    type="number"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    disabled={isSubmitting}
-                    className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
-                      isDark
-                        ? "bg-dark-800 text-gray-100 border-gray-600"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-                    step="0.01"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Phone className="w-4 h-4 text-blue-500" />
-                    <label
-                      className={`block text-sm font-medium ${
-                        isDark ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      Telefone
-                    </label>
-                  </div>
-                  <Input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    disabled={isSubmitting}
-                    className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
-                      isDark
-                        ? "bg-dark-800 text-gray-100 border-gray-600"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Calendar className="w-4 h-4 text-purple-500" />
-                    <label
-                      className={`block text-sm font-medium ${
-                        isDark ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      Data
-                    </label>
-                  </div>
-                  <Input
-                    type="date"
-                    value={scheduledDate}
-                    onChange={(e) => setScheduledDate(e.target.value)}
-                    disabled={isSubmitting}
-                    className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
-                      isDark
-                        ? "bg-dark-800 text-gray-100 border-gray-600"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Clock className="w-4 h-4 text-indigo-500" />
-                    <label
-                      className={`block text-sm font-medium ${
-                        isDark ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      Hora
-                    </label>
-                  </div>
-                  <Input
-                    type="time"
-                    value={scheduledTime}
-                    onChange={(e) => setScheduledTime(e.target.value)}
-                    disabled={isSubmitting}
-                    className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
-                      isDark
-                        ? "bg-dark-800 text-gray-100 border-gray-600"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <User className="w-4 h-4 text-orange-500" />
-                  <label
-                    className={`block text-sm font-medium ${
-                      isDark ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    Responsável
-                  </label>
-                </div>
-                <Select
-                  value={responsibleId}
-                  onChange={(e) => setResponsibleId(e.target.value)}
-                  disabled={isSubmitting}
-                  className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
-                    isDark
-                      ? "bg-dark-800 text-gray-100 border-gray-600"
-                      : "bg-white border-gray-300 text-gray-900"
-                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  <option value="">Selecione um responsável</option>
-                  {members.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                  <label
-                    className={`block text-sm font-medium ${
-                      isDark ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    Prioridade
-                  </label>
-                </div>
-                <Select
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  disabled={isSubmitting}
-                  className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
-                    isDark
-                      ? "bg-dark-800 text-gray-100 border-gray-600"
-                      : "bg-white border-gray-300 text-gray-900"
-                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  <option value="">Selecione a prioridade</option>
-                  <option value="LOW">Baixa</option>
-                  <option value="MEDIUM">Média</option>
-                  <option value="HIGH">Alta</option>
-                  <option value="URGENT">Urgente</option>
-                </Select>
-              </div>
-
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <TagIcon className="w-4 h-4 text-emerald-500" />
-                  <label
-                    className={`block text-sm font-medium ${
-                      isDark ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    Marcadores
-                  </label>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedTagIds((prev) =>
-                          prev.includes(tag.id)
-                            ? prev.filter((id) => id !== tag.id)
-                            : [...prev, tag.id]
-                        );
-                      }}
-                      disabled={isSubmitting}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors ${
-                        selectedTagIds.includes(tag.id)
-                          ? "bg-opacity-100"
-                          : "bg-opacity-20"
-                      }`}
-                      style={{
-                        backgroundColor: selectedTagIds.includes(tag.id)
-                          ? tag.color
-                          : `${tag.color}20`,
-                        color: selectedTagIds.includes(tag.id)
-                          ? "#fff"
-                          : tag.color,
-                      }}
-                    >
-                      <TagIcon className="w-3.5 h-3.5" />
-                      {tag.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <CheckSquare className="w-4 h-4 text-cyan-500" />
-                    <label
-                      className={`block text-sm font-medium ${
-                        isDark ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      Subtarefas
-                    </label>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowNewSubtaskForm(true)}
-                    disabled={isSubmitting}
-                    className="flex items-center gap-1 px-2 py-1 text-sm text-[#7f00ff] hover:bg-[#7f00ff]/10 rounded-md transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Adicionar Subtarefa
-                  </button>
-                </div>
-
-                {showNewSubtaskForm && (
-                  <div className="mb-4 p-4 rounded-lg border border-[#7f00ff]/20 bg-[#7f00ff]/5">
-                    <div className="space-y-3">
-                      <Input
-                        type="text"
-                        value={newSubtaskTitle}
-                        onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                        placeholder="Título da subtarefa"
-                        disabled={isSubmitting}
-                        className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
-                          isDark
-                            ? "bg-dark-800 text-gray-100 border-gray-600"
-                            : "bg-white border-gray-300 text-gray-900"
-                        }`}
-                      />
-                      <Textarea
-                        value={newSubtaskDescription}
-                        onChange={(e) =>
-                          setNewSubtaskDescription(e.target.value)
-                        }
-                        placeholder="Descrição da subtarefa"
-                        rows={2}
-                        disabled={isSubmitting}
-                        className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
-                          isDark
-                            ? "bg-dark-800 text-gray-100 border-gray-600"
-                            : "bg-white border-gray-300 text-gray-900"
-                        }`}
-                      />
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowNewSubtaskForm(false);
-                            setNewSubtaskTitle("");
-                            setNewSubtaskDescription("");
-                          }}
-                          disabled={isSubmitting}
-                          className={`px-3 py-1.5 rounded-md ${
-                            isDark
-                              ? "text-gray-300 hover:bg-gray-700"
-                              : "text-gray-700 hover:bg-gray-100"
-                          }`}
-                        >
-                          Cancelar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleAddSubtask}
-                          disabled={
-                            !newSubtaskTitle.trim() ||
-                            isCreatingSubtask ||
-                            isSubmitting
-                          }
-                          className="px-3 py-1.5 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isCreatingSubtask ? "Criando..." : "Adicionar"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  {subtasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className={`p-3 rounded-lg border ${
-                        isDark ? "border-gray-700" : "border-gray-200"
-                      } flex items-start gap-3`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => handleToggleSubtask(task.id)}
-                        disabled={isUpdatingSubtask || isSubmitting}
-                        className={`mt-1 ${
-                          task.completed
-                            ? "text-[#7f00ff]"
-                            : isDark
-                            ? "text-gray-600"
-                            : "text-gray-400"
-                        } ${
-                          isUpdatingSubtask || isSubmitting
-                            ? "opacity-50 cursor-not-allowed"
-                            : ""
-                        }`}
-                      >
-                        {task.completed ? (
-                          <CheckSquare className="w-4 h-4" />
-                        ) : (
-                          <Square className="w-4 h-4" />
-                        )}
-                      </button>
-                      <div className="flex-1">
-                        <h4
-                          className={`text-sm font-medium ${
-                            task.completed ? "line-through opacity-50" : ""
-                          }`}
-                        >
-                          {task.title}
-                        </h4>
-                        {task.description && (
-                          <p
-                            className={`text-sm mt-1 ${
-                              isDark ? "text-gray-400" : "text-gray-500"
-                            } ${
-                              task.completed ? "line-through opacity-50" : ""
-                            }`}
-                          >
-                            {task.description}
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteSubtask(task.id)}
-                        disabled={isSubmitting}
-                        className={`p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors ${
-                          isSubmitting ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {subtasks.length > 0 && (
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-sm mb-1">
-                      <span
-                        className={isDark ? "text-gray-400" : "text-gray-500"}
-                      >
-                        {completedSubtasks} de {subtasks.length} concluídas
-                      </span>
-                      <span
-                        className={isDark ? "text-gray-400" : "text-gray-500"}
-                      >
-                        {Math.round(progress)}%
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-[#7f00ff] rounded-full transition-all duration-300"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label
-                    className={`flex items-center gap-2 text-sm font-medium ${
-                      isDark ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    <Paperclip className="w-4 h-4 text-blue-500" />
-                    Anexos
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploadingAttachment || isSubmitting}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Upload className="w-4 h-4" />
-                    {isUploadingAttachment ? "Enviando..." : "Adicionar Anexo"}
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    onChange={handleFileUpload}
-                    disabled={isSubmitting}
-                    className="hidden"
-                    accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  {attachments.map((attachment) => (
-                    <div
-                      key={attachment.id}
-                      className={`flex items-center justify-between p-3 rounded-lg ${
-                        isDark
-                          ? "bg-dark-800/80 border border-blue-900/30"
-                          : "bg-blue-50 border border-blue-100"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Paperclip className="w-4 h-4 text-blue-500" />
-                        <span
-                          className={`text-sm ${
-                            isDark ? "text-gray-300" : "text-gray-700"
-                          }`}
-                        >
-                          {attachment.name}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          ({(attachment.size / 1024 / 1024).toFixed(2)} MB)
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAttachment(attachment.id)}
-                        disabled={isSubmitting}
-                        className={`p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 ${
-                          isDark ? "text-red-400" : "text-red-500"
-                        } ${
-                          isSubmitting ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-8">
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={isSubmitting}
-                className={`px-4 py-2 rounded-lg ${
-                  isDark
-                    ? "text-gray-300 hover:bg-gray-700"
-                    : "text-gray-700 hover:bg-gray-100"
-                } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting
-                  ? attachments.length > 0 && mode === "add"
-                    ? "Salvando e enviando anexos..."
-                    : "Salvando..."
-                  : "Salvar"}
-              </button>
-            </div>
-          </form>
-        </div>
+          <div className="flex justify-end gap-3 mt-8">
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={isSubmitting}
+              className={`px-4 py-2 rounded-lg ${
+                isDark
+                  ? "text-gray-300 hover:bg-gray-700"
+                  : "text-gray-700 hover:bg-gray-100"
+              } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting
+                ? attachments.length > 0 && mode === "add"
+                  ? "Salvando e enviando anexos..."
+                  : "Salvando..."
+                : "Salvar"}
+            </button>
+          </div>
+        </form>
       </div>
 
       <ConfirmationModal
@@ -1159,6 +1213,6 @@ export function CardModal({
         confirmText="Sim, cancelar"
         cancelText="Não, continuar editando"
       />
-    </>
+    </div>
   );
 }

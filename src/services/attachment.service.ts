@@ -173,11 +173,13 @@ export const attachmentService = {
       const formData = new FormData();
       formData.append("file", file);
 
+      // Padronizar headers igual ao createAttachment
+      const headers = getAuthHeaders(token);
+      delete headers["Content-Type"];
+
       const response = await fetchWithAuth(url, {
         method: "PUT",
-        headers: {
-          ...getAuthHeaders(token),
-        },
+        headers,
         body: formData,
       });
 

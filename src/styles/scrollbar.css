@@ -92,13 +92,6 @@
   scroll-behavior: smooth;
 }
 
-/* Garantir que as listas não se estiquem */
-.kanban-horizontal-scroll > div > div {
-  flex-shrink: 0;
-  width: 320px;
-  height: fit-content;
-}
-
 /* Garantir que o container principal tenha altura correta */
 .kanban-board-container {
   height: 100%;

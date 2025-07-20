@@ -224,6 +224,24 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
                   eventData.data.list_id
                 );
               break;
+            case "SUBTASK_CREATED":
+              useBoardStore.getState().addSubtaskToCard(eventData.data);
+              break;
+            case "SUBTASK_UPDATED":
+              useBoardStore.getState().updateSubtaskInCard(eventData.data);
+              break;
+            case "SUBTASK_DELETED":
+              useBoardStore.getState().removeSubtaskFromCard(eventData.data);
+              break;
+            case "CARD_FILE_CREATED":
+              useBoardStore.getState().addAttachmentToCard(eventData.data);
+              break;
+            case "CARD_FILE_UPDATED":
+              useBoardStore.getState().updateAttachmentInCard(eventData.data);
+              break;
+            case "CARD_FILE_DELETED":
+              useBoardStore.getState().removeAttachmentFromCard(eventData.data);
+              break;
           }
         })
         .subscribe((status) => {

@@ -31,7 +31,7 @@ export function ConfirmationModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center !mt-0">
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={(e) => {
@@ -42,23 +42,29 @@ export function ConfirmationModal({
         }}
       />
       <div
-        className={`relative w-full max-w-md p-6 rounded-lg shadow-lg  ${
+        className={`relative w-full max-w-md p-6 rounded-lg shadow-lg ${
           isDark ? "bg-[#1e1f25] text-gray-100" : "bg-white text-gray-900"
-        }`}
+        } max-h-[90vh] flex flex-col justify-between`}
         onClick={(e) => e.stopPropagation()}
+        style={{ minWidth: 320 }}
       >
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-[#7f00ff]/20 rounded-full">
             <AlertTriangle className="w-6 h-6 text-[#7f00ff]" />
           </div>
-          <h3 className="text-lg font-semibold">{title}</h3>
+          <h3 className="text-lg font-semibold break-words">{title}</h3>
         </div>
 
-        <p className={`mb-6 ${isDark ? "text-gray-300" : "text-gray-600"}`}>
+        <p
+          className={`mb-6 break-words whitespace-pre-line ${
+            isDark ? "text-gray-300" : "text-gray-600"
+          }`}
+          style={{ wordBreak: "break-word" }}
+        >
           {message}
         </p>
 
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-wrap justify-end gap-3 w-full">
           <button
             type="button"
             disabled={isLoading}

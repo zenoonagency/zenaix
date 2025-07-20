@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import {
   Calendar,
   CheckSquare,
@@ -26,35 +25,36 @@ import {
 } from "lucide-react";
 import { useThemeStore } from "../../../store/themeStore";
 import { useTagStore } from "../../../store/tagStore";
-import { Card as CardType } from "../../types/card";
-import { CustomFieldType } from "../types";
-// Temporariamente removido até implementar com as novas stores
+import type { OutputCardDTO, SubtaskDTO } from "../../../types/card";
 import { useToast } from "../../../hooks/useToast";
 import { ConfirmationModal } from "../../../components/ConfirmationModal";
 import { useTeamMembersStore } from "../../../store/teamMembersStore";
+import { subtaskService } from "../../../services/subtask.service";
+import { useAuthStore } from "../../../store/authStore";
+import { cardService } from "../../../services/card.service";
 
 interface CardDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  card: CardType;
+  card: OutputCardDTO;
   boardId: string;
   listId: string;
   onEdit?: () => void;
 }
 
 const priorityColors = {
-  low: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300",
-  medium:
+  LOW: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300",
+  MEDIUM:
     "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300",
-  high: "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300",
-  urgent: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
+  HIGH: "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300",
+  URGENT: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
 };
 
 const priorityIcons = {
-  low: <AlertTriangle className="w-4 h-4" />,
-  medium: <AlertTriangle className="w-4 h-4" />,
-  high: <AlertCircle className="w-4 h-4" />,
-  urgent: <AlertOctagon className="w-4 h-4" />,
+  LOW: <AlertTriangle className="w-4 h-4" />,
+  MEDIUM: <AlertTriangle className="w-4 h-4" />,
+  HIGH: <AlertCircle className="w-4 h-4" />,
+  URGENT: <AlertOctagon className="w-4 h-4" />,
 };
 
 export const CardDetailModal: React.FC<CardDetailModalProps> = ({
@@ -68,71 +68,110 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   const { theme } = useThemeStore();
   const { tags } = useTagStore();
   const { members } = useTeamMembersStore();
-  // Temporariamente removido até implementar com as novas stores
-  const updateCard = () => {
-    showToast(
-      "Funcionalidade de atualizar cartão não disponível no momento.",
-      "info"
-    );
-  };
-  const deleteAttachment = () => {
-    showToast(
-      "Funcionalidade de deletar anexo não disponível no momento.",
-      "info"
-    );
-  };
+  const { token, organization } = useAuthStore();
   const { showToast } = useToast();
   const [showDeleteAttachmentConfirm, setShowDeleteAttachmentConfirm] =
     React.useState<string | null>(null);
+  const [subtasks, setSubtasks] = React.useState<SubtaskDTO[]>(
+    card.subtasks || []
+  );
+  const [showDeleteCardConfirm, setShowDeleteCardConfirm] =
+    React.useState(false);
+  const [isDeletingCard, setIsDeletingCard] = React.useState(false);
+
+  React.useEffect(() => {
+    setSubtasks(card.subtasks || []);
+  }, [card.subtasks]);
 
   const cardTags = useMemo(
     () =>
-      (card.tagIds || [])
+      (card.tag_ids || [])
         .map((tagId) => tags.find((t) => t.id === tagId))
         .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined),
-    [card.tagIds, tags]
+    [card.tag_ids, tags]
   );
 
   const assignedMembers = useMemo(
     () =>
-      (card.assignedTo || [])
+      (card.assignee_id ? [card.assignee_id] : [])
         .map((memberId) => members.find((m) => m.id === memberId))
         .filter(
           (member): member is NonNullable<typeof member> => member !== undefined
         ),
-    [card.assignedTo, members]
+    [card.assignee_id, members]
   );
 
   const completedSubtasks = useMemo(
-    () => (card.subtasks || []).filter((subtask) => subtask.completed).length,
-    [card.subtasks]
+    () => (subtasks || []).filter((subtask) => subtask.is_completed).length,
+    [subtasks]
   );
 
-  const totalSubtasks = useMemo(
-    () => (card.subtasks || []).length,
-    [card.subtasks]
-  );
+  const totalSubtasks = useMemo(() => (subtasks || []).length, [subtasks]);
 
   const progress = useMemo(
     () => (totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0),
     [completedSubtasks, totalSubtasks]
   );
 
-  const handleToggleSubtask = (subtaskId: string) => {
-    const updatedSubtasks = card.subtasks.map((subtask) => {
-      if (subtask.id === subtaskId) {
-        const newStatus = !subtask.completed;
-        // Mostra toast baseado no novo status
-        showToast(
-          newStatus ? "Subtarefa concluída!" : "Subtarefa desmarcada",
-          "success"
-        );
-        return { ...subtask, completed: newStatus };
-      }
-      return subtask;
-    });
+  const handleToggleSubtask = async (subtaskId: string) => {
+    const subtask = subtasks.find((s) => s.id === subtaskId);
+    if (!subtask) return;
+    if (!token || !organization?.id) {
+      showToast("Erro de autenticação", "error");
+      return;
+    }
+    try {
+      const updated = await subtaskService.updateSubtask(
+        token,
+        organization.id,
+        boardId,
+        listId,
+        card.id,
+        subtaskId,
+        { is_completed: !subtask.is_completed }
+      );
+      setSubtasks((prev) =>
+        prev.map((s) =>
+          s.id === subtaskId
+            ? {
+                ...s,
+                is_completed: updated.is_completed,
+                title: updated.title,
+                description: updated.description || "",
+              }
+            : s
+        )
+      );
+      showToast(
+        updated.is_completed ? "Subtarefa concluída!" : "Subtarefa desmarcada",
+        "success"
+      );
+      if (onEdit) onEdit();
+    } catch (error: any) {
+      showToast(error.message || "Erro ao atualizar subtarefa", "error");
+    }
+  };
 
-    updateCard(boardId, listId, card.id, { subtasks: updatedSubtasks });
+  const handleDeleteSubtask = async (subtaskId: string) => {
+    if (!token || !organization?.id) {
+      showToast("Erro de autenticação", "error");
+      return;
+    }
+    try {
+      await subtaskService.deleteSubtask(
+        token,
+        organization.id,
+        boardId,
+        listId,
+        card.id,
+        subtaskId
+      );
+      setSubtasks((prev) => prev.filter((s) => s.id !== subtaskId));
+      showToast("Subtarefa removida com sucesso!", "success");
+      if (onEdit) onEdit();
+    } catch (error: any) {
+      showToast(error.message || "Erro ao remover subtarefa", "error");
+    }
   };
 
   const handleCopyPhone = async (phone: string) => {
@@ -185,7 +224,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   };
 
   const handleDeleteAttachment = (attachmentId: string) => {
-    deleteAttachment(boardId, listId, card.id, attachmentId);
+    // deleteAttachment(boardId, listId, card.id, attachmentId); // Originalmente removido
     showToast("Anexo removido com sucesso!", "success");
     setShowDeleteAttachmentConfirm(null);
   };
@@ -246,7 +285,81 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
         } max-h-[90vh] overflow-y-auto`}
       >
         <div className="flex justify-between items-start mb-6">
-          <div className="flex-1 min-w-0">
+          {card.priority && (
+            <div
+              className={`rounded-lg flex items-center gap-2 bg-white dark:bg-dark-800`}
+            >
+              <span
+                className={`inline-flex items-center gap-2 text-sm px-2.5 py-1.5 rounded-md ${
+                  priorityColors[card.priority as keyof typeof priorityColors]
+                }`}
+              >
+                {priorityIcons[card.priority as keyof typeof priorityIcons]}
+                <span className="capitalize">
+                  {card.priority === "LOW"
+                    ? "Baixa"
+                    : card.priority === "MEDIUM"
+                    ? "Média"
+                    : card.priority === "HIGH"
+                    ? "Alta"
+                    : "Urgente"}
+                </span>
+              </span>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                className={`p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors`}
+                title="Editar card"
+                disabled={isDeletingCard}
+              >
+                <Edit2 className="w-5 h-5" />
+              </button>
+            )}
+            <button
+              onClick={() => setShowDeleteCardConfirm(true)}
+              className="p-2 rounded-full text-red-500 hover:text-red-600 transition-colors"
+              title="Excluir card"
+              disabled={isDeletingCard}
+            >
+              {isDeletingCard ? (
+                <svg
+                  className="animate-spin w-5 h-5 text-red-500"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
+                </svg>
+              ) : (
+                <Trash2 className="w-5 h-5 text-red-500" />
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              className={`p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors`}
+              title="Fechar"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="p-4 rounded-lg border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
             <h3
               className={`text-2xl font-semibold ${
                 theme === "dark" ? "text-gray-200" : "text-gray-800"
@@ -262,178 +375,139 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
               {card.description || "Sem descrição"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {onEdit && (
-              <button
-                onClick={onEdit}
-                className={`p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors ${
-                  theme === "dark"
-                    ? "text-gray-400 hover:text-gray-300"
-                    : "text-gray-600 hover:text-gray-700"
-                }`}
-              >
-                <Edit2 className="w-5 h-5" />
-              </button>
-            )}
-            <button
-              onClick={onClose}
-              className={`p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors ${
-                theme === "dark"
-                  ? "text-gray-400 hover:text-gray-300"
-                  : "text-gray-600 hover:text-gray-700"
-              }`}
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
 
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            {card.priority && (
-              <div
-                className={`p-4 rounded-lg ${
-                  theme === "dark" ? "bg-dark-800" : "bg-gray-100"
-                }`}
-              >
-                <div
-                  className={`inline-flex items-center gap-2 text-sm px-2.5 py-1.5 rounded-md ${
-                    priorityColors[card.priority as keyof typeof priorityColors]
-                  }`}
-                >
-                  <span>
-                    {priorityIcons[card.priority as keyof typeof priorityIcons]}
-                  </span>
-                  <span className="capitalize">
-                    {card.priority === "low"
-                      ? "Baixa"
-                      : card.priority === "medium"
-                      ? "Média"
-                      : card.priority === "high"
-                      ? "Alta"
-                      : "Urgente"}
-                  </span>
-                </div>
-              </div>
-            )}
-
+          {/* Valor e Telefone juntos em linha */}
+          <div className="flex flex-col md:flex-row gap-4">
             <div
-              className={`p-4 rounded-lg ${
-                theme === "dark" ? "bg-dark-800" : "bg-gray-100"
-              }`}
+              className={`flex-1 p-4 rounded-lg flex items-center gap-2 border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800`}
+            >
+              <DollarSign className="w-5 h-5 text-green-500" />
+              <span
+                className={theme === "dark" ? "text-gray-400" : "text-gray-500"}
+              >
+                Valor:
+              </span>
+              <span
+                className={`font-medium ${
+                  theme === "dark" ? "text-gray-200" : "text-gray-900"
+                }`}
+              >
+                {new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(card.value || 0)}
+              </span>
+            </div>
+            <div
+              className={`flex-1 p-4 rounded-lg flex items-center justify-between gap-2 border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800`}
             >
               <div className="flex items-center gap-2 text-sm">
-                <DollarSign className="w-5 h-5 text-green-500" />
+                <Phone className="w-5 h-5 text-blue-500" />
                 <span
                   className={
                     theme === "dark" ? "text-gray-400" : "text-gray-500"
                   }
                 >
-                  Valor:
+                  Telefone:
                 </span>
                 <span
                   className={`font-medium ${
                     theme === "dark" ? "text-gray-200" : "text-gray-900"
                   }`}
                 >
-                  {new Intl.NumberFormat("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  }).format(card.value || 0)}
+                  {card.phone || "Não informado"}
+                </span>
+              </div>
+              {card.phone && (
+                <button
+                  onClick={() => handleCopyPhone(card.phone)}
+                  className="p-1.5 hover:bg-gray-200 dark:hover:bg-dark-700 rounded-full transition-colors"
+                >
+                  <Copy className="w-4 h-4 text-gray-500" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 5. Data e 6. Hora */}
+          {card.due_date && (
+            <div
+              className={`p-4 rounded-lg flex items-center gap-6 border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800`}
+            >
+              <div className="flex items-center gap-2 text-sm">
+                <Calendar className="w-5 h-5 text-purple-500" />
+                <span
+                  className={
+                    theme === "dark" ? "text-gray-400" : "text-gray-500"
+                  }
+                >
+                  Data:
+                </span>
+                <span
+                  className={`font-medium ${
+                    theme === "dark" ? "text-gray-200" : "text-gray-900"
+                  }`}
+                >
+                  {card.due_date
+                    ? new Date(card.due_date).toLocaleDateString("pt-BR")
+                    : "-"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="w-5 h-5 text-indigo-500" />
+                <span
+                  className={
+                    theme === "dark" ? "text-gray-400" : "text-gray-500"
+                  }
+                >
+                  Hora:
+                </span>
+                <span
+                  className={`font-medium ${
+                    theme === "dark" ? "text-gray-200" : "text-gray-900"
+                  }`}
+                >
+                  {card.due_date
+                    ? new Date(card.due_date).toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "-"}
                 </span>
               </div>
             </div>
+          )}
 
-            <div
-              className={`p-4 rounded-lg ${
-                theme === "dark" ? "bg-dark-800" : "bg-gray-100"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="w-5 h-5 text-blue-500" />
+          {/* 7. Responsável e 8. Prioridade juntos em linha */}
+          {(card.assignee_id || card.priority) && (
+            <div className="flex flex-col md:flex-row gap-4">
+              {card.assignee_id && (
+                <div
+                  className={`flex-1 p-4 rounded-lg flex items-center gap-2 border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800`}
+                >
+                  <User className="w-5 h-5 text-orange-500" />
                   <span
                     className={
                       theme === "dark" ? "text-gray-400" : "text-gray-500"
                     }
                   >
-                    Telefone:
+                    Responsável:
                   </span>
                   <span
                     className={`font-medium ${
                       theme === "dark" ? "text-gray-200" : "text-gray-900"
                     }`}
                   >
-                    {card.phone || "Não informado"}
+                    {assignedMembers[0]?.name || "-"}
                   </span>
                 </div>
-                {card.phone && (
-                  <button
-                    onClick={() => handleCopyPhone(card.phone)}
-                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-dark-700 rounded-full transition-colors"
-                  >
-                    <Copy className="w-4 h-4 text-gray-500" />
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {card.scheduledDate && (
-            <div
-              className={`p-4 rounded-lg ${
-                theme === "dark" ? "bg-dark-800" : "bg-gray-100"
-              }`}
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-purple-500" />
-                  <span
-                    className={`text-sm ${
-                      theme === "dark" ? "text-gray-200" : "text-gray-900"
-                    }`}
-                  >
-                    {new Date(card.scheduledDate).toLocaleDateString("pt-BR")}
-                  </span>
-                </div>
-                {card.scheduledTime && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-indigo-500" />
-                    <span
-                      className={`text-sm ${
-                        theme === "dark" ? "text-gray-200" : "text-gray-900"
-                      }`}
-                    >
-                      {card.scheduledTime}
-                    </span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           )}
 
-          {card.responsibleId && (
-            <div
-              className={`p-4 rounded-lg ${
-                theme === "dark" ? "bg-dark-800" : "bg-gray-100"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <User className="w-5 h-5 text-orange-500" />
-                <span
-                  className={`text-sm ${
-                    theme === "dark" ? "text-gray-200" : "text-gray-900"
-                  }`}
-                >
-                  {members.find((m) => m.id === card.responsibleId)?.name ||
-                    "Responsável não encontrado"}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {card.tagIds?.length > 0 && (
-            <div>
+          {/* 9. Marcadores */}
+          {card.tag_ids?.length > 0 && (
+            <div className="p-4 rounded-lg border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
               <h4
                 className={`text-sm font-medium ${
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
@@ -442,7 +516,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                 Marcadores
               </h4>
               <div className="flex flex-wrap gap-2">
-                {card.tagIds.map((tagId) => {
+                {card.tag_ids.map((tagId) => {
                   const tag = tags.find((t) => t.id === tagId);
                   if (!tag) return null;
                   return (
@@ -459,61 +533,23 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
             </div>
           )}
 
-          {Object.keys(card.customFields || {}).length > 0 && (
-            <div>
-              <h4
-                className={`text-sm font-medium ${
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                } mb-2`}
-              >
-                Campos Personalizados
-              </h4>
-              <div className="space-y-2">
-                {Object.entries(card.customFields).map(([name, field]) => (
-                  <div
-                    key={name}
-                    className={`p-3 rounded-lg ${
-                      theme === "dark" ? "bg-dark-800" : "bg-gray-100"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-sm ${
-                          theme === "dark" ? "text-gray-400" : "text-gray-500"
-                        }`}
-                      >
-                        {name}:
-                      </span>
-                      <span
-                        className={`text-sm font-medium ${
-                          theme === "dark" ? "text-gray-200" : "text-gray-900"
-                        }`}
-                      >
-                        {field.value}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {card.subtasks?.length > 0 && (
-            <div>
+          {/* 10. Subtarefas */}
+          {subtasks.length > 0 && (
+            <div className="p-4 rounded-lg border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
               <h4
                 className={`text-sm font-medium ${
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 } mb-2`}
               >
                 Subtarefas (
-                {card.subtasks.filter((task) => task.completed).length}/
-                {card.subtasks.length})
+                {subtasks.filter((task) => task.is_completed).length}/
+                {subtasks.length})
               </h4>
               <div className="space-y-2">
-                {card.subtasks.map((task) => (
+                {subtasks.map((task) => (
                   <div
                     key={task.id}
-                    className={`p-3 rounded-lg ${
+                    className={`p-3 rounded-lg flex items-center justify-between ${
                       theme === "dark" ? "bg-dark-800" : "bg-gray-100"
                     } hover:bg-opacity-80`}
                   >
@@ -524,14 +560,14 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                           handleToggleSubtask(task.id);
                         }}
                         className={`flex items-center justify-center w-5 h-5 rounded ${
-                          task.completed
+                          task.is_completed
                             ? "bg-[#7f00ff] text-white"
                             : theme === "dark"
                             ? "border-2 border-gray-400 hover:border-[#7f00ff]"
                             : "border-2 border-gray-500 hover:border-[#7f00ff]"
                         }`}
                       >
-                        {task.completed ? (
+                        {task.is_completed ? (
                           <CheckSquare size={16} />
                         ) : (
                           <Square size={16} />
@@ -540,20 +576,87 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                       <span
                         className={`text-sm ${
                           theme === "dark" ? "text-gray-200" : "text-gray-900"
-                        } ${task.completed ? "line-through opacity-50" : ""}`}
+                        } ${
+                          task.is_completed ? "line-through opacity-50" : ""
+                        }`}
                       >
                         {task.title}
                       </span>
                     </div>
-                    {task.description && (
-                      <p
-                        className={`mt-1 text-sm ${
-                          theme === "dark" ? "text-gray-400" : "text-gray-500"
-                        } ml-6`}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleDeleteSubtask(task.id)}
+                        className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                        title="Remover subtarefa"
                       >
-                        {task.description}
-                      </p>
-                    )}
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 11. Anexos */}
+          {card.attachments && card.attachments.length > 0 && (
+            <div className="mt-8 p-4 rounded-lg border border-blue-100 dark:border-blue-900/30 bg-blue-50 dark:bg-dark-800/80">
+              <h4
+                className={`text-lg font-medium mb-4 flex items-center ${
+                  theme === "dark" ? "text-gray-200" : "text-gray-800"
+                }`}
+              >
+                <Paperclip className="w-5 h-5 mr-2 text-blue-500" />
+                Anexos ({card.attachments.length})
+              </h4>
+              <div className="space-y-3">
+                {card.attachments.map((attachment) => (
+                  <div
+                    key={attachment.id}
+                    className="flex items-center justify-between p-4 rounded-lg bg-transparent"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Paperclip className="w-5 h-5 text-blue-500" />
+                      <h5
+                        className={`font-medium ${
+                          theme === "dark" ? "text-gray-200" : "text-gray-800"
+                        }`}
+                      >
+                        {attachment.file_name}
+                      </h5>
+                    </div>
+                    <div className="flex items-center gap-2 ml-auto">
+                      <button
+                        onClick={() =>
+                          handleOpenAttachment(attachment.file_url)
+                        }
+                        className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                        title="Visualizar anexo"
+                      >
+                        <ExternalLink className="w-4 h-4 text-blue-500" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleDownloadAttachment(
+                            attachment.file_url,
+                            attachment.file_name
+                          )
+                        }
+                        className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                        title="Baixar anexo"
+                      >
+                        <Download className="w-4 h-4 text-blue-500" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          setShowDeleteAttachmentConfirm(attachment.id)
+                        }
+                        className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                        title="Excluir anexo"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -561,101 +664,50 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
           )}
         </div>
 
-        {/* Seção de Anexos */}
-        {card.attachments && card.attachments.length > 0 && (
-          <div className="mt-8">
-            <h4
-              className={`text-lg font-medium mb-4 flex items-center ${
-                theme === "dark" ? "text-gray-200" : "text-gray-800"
-              }`}
-            >
-              <Paperclip className="w-5 h-5 mr-2 text-blue-500" />
-              Anexos ({card.attachments.length})
-            </h4>
-            <div className="space-y-3">
-              {card.attachments.map((attachment) => (
-                <div
-                  key={attachment.id}
-                  className={`flex items-center justify-between p-4 rounded-lg ${
-                    theme === "dark"
-                      ? "bg-dark-800/80 border border-blue-900/30"
-                      : "bg-blue-50 border border-blue-100"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Paperclip className="w-5 h-5 text-blue-500" />
-                    <div>
-                      <h5
-                        className={`font-medium ${
-                          theme === "dark" ? "text-gray-200" : "text-gray-800"
-                        }`}
-                      >
-                        {attachment.file_name || attachment.name}
-                      </h5>
-                      <p className="text-sm text-gray-500">
-                        {(
-                          (attachment.file_size || attachment.size) /
-                          1024 /
-                          1024
-                        ).toFixed(2)}{" "}
-                        MB
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() =>
-                        handleOpenAttachment(
-                          attachment.file_url || attachment.url
-                        )
-                      }
-                      className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                      title="Visualizar anexo"
-                    >
-                      <ExternalLink className="w-4 h-4 text-blue-500" />
-                    </button>
-                    <button
-                      onClick={() =>
-                        handleDownloadAttachment(
-                          attachment.file_url || attachment.url,
-                          attachment.file_name || attachment.name
-                        )
-                      }
-                      className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                      title="Baixar anexo"
-                    >
-                      <Download className="w-4 h-4 text-blue-500" />
-                    </button>
-                    <button
-                      onClick={() =>
-                        setShowDeleteAttachmentConfirm(attachment.id)
-                      }
-                      className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                      title="Excluir anexo"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <ConfirmationModal
-        isOpen={!!showDeleteAttachmentConfirm}
-        onClose={() => setShowDeleteAttachmentConfirm(null)}
-        onConfirm={() =>
-          showDeleteAttachmentConfirm &&
-          handleDeleteAttachment(showDeleteAttachmentConfirm)
-        }
-        title="Excluir Anexo"
-        message="Tem certeza que deseja excluir este anexo? Esta ação não pode ser desfeita."
-        confirmText="Sim, excluir"
-        cancelText="Não, manter"
-        confirmButtonClass="bg-red-500 hover:bg-red-600"
-      />
+        <ConfirmationModal
+          isOpen={!!showDeleteAttachmentConfirm}
+          onClose={() => setShowDeleteAttachmentConfirm(null)}
+          onConfirm={() =>
+            showDeleteAttachmentConfirm &&
+            handleDeleteAttachment(showDeleteAttachmentConfirm)
+          }
+          title="Excluir Anexo"
+          message="Tem certeza que deseja excluir este anexo? Esta ação não pode ser desfeita."
+          confirmText="Sim, excluir"
+          cancelText="Não, manter"
+          confirmButtonClass="bg-red-500 hover:bg-red-600"
+        />
+        <ConfirmationModal
+          isOpen={showDeleteCardConfirm}
+          onClose={() => setShowDeleteCardConfirm(false)}
+          onConfirm={async () => {
+            if (!token || !organization?.id) return;
+            setIsDeletingCard(true);
+            try {
+              await cardService.deleteCard(
+                token,
+                organization.id,
+                boardId,
+                listId,
+                card.id
+              );
+              showToast("Card removido com sucesso!", "success");
+              setShowDeleteCardConfirm(false);
+              onClose();
+            } catch (error: any) {
+              showToast(error.message || "Erro ao remover card", "error");
+            } finally {
+              setIsDeletingCard(false);
+            }
+          }}
+          title="Excluir Card"
+          message="Tem certeza que deseja excluir este card? Esta ação não pode ser desfeita."
+          confirmText="Sim, excluir"
+          cancelText="Cancelar"
+          confirmButtonClass="bg-red-500 hover:bg-red-600"
+          isLoading={isDeletingCard}
+        />
+      </div>{" "}
     </div>
   );
 };
