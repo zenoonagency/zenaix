@@ -307,10 +307,6 @@ export const useBoardStore = create<BoardState>()(
             boardId
           );
 
-          // Carregar listas do board automaticamente
-          const { fetchLists } = useListStore.getState();
-          await fetchLists(boardId);
-
           get().updateBoard(board);
           set({
             selectedBoard: board,

@@ -444,7 +444,14 @@ export function KanbanBoard() {
 
         const toListId = over.data.current?.listId || over.id;
 
-        console.log("📋 Dados do drag:", { cardId, fromListId, toListId });
+        console.log("📋 Dados do drag:", {
+          cardId,
+          fromListId,
+          toListId,
+          overId: over.id,
+          overData: over.data.current,
+          overType: over.data.current?.type,
+        });
 
         // Se for a mesma lista, reordenar
         if (fromListId === toListId) {
@@ -702,7 +709,7 @@ export function KanbanBoard() {
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex flex-col min-h-[calc(100vh-10vh)] bg-background dark:bg-background">
+      <div className="flex flex-col h-full bg-background dark:bg-background overflow-hidden kanban-board-container">
         {isDraggingCard && (
           <div className="fixed top-4 right-4 z-50 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-3 py-2 rounded-lg text-sm flex items-center gap-2">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
@@ -743,8 +750,8 @@ export function KanbanBoard() {
                 </button>
               )}
             </div>
-            <div className="flex gap-4 p-4 overflow-x-auto min-w-full scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent [&::-webkit-scrollbar]:h-2">
-              <div className="flex gap-4">
+            <div className="flex-1 overflow-x-auto kanban-horizontal-scroll px-4 pb-4 kanban-scroll-container">
+              <div className="flex gap-4 min-w-max">
                 {board?.lists
                   ?.sort((a, b) => (a.position || 0) - (b.position || 0))
                   .map((list: any) => (

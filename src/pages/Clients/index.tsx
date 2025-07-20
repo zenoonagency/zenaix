@@ -183,7 +183,7 @@ export function Clients() {
   }, [activeBoardId, activeBoard?.lists, selectAndLoadBoard]);
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col">
+    <div className="flex flex-col">
       <div className={`p-6 bg-background dark:bg-background`}>
         <div className="flex items-center space-x-2 mb-4">
           <Zap className="w-6 h-6 text-[#7f00ff]" />
@@ -285,7 +285,7 @@ export function Clients() {
           </div>
         </div>
       </div>
-      <div className="flex-1 overflow-hidden bg-background dark:bg-background">
+      <div className="flex-1 bg-background dark:bg-background overflow-hidden">
         <div>{/* Sempre mostra o header de menus */}</div>
         {boardStoreLoading ? (
           <div className="h-full flex items-center justify-center">

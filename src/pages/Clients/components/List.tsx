@@ -212,7 +212,8 @@ export const List = React.memo(
     return (
       <>
         <div
-          className={`flex-shrink-0 w-80 h-fit shadow-md ${
+          ref={setNodeRef}
+          className={`flex-shrink-0 w-80 shadow-md kanban-list ${
             isDark ? "bg-dark-700" : "bg-white"
           } rounded-lg flex flex-col transition-all duration-200 ${
             isOver || isDroppableOver ? "ring-2 ring-[#7f00ff]" : ""
@@ -340,11 +341,9 @@ export const List = React.memo(
           </div>
 
           <div
-            ref={setNodeRef}
-            className="p-2 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-[100px] transition-all duration-200 "
+            className="p-2 pb-2 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar transition-all duration-200 kanban-cards-area"
             style={{
-              maxHeight: "calc(65vh - 120px)",
-              minHeight: "200px",
+              minHeight: list.cards.length === 0 ? "100px" : "auto",
             }}
           >
             <SortableContext
