@@ -20,6 +20,17 @@ export const attachmentService = {
     file: File
   ): Promise<AttachmentDTO[]> {
     try {
+      console.log("[AttachmentService] Iniciando upload de anexo");
+      console.log("[AttachmentService] Parâmetros:", {
+        organizationId,
+        boardId,
+        listId,
+        cardId,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+      });
+
       const url = `${API_CONFIG.baseUrl}${API_CONFIG.cards.attachments.create(
         organizationId,
         boardId,
@@ -27,28 +38,54 @@ export const attachmentService = {
         cardId
       )}`;
 
+      console.log("[AttachmentService] URL:", url);
+
       const formData = new FormData();
       formData.append("file", file);
 
+      console.log("[AttachmentService] FormData criado, fazendo requisição...");
+      console.log(
+        "[AttachmentService] Tamanho do arquivo:",
+        file.size,
+        "bytes"
+      );
+      console.log("[AttachmentService] Tipo do arquivo:", file.type);
+      console.log("[AttachmentService] Nome do arquivo:", file.name);
+
+      // Seguir o mesmo padrão dos outros serviços que funcionam
+      const headers = getAuthHeaders(token);
+      delete headers["Content-Type"]; // Remover Content-Type para FormData
+
+      console.log("[AttachmentService] Headers finais:", headers);
+
       const response = await fetchWithAuth(url, {
         method: "POST",
-        headers: {
-          ...getAuthHeaders(token),
-          // Remover Content-Type para deixar o browser definir com boundary
-        },
+        headers,
         body: formData,
+      });
+
+      console.log("[AttachmentService] Resposta recebida:", {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText,
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
+        console.error("[AttachmentService] Erro na resposta:", errorData);
         const error = formatApiError(errorData, "Falha ao adicionar anexo.");
         (error as any).status = response.status;
         throw error;
       }
 
       const responseData: AttachmentResponse = await response.json();
+      console.log(
+        "[AttachmentService] Upload concluído com sucesso:",
+        responseData
+      );
       return responseData.data;
     } catch (error) {
+      console.error("[AttachmentService] Erro no upload:", error);
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado ao adicionar o anexo.");
     }

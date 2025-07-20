@@ -113,6 +113,8 @@ export const List = React.memo(
 
       setIsCreatingCard(true);
       try {
+        console.log("[List] Criando card com dados:", cardData);
+
         const newCard = await cardService.createCard(
           token,
           organization.id,
@@ -121,13 +123,20 @@ export const List = React.memo(
           cardData
         );
 
+        console.log("[List] Card criado:", newCard);
+
         // Atualizar na cardStore
         addCard(newCard);
-        
+
         setShowCardModal(false);
         showToast("Card criado com sucesso!", "success");
+
+        // Retornar o card criado para o CardModal
+        return newCard;
       } catch (err: any) {
+        console.error("[List] Erro ao criar card:", err);
         showToast(err.message || "Erro ao criar card", "error");
+        throw err; // Re-throw para o CardModal capturar
       } finally {
         setIsCreatingCard(false);
       }

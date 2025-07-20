@@ -31,6 +31,7 @@ import { Textarea } from "../../../components/ui/Textarea";
 import { attachmentService } from "../../../services/attachment.service";
 import { subtaskService } from "../../../services/subtask.service";
 import { useAuthStore } from "../../../store/authStore";
+import { compressImage } from "../../../utils/imageCompression";
 import {
   AttachmentDTO,
   InputCreateSubtaskDTO,
@@ -116,6 +117,10 @@ export function CardModal({
   };
 
   const handleClose = () => {
+    if (isSubmitting) {
+      return; // Não permitir fechar durante o salvamento
+    }
+
     if (hasChanges()) {
       setShowConfirmClose(true);
     } else {
@@ -281,6 +286,9 @@ export function CardModal({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    console.log("[CardModal] handleFileUpload iniciado");
+    console.log("[CardModal] Arquivos selecionados:", files);
+
     // Limite conforme documentação: 1 anexo por card, 5MB
     const maxSize = 5 * 1024 * 1024;
     const allowedTypes = [
@@ -299,7 +307,15 @@ export function CardModal({
 
     // Para criação de card (mode === "add"), apenas selecionar o arquivo
     if (mode === "add") {
+      console.log("[CardModal] Modo 'add' - armazenando arquivo localmente");
+
       for (const file of files) {
+        console.log("[CardModal] Processando arquivo:", {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        });
+
         if (file.size > maxSize) {
           showToast(`O arquivo ${file.name} excede o limite de 5MB`, "error");
           continue;
@@ -314,10 +330,20 @@ export function CardModal({
 
         // Se for uma imagem, comprimir antes de armazenar
         if (file.type.startsWith("image/")) {
-          const compressedBlob = await compressImage(file);
-          finalFile = new File([compressedBlob], file.name, {
-            type: file.type,
-          });
+          console.log("[CardModal] Comprimindo imagem...");
+          const result = await compressImage(file, { maxSizeKB: 300 });
+
+          if (result.success && result.file) {
+            finalFile = result.file;
+            console.log("[CardModal] Imagem comprimida:", {
+              originalSize: file.size,
+              compressedSize: finalFile.size,
+            });
+          } else {
+            console.error("[CardModal] Erro na compressão:", result.error);
+            showToast(result.error || "Erro ao comprimir imagem", "error");
+            continue;
+          }
         }
 
         // Armazenar arquivo localmente para upload posterior
@@ -329,8 +355,19 @@ export function CardModal({
           createdAt: new Date().toISOString(),
         };
 
-        setAttachments((prev) => [...prev, newAttachment]);
-        showToast(`Arquivo ${file.name} selecionado!`, "success");
+        console.log("[CardModal] Novo anexo criado:", newAttachment);
+
+        setAttachments((prev) => {
+          const newAttachments = [...prev, newAttachment];
+          console.log(
+            "[CardModal] Estado de anexos atualizado:",
+            newAttachments
+          );
+          return newAttachments;
+        });
+
+        // Remover toast de sucesso ao selecionar arquivo - só mostrar após upload
+        // showToast(`Arquivo ${file.name} selecionado!`, "success");
       }
 
       // Limpar input
@@ -364,10 +401,15 @@ export function CardModal({
 
         // Se for uma imagem, comprimir antes do upload
         if (file.type.startsWith("image/")) {
-          const compressedBlob = await compressImage(file);
-          finalFile = new File([compressedBlob], file.name, {
-            type: file.type,
-          });
+          const result = await compressImage(file, { maxSizeKB: 300 });
+
+          if (result.success && result.file) {
+            finalFile = result.file;
+          } else {
+            console.error("[CardModal] Erro na compressão:", result.error);
+            showToast(result.error || "Erro ao comprimir imagem", "error");
+            continue;
+          }
         }
 
         // Upload via API
@@ -405,60 +447,6 @@ export function CardModal({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  };
-
-  // Função para comprimir imagens
-  const compressImage = async (file: File): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      img.onload = () => {
-        URL.revokeObjectURL(img.src);
-        const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
-
-        // Redimensionar se a imagem for muito grande
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-
-        if (!ctx) {
-          reject(new Error("Não foi possível obter o contexto do canvas"));
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error("Falha ao comprimir imagem"));
-            }
-          },
-          file.type,
-          0.6 // Qualidade da compressão reduzida para 60%
-        );
-      };
-      img.onerror = () => reject(new Error("Erro ao carregar imagem"));
-    });
   };
 
   const handleRemoveAttachment = async (attachmentId: string) => {
@@ -523,14 +511,36 @@ export function CardModal({
         // attachments são gerenciados separadamente via attachmentService
       };
 
+      console.log("[CardModal] Salvando card com dados:", cardData);
+      console.log("[CardModal] Anexos pendentes:", attachments);
+
       const createdCard = await onSave(cardData);
+
+      console.log("[CardModal] Card criado:", createdCard);
 
       // Se há anexos pendentes, fazer upload após criação do card
       if (mode === "add" && attachments.length > 0 && createdCard?.id) {
+        console.log("[CardModal] Iniciando upload de anexos...");
         const pendingAttachments = attachments.filter((att) => att.file);
-        
+
+        console.log("[CardModal] Anexos com arquivo:", pendingAttachments);
+
         for (const attachment of pendingAttachments) {
           try {
+            console.log(
+              "[CardModal] Fazendo upload do anexo:",
+              attachment.name
+            );
+            console.log("[CardModal] Dados do anexo:", {
+              token: !!token,
+              organizationId: organization?.id,
+              boardId,
+              listId,
+              cardId: createdCard.id,
+              fileName: attachment.file?.name,
+              fileSize: attachment.file?.size,
+            });
+
             await attachmentService.createAttachment(
               token!,
               organization!.id,
@@ -539,13 +549,33 @@ export function CardModal({
               createdCard.id,
               attachment.file!
             );
+            console.log(
+              "[CardModal] Upload do anexo concluído:",
+              attachment.name
+            );
+            showToast(
+              `Anexo ${attachment.name} enviado com sucesso!`,
+              "success"
+            );
           } catch (error: any) {
             console.error("Erro ao fazer upload do anexo:", error);
-            showToast(`Erro ao fazer upload do anexo ${attachment.name}`, "error");
+            showToast(
+              `Erro ao fazer upload do anexo ${attachment.name}`,
+              "error"
+            );
           }
         }
+      } else {
+        console.log(
+          "[CardModal] Nenhum anexo para upload ou card não foi criado corretamente"
+        );
+        console.log("[CardModal] mode:", mode);
+        console.log("[CardModal] attachments.length:", attachments.length);
+        console.log("[CardModal] createdCard?.id:", createdCard?.id);
+        console.log("[CardModal] createdCard completo:", createdCard);
       }
 
+      // Só fechar a modal após todo o processo estar completo
       onClose();
     } catch (error: any) {
       console.error("Erro ao salvar card:", error);
@@ -565,7 +595,7 @@ export function CardModal({
     <>
       <div
         className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50"
-        onClick={handleClose}
+        onClick={isSubmitting ? undefined : handleClose}
       >
         <div
           className={`${
@@ -575,7 +605,11 @@ export function CardModal({
           } 
             rounded-lg w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto shadow-xl
           `}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            if (!isSubmitting) {
+              e.stopPropagation();
+            }
+          }}
         >
           <div className="flex justify-between items-center mb-6">
             <h2
@@ -587,11 +621,12 @@ export function CardModal({
             </h2>
             <button
               onClick={onClose}
+              disabled={isSubmitting}
               className={`${
                 isDark
                   ? "text-gray-400 hover:text-gray-300"
                   : "text-gray-500 hover:text-gray-700"
-              }`}
+              } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <X size={20} />
             </button>
@@ -611,11 +646,12 @@ export function CardModal({
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  disabled={isSubmitting}
                   className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                     isDark
                       ? "bg-dark-800 text-gray-100 border-gray-600"
                       : "bg-white border-gray-300 text-gray-900"
-                  }`}
+                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
                   required
                 />
               </div>
@@ -631,11 +667,12 @@ export function CardModal({
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  disabled={isSubmitting}
                   className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                     isDark
                       ? "bg-dark-800 text-gray-100 border-gray-600"
                       : "bg-white border-gray-300 text-gray-900"
-                  }`}
+                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
                   rows={4}
                   placeholder="Digite a descrição do cartão..."
                 />
@@ -657,11 +694,12 @@ export function CardModal({
                     type="number"
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
+                    disabled={isSubmitting}
                     className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                       isDark
                         ? "bg-dark-800 text-gray-100 border-gray-600"
                         : "bg-white border-gray-300 text-gray-900"
-                    }`}
+                    } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
                     step="0.01"
                   />
                 </div>
@@ -681,11 +719,12 @@ export function CardModal({
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                    disabled={isSubmitting}
                     className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                       isDark
                         ? "bg-dark-800 text-gray-100 border-gray-600"
                         : "bg-white border-gray-300 text-gray-900"
-                    }`}
+                    } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
                   />
                 </div>
               </div>
@@ -706,11 +745,12 @@ export function CardModal({
                     type="date"
                     value={scheduledDate}
                     onChange={(e) => setScheduledDate(e.target.value)}
+                    disabled={isSubmitting}
                     className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                       isDark
                         ? "bg-dark-800 text-gray-100 border-gray-600"
                         : "bg-white border-gray-300 text-gray-900"
-                    }`}
+                    } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
                   />
                 </div>
 
@@ -729,11 +769,12 @@ export function CardModal({
                     type="time"
                     value={scheduledTime}
                     onChange={(e) => setScheduledTime(e.target.value)}
+                    disabled={isSubmitting}
                     className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                       isDark
                         ? "bg-dark-800 text-gray-100 border-gray-600"
                         : "bg-white border-gray-300 text-gray-900"
-                    }`}
+                    } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
                   />
                 </div>
               </div>
@@ -752,11 +793,12 @@ export function CardModal({
                 <Select
                   value={responsibleId}
                   onChange={(e) => setResponsibleId(e.target.value)}
+                  disabled={isSubmitting}
                   className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                     isDark
                       ? "bg-dark-800 text-gray-100 border-gray-600"
                       : "bg-white border-gray-300 text-gray-900"
-                  }`}
+                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <option value="">Selecione um responsável</option>
                   {members.map((member) => (
@@ -781,11 +823,12 @@ export function CardModal({
                 <Select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
+                  disabled={isSubmitting}
                   className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                     isDark
                       ? "bg-dark-800 text-gray-100 border-gray-600"
                       : "bg-white border-gray-300 text-gray-900"
-                  }`}
+                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <option value="">Selecione a prioridade</option>
                   <option value="LOW">Baixa</option>
@@ -818,6 +861,7 @@ export function CardModal({
                             : [...prev, tag.id]
                         );
                       }}
+                      disabled={isSubmitting}
                       className={`px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors ${
                         selectedTagIds.includes(tag.id)
                           ? "bg-opacity-100"
@@ -854,6 +898,7 @@ export function CardModal({
                   <button
                     type="button"
                     onClick={() => setShowNewSubtaskForm(true)}
+                    disabled={isSubmitting}
                     className="flex items-center gap-1 px-2 py-1 text-sm text-[#7f00ff] hover:bg-[#7f00ff]/10 rounded-md transition-colors"
                   >
                     <Plus className="w-4 h-4" />
@@ -869,6 +914,7 @@ export function CardModal({
                         value={newSubtaskTitle}
                         onChange={(e) => setNewSubtaskTitle(e.target.value)}
                         placeholder="Título da subtarefa"
+                        disabled={isSubmitting}
                         className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                           isDark
                             ? "bg-dark-800 text-gray-100 border-gray-600"
@@ -882,6 +928,7 @@ export function CardModal({
                         }
                         placeholder="Descrição da subtarefa"
                         rows={2}
+                        disabled={isSubmitting}
                         className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                           isDark
                             ? "bg-dark-800 text-gray-100 border-gray-600"
@@ -896,6 +943,7 @@ export function CardModal({
                             setNewSubtaskTitle("");
                             setNewSubtaskDescription("");
                           }}
+                          disabled={isSubmitting}
                           className={`px-3 py-1.5 rounded-md ${
                             isDark
                               ? "text-gray-300 hover:bg-gray-700"
@@ -908,7 +956,9 @@ export function CardModal({
                           type="button"
                           onClick={handleAddSubtask}
                           disabled={
-                            !newSubtaskTitle.trim() || isCreatingSubtask
+                            !newSubtaskTitle.trim() ||
+                            isCreatingSubtask ||
+                            isSubmitting
                           }
                           className="px-3 py-1.5 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
@@ -930,7 +980,7 @@ export function CardModal({
                       <button
                         type="button"
                         onClick={() => handleToggleSubtask(task.id)}
-                        disabled={isUpdatingSubtask}
+                        disabled={isUpdatingSubtask || isSubmitting}
                         className={`mt-1 ${
                           task.completed
                             ? "text-[#7f00ff]"
@@ -938,7 +988,7 @@ export function CardModal({
                             ? "text-gray-600"
                             : "text-gray-400"
                         } ${
-                          isUpdatingSubtask
+                          isUpdatingSubtask || isSubmitting
                             ? "opacity-50 cursor-not-allowed"
                             : ""
                         }`}
@@ -972,7 +1022,10 @@ export function CardModal({
                       <button
                         type="button"
                         onClick={() => handleDeleteSubtask(task.id)}
-                        className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                        disabled={isSubmitting}
+                        className={`p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors ${
+                          isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -1017,7 +1070,7 @@ export function CardModal({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploadingAttachment}
+                    disabled={isUploadingAttachment || isSubmitting}
                     className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Upload className="w-4 h-4" />
@@ -1028,6 +1081,7 @@ export function CardModal({
                     type="file"
                     multiple
                     onChange={handleFileUpload}
+                    disabled={isSubmitting}
                     className="hidden"
                     accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt"
                   />
@@ -1059,8 +1113,11 @@ export function CardModal({
                       <button
                         type="button"
                         onClick={() => handleRemoveAttachment(attachment.id)}
+                        disabled={isSubmitting}
                         className={`p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 ${
                           isDark ? "text-red-400" : "text-red-500"
+                        } ${
+                          isSubmitting ? "opacity-50 cursor-not-allowed" : ""
                         }`}
                       >
                         <X className="w-4 h-4" />
@@ -1075,11 +1132,12 @@ export function CardModal({
               <button
                 type="button"
                 onClick={handleClose}
+                disabled={isSubmitting}
                 className={`px-4 py-2 rounded-lg ${
                   isDark
                     ? "text-gray-300 hover:bg-gray-700"
                     : "text-gray-700 hover:bg-gray-100"
-                }`}
+                } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 Cancelar
               </button>
@@ -1088,7 +1146,11 @@ export function CardModal({
                 disabled={isSubmitting}
                 className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? "Salvando..." : "Salvar"}
+                {isSubmitting
+                  ? attachments.length > 0 && mode === "add"
+                    ? "Salvando e enviando anexos..."
+                    : "Salvando..."
+                  : "Salvar"}
               </button>
             </div>
           </form>
