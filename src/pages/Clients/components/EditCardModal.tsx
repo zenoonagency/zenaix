@@ -1,15 +1,15 @@
 import React, { useState, useRef } from "react";
 import { X, Upload, Paperclip } from "lucide-react";
 import { useThemeStore } from "../../../store/themeStore";
-import { Card } from "../../../types/card";
-import { Attachment } from "../types";
+import { OutputCardDTO } from "../../../types/card";
+import { AttachmentDTO } from "../../../types/card";
 // Temporariamente removido até implementar com as novas stores
 import { useToast } from "../../../hooks/useToast";
 
 interface EditCardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  card: Card;
+  card: OutputCardDTO;
   boardId: string;
   listId: string;
 }
@@ -36,7 +36,7 @@ export const EditCardModal: React.FC<EditCardModalProps> = ({
   const [description, setDescription] = useState(card.description || "");
   const [value, setValue] = useState(card.value?.toString() || "");
   const [phone, setPhone] = useState(card.phone || "");
-  const [attachments, setAttachments] = useState<Attachment[]>(
+  const [attachments, setAttachments] = useState<AttachmentDTO[]>(
     card.attachments || []
   );
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,10 +69,12 @@ export const EditCardModal: React.FC<EditCardModalProps> = ({
           ...prev,
           {
             id: Math.random().toString(36).substring(7),
-            name: file.name,
-            url,
-            size: file.size,
-            createdAt: new Date().toISOString(),
+            file_name: file.name,
+            file_url: url,
+            fileType: file.type,
+            fileSize: file.size,
+            card_id: card.id,
+            created_at: new Date().toISOString(),
           },
         ]);
       } catch (error) {
@@ -252,10 +254,10 @@ export const EditCardModal: React.FC<EditCardModalProps> = ({
                         isDark ? "text-gray-300" : "text-gray-700"
                       }`}
                     >
-                      {attachment.name}
+                      {attachment.file_name}
                     </span>
                     <span className="text-xs text-gray-400">
-                      ({(attachment.size / 1024 / 1024).toFixed(2)} MB)
+                      ({(attachment.fileSize / 1024 / 1024).toFixed(2)} MB)
                     </span>
                   </div>
                   <button

@@ -706,15 +706,6 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                           <Download className="w-4 h-4 text-blue-500" />
                         )}
                       </button>
-                      <button
-                        onClick={() =>
-                          setShowDeleteAttachmentConfirm(attachment.id)
-                        }
-                        className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                        title="Excluir anexo"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </button>
                     </div>
                   </div>
                 ))}
