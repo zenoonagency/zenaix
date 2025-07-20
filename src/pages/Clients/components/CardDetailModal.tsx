@@ -235,7 +235,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[9998] flex items-center justify-center">
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
@@ -590,21 +590,25 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                           theme === "dark" ? "text-gray-200" : "text-gray-800"
                         }`}
                       >
-                        {attachment.name}
+                        {attachment.file_name || attachment.name}
                       </h5>
                       <p className="text-sm text-gray-500">
-                        {(attachment.size / 1024 / 1024).toFixed(2)} MB •
-                        {format(
-                          new Date(attachment.createdAt),
-                          "dd 'de' MMMM 'às' HH:mm",
-                          { locale: ptBR }
-                        )}
+                        {(
+                          (attachment.file_size || attachment.size) /
+                          1024 /
+                          1024
+                        ).toFixed(2)}{" "}
+                        MB
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleOpenAttachment(attachment.url)}
+                      onClick={() =>
+                        handleOpenAttachment(
+                          attachment.file_url || attachment.url
+                        )
+                      }
                       className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
                       title="Visualizar anexo"
                     >
@@ -613,8 +617,8 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                     <button
                       onClick={() =>
                         handleDownloadAttachment(
-                          attachment.url,
-                          attachment.name
+                          attachment.file_url || attachment.url,
+                          attachment.file_name || attachment.name
                         )
                       }
                       className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"

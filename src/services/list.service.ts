@@ -31,6 +31,11 @@ export const listService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
+        console.error("Erro na API ao criar lista:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         const error = formatApiError(errorData, "Falha ao criar lista.");
         (error as any).status = response.status;
         throw error;
@@ -38,6 +43,7 @@ export const listService = {
       const responseData: ListResponse = await response.json();
       return responseData.data;
     } catch (error) {
+      console.error("Erro ao criar lista:", error);
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado ao criar a lista.");
     }
@@ -59,6 +65,11 @@ export const listService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
+        console.error("Erro na API ao buscar listas:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         const error = formatApiError(errorData, "Falha ao buscar listas.");
         (error as any).status = response.status;
         throw error;
@@ -66,6 +77,7 @@ export const listService = {
       const responseData: ListListResponse = await response.json();
       return responseData.data;
     } catch (error) {
+      console.error("Erro ao buscar listas:", error);
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado ao buscar as listas.");
     }
@@ -121,6 +133,11 @@ export const listService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
+        console.error("Erro na API ao atualizar lista:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         const error = formatApiError(errorData, "Falha ao atualizar lista.");
         (error as any).status = response.status;
         throw error;
@@ -128,6 +145,7 @@ export const listService = {
       const responseData: ListResponse = await response.json();
       return responseData.data;
     } catch (error) {
+      console.error("Erro ao atualizar lista:", error);
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado ao atualizar a lista.");
     }
@@ -151,11 +169,17 @@ export const listService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error("Erro na API ao deletar lista:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         const error = formatApiError(errorData, "Falha ao deletar lista.");
         (error as any).status = response.status;
         throw error;
       }
     } catch (error) {
+      console.error("Erro ao deletar lista:", error);
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado ao deletar a lista.");
     }

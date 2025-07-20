@@ -120,7 +120,7 @@ export function BoardConfigModal({
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog as="div" className="relative z-[9998]" onClose={onClose}>
         <Transition.Child
           as={Fragment}
           enter="modal-overlay-enter"

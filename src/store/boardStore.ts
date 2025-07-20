@@ -10,6 +10,8 @@ import { useAuthStore } from "./authStore";
 import { useToastStore } from "../components/Notification";
 import { useListStore } from "./listStore";
 import { APIError } from "../services/errors/api.errors";
+import { OutputListDTO } from "../types/list";
+import { OutputCardDTO } from "../types/card";
 
 interface BoardState {
   boards: Board[];
@@ -17,20 +19,27 @@ interface BoardState {
   error: string | null;
   selectedBoard: Board | null;
   lastFetched: number | null;
-  activeBoardId: string | null; // ID do quadro ativo
-  lastUsedBoardId: string | null; // ID do último quadro usado
-  activeBoard: Board | null; // Board completo ativo (com listas e cards)
+  activeBoardId: string | null;
+  lastUsedBoardId: string | null;
+  activeBoard: Board | null;
 
-  // Ações síncronas (para a RealtimeStore e componentes)
   setBoards: (boards: Board[]) => void;
   addBoard: (board: Board) => void;
   updateBoard: (board: Board) => void;
   removeBoard: (boardId: string) => void;
+
   setSelectedBoard: (board: Board | null) => void;
   setActiveBoardId: (boardId: string | null) => void;
   setLastUsedBoardId: (boardId: string | null) => void;
   setActiveBoard: (board: Board | null) => void;
   selectActiveBoard: (boards: Board[]) => void;
+
+  addListToActiveBoard: (list: OutputListDTO) => void;
+  updateListInActiveBoard: (list: OutputListDTO) => void;
+  removeListFromActiveBoard: (listId: string) => void;
+  addCardToActiveBoard: (card: OutputCardDTO) => void;
+  updateCardInActiveBoard: (card: OutputCardDTO) => void;
+  removeCardFromActiveBoard: (cardId: string, listId: string) => void;
 
   fetchAllBoards: (token: string, organizationId: string) => Promise<void>;
   fetchBoardById: (boardId: string) => Promise<void>;
@@ -96,6 +105,116 @@ export const useBoardStore = create<BoardState>()(
         });
       },
 
+      addListToActiveBoard: (list) => {
+        set((state) => {
+          if (
+            !state.activeBoard ||
+            state.activeBoard.lists.some((l) => l.id === list.id)
+          )
+            return {};
+
+          // CORREÇÃO: Adiciona a propriedade 'cards' em falta ao novo objeto de lista.
+          const newListWithCards = { ...list, cards: [] };
+
+          return {
+            activeBoard: {
+              ...state.activeBoard,
+              lists: [...state.activeBoard.lists, newListWithCards],
+            },
+          };
+        });
+      },
+      updateListInActiveBoard: (updatedList) => {
+        set((state) => {
+          if (!state.activeBoard) return {};
+          return {
+            activeBoard: {
+              ...state.activeBoard,
+              lists: state.activeBoard.lists.map((list) =>
+                list.id === updatedList.id ? { ...list, ...updatedList } : list
+              ),
+            },
+          };
+        });
+      },
+      removeListFromActiveBoard: (listId) => {
+        set((state) => {
+          if (!state.activeBoard) return {};
+          return {
+            activeBoard: {
+              ...state.activeBoard,
+              lists: state.activeBoard.lists.filter(
+                (list) => list.id !== listId
+              ),
+            },
+          };
+        });
+      },
+      addCardToActiveBoard: (card) => {
+        set((state) => {
+          if (!state.activeBoard) return {};
+          return {
+            activeBoard: {
+              ...state.activeBoard,
+              lists: state.activeBoard.lists.map((list) => {
+                if (
+                  list.id === card.list_id &&
+                  !list.cards.some((c) => c.id === card.id)
+                ) {
+                  return { ...list, cards: [...list.cards, card] };
+                }
+                return list;
+              }),
+            },
+          };
+        });
+      },
+      updateCardInActiveBoard: (updatedCard) => {
+        set((state) => {
+          if (!state.activeBoard) return {};
+
+          const newLists = state.activeBoard.lists.map((list) => {
+            // Remove o cartão da sua lista antiga (se ele mudou de lista)
+            const filteredCards = list.cards.filter(
+              (c) => c.id !== updatedCard.id
+            );
+
+            // Adiciona o cartão atualizado à sua nova lista
+            if (list.id === updatedCard.list_id) {
+              return { ...list, cards: [...filteredCards, updatedCard] };
+            }
+
+            return { ...list, cards: filteredCards };
+          });
+
+          return {
+            activeBoard: {
+              ...state.activeBoard,
+              lists: newLists,
+            },
+          };
+        });
+      },
+      removeCardFromActiveBoard: (cardId, listId) => {
+        set((state) => {
+          if (!state.activeBoard) return {};
+          return {
+            activeBoard: {
+              ...state.activeBoard,
+              lists: state.activeBoard.lists.map((list) => {
+                if (list.id === listId) {
+                  return {
+                    ...list,
+                    cards: list.cards.filter((card) => card.id !== cardId),
+                  };
+                }
+                return list;
+              }),
+            },
+          };
+        });
+      },
+
       setSelectedBoard: (board) => set({ selectedBoard: board }),
 
       setActiveBoardId: (boardId) => {
@@ -138,7 +257,10 @@ export const useBoardStore = create<BoardState>()(
       },
 
       fetchAllBoards: async (token: string, organizationId: string) => {
-        if (!token || !organizationId) return;
+        if (!token || !organizationId) {
+          console.error("Token ou organizationId não fornecidos");
+          return;
+        }
 
         if (get().isLoading) {
           return;
@@ -160,10 +282,11 @@ export const useBoardStore = create<BoardState>()(
 
           get().selectActiveBoard(boards);
         } catch (error: any) {
+          console.error("Erro ao buscar quadros:", error);
           const errorMessage =
             error instanceof APIError
               ? error.message
-              : "Erro ao buscar quadros";
+              : error?.message || error?.error || "Erro ao buscar quadros";
           set({ error: errorMessage, isLoading: false });
           useToastStore.getState().addToast(errorMessage, "error");
         }
@@ -171,7 +294,10 @@ export const useBoardStore = create<BoardState>()(
 
       fetchBoardById: async (boardId) => {
         const { token, organization } = useAuthStore.getState();
-        if (!token || !organization.id) return;
+        if (!token || !organization.id) {
+          console.error("Token ou organização não encontrados");
+          return;
+        }
 
         set({ isLoading: true });
         try {
@@ -193,8 +319,11 @@ export const useBoardStore = create<BoardState>()(
             error: null,
           });
         } catch (error: any) {
+          console.error("Erro ao buscar quadro:", error);
           const errorMessage =
-            error instanceof APIError ? error.message : "Erro ao buscar quadro";
+            error instanceof APIError
+              ? error.message
+              : error?.message || error?.error || "Erro ao buscar quadro";
           set({ error: errorMessage, isLoading: false });
           useToastStore.getState().addToast(errorMessage, "error");
         }
@@ -203,13 +332,21 @@ export const useBoardStore = create<BoardState>()(
       selectAndLoadBoard: async (boardId: string) => {
         const { token, organization } = useAuthStore.getState();
         if (!token || !organization.id) {
+          console.error("Token ou organização não encontrados");
           return;
         }
 
-        get().setActiveBoardId(boardId);
-        get().setLastUsedBoardId(boardId);
+        try {
+          get().setActiveBoardId(boardId);
+          get().setLastUsedBoardId(boardId);
 
-        await get().fetchBoardById(boardId);
+          await get().fetchBoardById(boardId);
+        } catch (error: any) {
+          console.error("Erro ao carregar board:", error);
+          const errorMessage =
+            error?.message || error?.error || "Erro ao carregar quadro";
+          useToastStore.getState().addToast(errorMessage, "error");
+        }
       },
     }),
     {

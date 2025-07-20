@@ -53,7 +53,10 @@ export const useListStore = create<ListState>()(
 
       fetchLists: async (boardId) => {
         const { token, organization } = useAuthStore.getState();
-        if (!token || !organization?.id) return;
+        if (!token || !organization?.id) {
+          console.error("Token ou organização não encontrados");
+          return;
+        }
 
         if (get().isLoading) return;
         if (get().lists.length === 0) {
@@ -73,8 +76,11 @@ export const useListStore = create<ListState>()(
             lastFetched: Date.now(),
           });
         } catch (error: any) {
+          console.error("Erro ao buscar listas:", error);
           const errorMessage =
-            error instanceof APIError ? error.message : "Erro ao buscar listas";
+            error instanceof APIError
+              ? error.message
+              : error?.message || error?.error || "Erro ao buscar listas";
           set({ error: errorMessage, isLoading: false });
           useToastStore.getState().addToast(errorMessage, "error");
         }

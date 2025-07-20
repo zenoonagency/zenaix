@@ -310,10 +310,8 @@ export function KanbanBoard() {
     activeBoardId,
     activeBoard,
     setActiveBoardId,
-    selectAndLoadBoard,
     setActiveBoard,
   } = useBoardStore();
-  const { updateCard } = useCardStore();
   const { token, organization } = useAuthStore();
   const [activeCard, setActiveCard] = useState<OutputCardDTO | null>(null);
   const [activeListId, setActiveListId] = useState<string | null>(null);
@@ -352,9 +350,9 @@ export function KanbanBoard() {
       activeBoardId &&
       (!activeBoard?.lists || activeBoard.lists.length === 0)
     ) {
-      selectAndLoadBoard(activeBoardId);
+      // Removido selectAndLoadBoard - será feito em outro lugar
     }
-  }, [activeBoardId, activeBoard?.lists, selectAndLoadBoard]);
+  }, [activeBoardId, activeBoard?.lists]);
 
   useEffect(() => {
     if (board && board.id !== activeBoardId) {
@@ -504,7 +502,6 @@ export function KanbanBoard() {
                 );
                 showToast("Card reordenado com sucesso!", "success");
               } catch (err: any) {
-                await selectAndLoadBoard(activeBoardId);
                 showToast(err.message || "Erro ao reordenar card", "error");
               }
             }
@@ -578,7 +575,6 @@ export function KanbanBoard() {
 
             showToast("Card movido com sucesso!", "success");
           } catch (err: any) {
-            await selectAndLoadBoard(activeBoardId);
             showToast(err.message || "Erro ao mover card", "error");
           }
         }
@@ -590,15 +586,7 @@ export function KanbanBoard() {
       setOverListId(null);
       setIsDraggingCard(false);
     },
-    [
-      activeBoardId,
-      board,
-      token,
-      organization?.id,
-      showToast,
-      selectAndLoadBoard,
-      setActiveBoard,
-    ]
+    [activeBoardId, board, token, organization?.id, showToast, setActiveBoard]
   );
 
   const handleAddList = useCallback(() => {
@@ -644,9 +632,6 @@ export function KanbanBoard() {
 
       handleCloseModal();
       showToast("Lista criada com sucesso!", "success");
-
-      // Recarregar o board para incluir a nova lista
-      await selectAndLoadBoard(activeBoardId);
     } catch (err: any) {
       showToast(err.message || "Erro ao criar lista", "error");
     } finally {
@@ -702,9 +687,6 @@ export function KanbanBoard() {
           dto
         );
       }
-
-      // Recarregar o board para refletir a nova ordem
-      await selectAndLoadBoard(activeBoardId);
 
       showToast("Listas reordenadas com sucesso!", "success");
     } catch (err: any) {

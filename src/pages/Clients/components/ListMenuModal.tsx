@@ -10,6 +10,7 @@ interface ListMenuModalProps {
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  canDelete?: boolean;
 }
 
 export function ListMenuModal({
@@ -18,6 +19,7 @@ export function ListMenuModal({
   onEdit,
   onDuplicate,
   onDelete,
+  canDelete = true,
 }: ListMenuModalProps) {
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -83,11 +85,16 @@ export function ListMenuModal({
                     Duplicar
                   </button>
                   <button
-                    onClick={() => {
-                      onDelete();
+                    onClick={async () => {
+                      await onDelete();
                       onClose();
                     }}
-                    className="w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg flex items-center transition-colors"
+                    disabled={!canDelete}
+                    className={`w-full text-left px-4 py-3 rounded-lg flex items-center transition-colors ${
+                      canDelete
+                        ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                        : "text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                    }`}
                   >
                     <Trash2 className="w-5 h-5 mr-3 text-red-500" />
                     Excluir

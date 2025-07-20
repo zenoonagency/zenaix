@@ -38,12 +38,7 @@ export function Clients() {
     boards,
     activeBoard,
     isLoading: boardStoreLoading,
-    fetchAllBoards,
-    addBoard,
-    updateBoard,
-    removeBoard,
     activeBoardId,
-    setActiveBoardId,
     selectAndLoadBoard,
   } = useBoardStore();
 
@@ -88,9 +83,6 @@ export function Clients() {
         dto
       );
 
-      // Adicionar à boardStore
-      addBoard(newBoard);
-
       showToast("Quadro criado com sucesso!", "success");
       setNewBoardTitle("");
       setShowCreateModal(false);
@@ -115,9 +107,6 @@ export function Clients() {
           { name: editBoardTitle.trim() }
         );
 
-        // Atualizar na boardStore
-        updateBoard(updatedBoard);
-
         showToast("Quadro atualizado com sucesso!", "success");
         setEditBoardTitle("");
         setShowEditModal(false);
@@ -135,17 +124,16 @@ export function Clients() {
       try {
         if (!token || !organization?.id) throw new Error("Sem autenticação");
 
-        // Deletar no backend
         await boardService.deleteBoard(token, organization.id, boardToDelete);
-
-        // Remover da boardStore
-        removeBoard(boardToDelete);
 
         showToast("Quadro excluído com sucesso!", "success");
         setShowDeleteModal(false);
         setBoardToDelete(null);
       } catch (err: any) {
-        showToast(err.message || "Erro ao excluir quadro", "error");
+        console.error("Erro ao excluir quadro:", err);
+        const errorMessage =
+          err?.message || err?.error || "Erro ao excluir quadro";
+        showToast(errorMessage, "error");
       } finally {
         setIsDeletingBoard(false);
       }

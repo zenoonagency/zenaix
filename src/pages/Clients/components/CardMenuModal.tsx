@@ -1,8 +1,8 @@
-import React from 'react';
-import { Dialog, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
-import { Pencil, Copy, ArrowUpDown, Trash2 } from 'lucide-react';
+import React from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment } from "react";
+import { XMarkIcon } from "@heroicons/react/24/outline";
+import { Pencil, Copy, ArrowUpDown, Trash2 } from "lucide-react";
 
 interface CardMenuModalProps {
   isOpen: boolean;
@@ -13,13 +13,13 @@ interface CardMenuModalProps {
   onDelete: () => void;
 }
 
-export function CardMenuModal({ 
-  isOpen, 
-  onClose, 
-  onEdit, 
-  onDuplicate, 
-  onMove, 
-  onDelete 
+export function CardMenuModal({
+  isOpen,
+  onClose,
+  onEdit,
+  onDuplicate,
+  onMove,
+  onDelete,
 }: CardMenuModalProps) {
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -95,8 +95,8 @@ export function CardMenuModal({
                     Mover
                   </button>
                   <button
-                    onClick={() => {
-                      onDelete();
+                    onClick={async () => {
+                      await onDelete();
                       onClose();
                     }}
                     className="w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg flex items-center transition-colors"
@@ -112,4 +112,4 @@ export function CardMenuModal({
       </Dialog>
     </Transition>
   );
-} 
+}

@@ -119,7 +119,7 @@ export function AutomationModal({
   };
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={handleClose}>
+      <Dialog as="div" className="relative z-[9998]" onClose={handleClose}>
         <Transition.Child
           as={Fragment}
           enter="modal-overlay-enter"

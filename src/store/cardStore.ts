@@ -61,7 +61,10 @@ export const useCardStore = create<CardState>()(
 
       fetchAllCards: async (boardId, listId, title) => {
         const { token, organization } = useAuthStore.getState();
-        if (!token || !organization?.id) return;
+        if (!token || !organization?.id) {
+          console.error("Token ou organização não encontrados");
+          return;
+        }
 
         if (get().isLoading) return;
         if (get().cards.length === 0) {
@@ -83,8 +86,11 @@ export const useCardStore = create<CardState>()(
             lastFetched: Date.now(),
           });
         } catch (error: any) {
+          console.error("Erro ao buscar cards:", error);
           const errorMessage =
-            error instanceof APIError ? error.message : "Erro ao buscar cards";
+            error instanceof APIError
+              ? error.message
+              : error?.message || error?.error || "Erro ao buscar cards";
           set({ error: errorMessage, isLoading: false });
           useToastStore.getState().addToast(errorMessage, "error");
         }

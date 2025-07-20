@@ -32,6 +32,11 @@ export const boardService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
+        console.error("Erro na API ao criar quadro:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         const error = formatApiError(errorData, "Falha ao criar quadro.");
         (error as any).status = response.status;
         throw error;
@@ -39,6 +44,7 @@ export const boardService = {
       const responseData: BoardResponse = await response.json();
       return responseData.data;
     } catch (error) {
+      console.error("Erro ao criar quadro:", error);
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado ao criar o quadro.");
     }
@@ -55,6 +61,11 @@ export const boardService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
+        console.error("Erro na API ao buscar quadros:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         const error = formatApiError(errorData, "Falha ao buscar quadros.");
         (error as any).status = response.status;
         throw error;
@@ -62,6 +73,7 @@ export const boardService = {
       const responseData: BoardListResponse = await response.json();
       return responseData.data;
     } catch (error) {
+      console.error("Erro ao buscar quadros:", error);
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado ao buscar os quadros.");
     }
@@ -83,6 +95,11 @@ export const boardService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
+        console.error("Erro na API ao buscar quadro:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         const error = formatApiError(errorData, "Falha ao buscar quadro.");
         (error as any).status = response.status;
         throw error;
@@ -90,6 +107,7 @@ export const boardService = {
       const responseData: BoardResponse = await response.json();
       return responseData.data;
     } catch (error) {
+      console.error("Erro ao buscar quadro:", error);
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado ao buscar o quadro.");
     }
@@ -113,6 +131,11 @@ export const boardService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
+        console.error("Erro na API ao atualizar quadro:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         const error = formatApiError(errorData, "Falha ao atualizar quadro.");
         (error as any).status = response.status;
         throw error;
@@ -120,6 +143,7 @@ export const boardService = {
       const responseData: BoardResponse = await response.json();
       return responseData.data;
     } catch (error) {
+      console.error("Erro ao atualizar quadro:", error);
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado ao atualizar o quadro.");
     }
@@ -141,11 +165,17 @@ export const boardService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error("Erro na API ao deletar quadro:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         const error = formatApiError(errorData, "Falha ao deletar quadro.");
         (error as any).status = response.status;
         throw error;
       }
     } catch (error) {
+      console.error("Erro ao deletar quadro:", error);
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado ao deletar o quadro.");
     }

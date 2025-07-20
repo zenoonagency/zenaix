@@ -44,7 +44,7 @@ export const List = React.memo(
   ({ list, boardId, isOver, activeCard }: ListProps) => {
     const { theme } = useThemeStore();
     const { showToast } = useToast();
-    const { customConfirm } = useCustomModal();
+    const { customConfirm, modal } = useCustomModal();
     const { selectAndLoadBoard } = useBoardStore();
     const { addCard } = useCardStore();
     const { token, organization } = useAuthStore();
@@ -58,7 +58,9 @@ export const List = React.memo(
     const [isDeleting, setIsDeleting] = useState(false);
     const [isCreatingCard, setIsCreatingCard] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
-    const isCompletedList = false; // getCompletedListId(boardId) === list.id;
+    const isCompletedList =
+      list.name.toLowerCase().includes("concluído") ||
+      list.name.toLowerCase().includes("concluido");
     const containerRef = useRef<HTMLDivElement>(null);
     const [showListMenuModal, setShowListMenuModal] = useState(false);
     const { setNodeRef, isOver: isDroppableOver } = useDroppable({
@@ -99,13 +101,13 @@ export const List = React.memo(
           dto
         );
 
-        // Recarregar o board para refletir as mudanças
-        await selectAndLoadBoard(boardId);
-
         showToast("Lista atualizada com sucesso!", "success");
         setIsEditing(false);
       } catch (err: any) {
-        showToast(err.message || "Erro ao atualizar lista", "error");
+        console.error("Erro ao atualizar lista:", err);
+        const errorMessage =
+          err?.message || err?.error || "Erro ao atualizar lista";
+        showToast(errorMessage, "error");
       } finally {
         setIsUpdating(false);
       }
@@ -127,20 +129,23 @@ export const List = React.memo(
         // Atualizar na cardStore
         addCard(newCard);
 
-        // Recarregar o board para refletir as mudanças
-        await selectAndLoadBoard(boardId);
-
         // Retornar o card criado para o CardModal
         return newCard;
       } catch (err: any) {
         console.error("[List] Erro ao criar card:", err);
-        showToast(err.message || "Erro ao criar card", "error");
+        const errorMessage = err?.message || err?.error || "Erro ao criar card";
+        showToast(errorMessage, "error");
         throw err; // Re-throw para o CardModal capturar
       } finally {
         setIsCreatingCard(false);
       }
     };
     const handleDelete = async () => {
+      if (isCompletedList) {
+        showToast("A lista 'Concluído' não pode ser excluída", "warning");
+        return;
+      }
+
       const confirmed = await customConfirm(
         "Excluir lista",
         "Tem certeza que deseja excluir esta lista?"
@@ -155,12 +160,13 @@ export const List = React.memo(
             list.id
           );
 
-          // Recarregar o board para refletir as mudanças
-          await selectAndLoadBoard(boardId);
-
           showToast("Lista excluída com sucesso!", "success");
         } catch (err: any) {
-          showToast(err.message || "Erro ao excluir lista", "error");
+          console.error("Erro ao excluir lista:", err);
+          const errorMessage =
+            err?.message || err?.error || "Erro ao excluir lista";
+          showToast(errorMessage, "error");
+          throw err; // Re-throw para o modal não fechar em caso de erro
         } finally {
           setIsDeleting(false);
         }
@@ -204,179 +210,183 @@ export const List = React.memo(
       "#85144b",
     ];
     return (
-      <div
-        className={`flex-shrink-0 w-80 h-fit shadow-md ${
-          isDark ? "bg-dark-700" : "bg-white"
-        } rounded-lg flex flex-col transition-all duration-200 ${
-          isOver || isDroppableOver ? "ring-2 ring-[#7f00ff]" : ""
-        }`}
-      >
-        <div className="p-2 flex items-center justify-between shrink-0">
-          {isEditing ? (
-            <div className="flex-1 space-y-2">
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleEdit()}
-                className={`w-full px-2 py-1 bg-transparent border-b-2 border-[#7f00ff] outline-none ${
-                  isDark ? "text-gray-100" : "text-gray-900"
-                }`}
-                placeholder="Nome da lista"
-                autoFocus
-              />
-              <div className="space-y-2">
-                <label className="text-xs text-gray-400">Cor</label>
-                <div className="flex flex-wrap gap-2">
-                  {predefinedColors.map((presetColor) => (
-                    <button
-                      key={presetColor}
-                      onClick={() => setColor(presetColor)}
-                      className={`w-6 h-6 rounded-full transition-all ${
-                        color === presetColor
-                          ? "ring-2 ring-white ring-offset-2 ring-offset-dark-700"
-                          : ""
-                      }`}
-                      style={{ backgroundColor: presetColor }}
-                    />
-                  ))}
-                  {color && (
-                    <button
-                      onClick={() => setColor("")}
-                      className="text-xs text-gray-400 hover:text-gray-300 ml-2 flex items-center"
-                    >
-                      Remover cor
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-2">
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="px-3 py-1 text-sm text-gray-400 hover:text-gray-300"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleEdit}
-                  disabled={isUpdating}
-                  className="px-3 py-1 text-sm bg-[#7f00ff] text-white rounded hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isUpdating ? "Salvando..." : "Salvar"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between w-full">
-              <div>
-                <div className="flex items-center gap-1">
-                  <div className="relative flex items-center">
-                    {list.color && (
-                      <div
-                        className="absolute -left-2 w-1 h-[40px] rounded-full"
-                        style={{ backgroundColor: list.color }}
-                      />
-                    )}
-                    <h3
-                      className={`font-medium pl-2 ${
-                        isDark ? "text-gray-100" : "text-gray-900"
-                      }`}
-                    >
-                      {list.name}
-                    </h3>
-                  </div>
-                  {isCompletedList && (
-                    <span className="text-[11px] leading-none text-emerald-500 font-medium">
-                      CONCLUÍDO
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 mt-1 pl-2">
-                  <span className="text-sm text-gray-500">
-                    {list.cards.length} cards
-                  </span>
-                  <span className="text-sm text-green-500">
-                    {new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(
-                      list.cards.reduce(
-                        (sum, card) => sum + (card.value || 0),
-                        0
-                      )
-                    )}
-                  </span>
-                </div>
-              </div>
-              <div className="relative">
-                <button
-                  onClick={() => setShowListMenuModal(true)}
-                  className="p-1 hover:bg-gray-700/50 rounded-full"
-                >
-                  <MoreVertical className="w-4 h-4 text-gray-500" />
-                </button>
-
-                <ListMenuModal
-                  isOpen={showListMenuModal}
-                  onClose={() => setShowListMenuModal(false)}
-                  onEdit={() => setIsEditing(true)}
-                  onDuplicate={() => {
-                    // duplicateList(boardId, list.id); // This line was removed as per the edit hint
-                    showToast("Lista duplicada com sucesso!", "success");
-                  }}
-                  onDelete={handleDelete}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
+      <>
         <div
-          ref={setNodeRef}
-          className="p-2 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-[100px] transition-all duration-200 "
-          style={{
-            maxHeight: "calc(65vh - 120px)",
-            minHeight: "200px",
-          }}
+          className={`flex-shrink-0 w-80 h-fit shadow-md ${
+            isDark ? "bg-dark-700" : "bg-white"
+          } rounded-lg flex flex-col transition-all duration-200 ${
+            isOver || isDroppableOver ? "ring-2 ring-[#7f00ff]" : ""
+          }`}
         >
-          <SortableContext
-            items={list.cards
-              .sort((a, b) => (a.position || 0) - (b.position || 0))
-              .map((card) => card.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {list.cards
-              .sort((a, b) => (a.position || 0) - (b.position || 0))
-              .map((card) => {
-                const isActive = activeCard && activeCard.id === card.id;
-                if (isActive) return null;
-                return (
-                  <Card
-                    key={card.id}
-                    card={card}
-                    boardId={boardId}
-                    listId={list.id}
-                  />
-                );
-              })}
-          </SortableContext>
-        </div>
+          <div className="p-2 flex items-center justify-between shrink-0">
+            {isEditing ? (
+              <div className="flex-1 space-y-2">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleEdit()}
+                  className={`w-full px-2 py-1 bg-transparent border-b-2 border-[#7f00ff] outline-none ${
+                    isDark ? "text-gray-100" : "text-gray-900"
+                  }`}
+                  placeholder="Nome da lista"
+                  autoFocus
+                />
+                <div className="space-y-2">
+                  <label className="text-xs text-gray-400">Cor</label>
+                  <div className="flex flex-wrap gap-2">
+                    {predefinedColors.map((presetColor) => (
+                      <button
+                        key={presetColor}
+                        onClick={() => setColor(presetColor)}
+                        className={`w-6 h-6 rounded-full transition-all ${
+                          color === presetColor
+                            ? "ring-2 ring-white ring-offset-2 ring-offset-dark-700"
+                            : ""
+                        }`}
+                        style={{ backgroundColor: presetColor }}
+                      />
+                    ))}
+                    {color && (
+                      <button
+                        onClick={() => setColor("")}
+                        className="text-xs text-gray-400 hover:text-gray-300 ml-2 flex items-center"
+                      >
+                        Remover cor
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-2">
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="px-3 py-1 text-sm text-gray-400 hover:text-gray-300"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleEdit}
+                    disabled={isUpdating}
+                    className="px-3 py-1 text-sm bg-[#7f00ff] text-white rounded hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isUpdating ? "Salvando..." : "Salvar"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between w-full">
+                <div>
+                  <div className="flex items-center gap-1">
+                    <div className="relative flex items-center">
+                      {list.color && (
+                        <div
+                          className="absolute -left-2 w-1 h-[40px] rounded-full"
+                          style={{ backgroundColor: list.color }}
+                        />
+                      )}
+                      <h3
+                        className={`font-medium pl-2 ${
+                          isDark ? "text-gray-100" : "text-gray-900"
+                        }`}
+                      >
+                        {list.name}
+                      </h3>
+                    </div>
+                    {isCompletedList && (
+                      <span className="text-[11px] leading-none text-emerald-500 font-medium">
+                        CONCLUÍDO
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 pl-2">
+                    <span className="text-sm text-gray-500">
+                      {list.cards.length} cards
+                    </span>
+                    <span className="text-sm text-green-500">
+                      {new Intl.NumberFormat("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      }).format(
+                        list.cards.reduce(
+                          (sum, card) => sum + (card.value || 0),
+                          0
+                        )
+                      )}
+                    </span>
+                  </div>
+                </div>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowListMenuModal(true)}
+                    className="p-1 hover:bg-gray-700/50 rounded-full"
+                  >
+                    <MoreVertical className="w-4 h-4 text-gray-500" />
+                  </button>
 
-        <div className="p-2 shrink-0">
-          <button
-            onClick={() => setShowCardModal(true)}
-            disabled={isCreatingCard}
-            className={`w-full p-2 flex items-center justify-center gap-2 text-sm rounded-lg transition-colors ${
-              isDark
-                ? "bg-dark-600 text-gray-400 hover:bg-dark-500"
-                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-            } ${isCreatingCard ? "opacity-50 cursor-not-allowed" : ""}`}
+                  <ListMenuModal
+                    isOpen={showListMenuModal}
+                    onClose={() => setShowListMenuModal(false)}
+                    onEdit={() => setIsEditing(true)}
+                    onDuplicate={() => {
+                      // duplicateList(boardId, list.id); // This line was removed as per the edit hint
+                      showToast("Lista duplicada com sucesso!", "success");
+                    }}
+                    onDelete={handleDelete}
+                    canDelete={!isCompletedList}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div
+            ref={setNodeRef}
+            className="p-2 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-[100px] transition-all duration-200 "
+            style={{
+              maxHeight: "calc(65vh - 120px)",
+              minHeight: "200px",
+            }}
           >
-            <Plus className="w-4 h-4 ${isDark ? 'bg-dark-600'}" />
-            {isCreatingCard ? "Criando..." : "Adicionar Card"}
-          </button>
+            <SortableContext
+              items={list.cards
+                .sort((a, b) => (a.position || 0) - (b.position || 0))
+                .map((card) => card.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {list.cards
+                .sort((a, b) => (a.position || 0) - (b.position || 0))
+                .map((card) => {
+                  const isActive = activeCard && activeCard.id === card.id;
+                  if (isActive) return null;
+                  return (
+                    <Card
+                      key={card.id}
+                      card={card}
+                      boardId={boardId}
+                      listId={list.id}
+                    />
+                  );
+                })}
+            </SortableContext>
+          </div>
+
+          <div className="p-2 shrink-0">
+            <button
+              onClick={() => setShowCardModal(true)}
+              disabled={isCreatingCard}
+              className={`w-full p-2 flex items-center justify-center gap-2 text-sm rounded-lg transition-colors ${
+                isDark
+                  ? "bg-dark-600 text-gray-400 hover:bg-dark-500"
+                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+              } ${isCreatingCard ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <Plus className="w-4 h-4 ${isDark ? 'bg-dark-600'}" />
+              {isCreatingCard ? "Criando..." : "Adicionar Card"}
+            </button>
+          </div>
         </div>
-      </div>
+        {modal}
+      </>
     );
   }
 );

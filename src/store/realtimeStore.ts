@@ -200,16 +200,29 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
               useBoardStore.getState().removeBoard(eventData.data.id);
               break;
             case "LIST_CREATED":
-              useListStore.getState().addList(eventData.data);
+              useBoardStore.getState().addListToActiveBoard(eventData.data);
               break;
             case "LIST_UPDATED":
-              useListStore.getState().updateList(eventData.data);
+              useBoardStore.getState().updateListInActiveBoard(eventData.data);
               break;
             case "LIST_DELETED":
-              useListStore.getState().updateList(eventData.data.id);
+              useBoardStore
+                .getState()
+                .removeListFromActiveBoard(eventData.data.id);
+              break;
+            case "CARD_CREATED":
+              useBoardStore.getState().addCardToActiveBoard(eventData.data);
               break;
             case "CARD_UPDATED":
-              // useListStore.getState().updateList(eventData.data.id);
+              useBoardStore.getState().updateCardInActiveBoard(eventData.data);
+              break;
+            case "CARD_DELETED":
+              useBoardStore
+                .getState()
+                .removeCardFromActiveBoard(
+                  eventData.data.id,
+                  eventData.data.list_id
+                );
               break;
           }
         })

@@ -251,7 +251,10 @@ const Card = React.memo(
         setShowDeleteConfirm(false);
         showToast("Card excluído com sucesso!", "success");
       } catch (err: any) {
-        showToast(err.message || "Erro ao excluir card", "error");
+        console.error("Erro ao excluir card:", err);
+        const errorMessage =
+          err?.message || err?.error || "Erro ao excluir card";
+        showToast(errorMessage, "error");
       }
     }, [
       token,
@@ -376,16 +379,21 @@ const Card = React.memo(
             {/* Card metadata */}
             <div className="space-y-2">
               {/* Deadline if exists */}
-              {cardData.due_date && (
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <Calendar className="w-4 h-4" />
-                  <span>
-                    {format(new Date(cardData.due_date), "dd MMM yyyy", {
-                      locale: ptBR,
-                    })}
-                  </span>
-                </div>
-              )}
+              {cardData.due_date &&
+                (() => {
+                  const dateObj = new Date(cardData.due_date);
+                  if (!isNaN(dateObj.getTime())) {
+                    return (
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <Calendar className="w-4 h-4" />
+                        <span>
+                          {format(dateObj, "dd MMM yyyy", { locale: ptBR })}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
               {/* Value if exists */}
               {cardData.value > 0 && (

@@ -33,6 +33,11 @@ export const cardService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
+        console.error("Erro na API ao criar card:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         const error = formatApiError(errorData, "Falha ao criar card.");
         (error as any).status = response.status;
         throw error;
@@ -40,6 +45,7 @@ export const cardService = {
       const responseData: CardResponse = await response.json();
       return responseData.data;
     } catch (error) {
+      console.error("Erro ao criar card:", error);
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado ao criar o card.");
     }
@@ -67,6 +73,11 @@ export const cardService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
+        console.error("Erro na API ao buscar cards:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         const error = formatApiError(errorData, "Falha ao buscar cards.");
         (error as any).status = response.status;
         throw error;
@@ -74,6 +85,7 @@ export const cardService = {
       const responseData: CardListResponse = await response.json();
       return responseData.data;
     } catch (error) {
+      console.error("Erro ao buscar cards:", error);
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado ao buscar os cards.");
     }
@@ -133,6 +145,11 @@ export const cardService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
+        console.error("Erro na API ao atualizar card:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         const error = formatApiError(errorData, "Falha ao atualizar card.");
         (error as any).status = response.status;
         throw error;
@@ -140,6 +157,7 @@ export const cardService = {
       const responseData: CardResponse = await response.json();
       return responseData.data;
     } catch (error) {
+      console.error("Erro ao atualizar card:", error);
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado ao atualizar o card.");
     }
@@ -165,11 +183,17 @@ export const cardService = {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error("Erro na API ao deletar card:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         const error = formatApiError(errorData, "Falha ao deletar card.");
         (error as any).status = response.status;
         throw error;
       }
     } catch (error) {
+      console.error("Erro ao deletar card:", error);
       if (error instanceof APIError) throw error;
       throw new APIError("Ocorreu um erro inesperado ao deletar o card.");
     }
