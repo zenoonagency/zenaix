@@ -286,8 +286,6 @@ export function CardModal({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    console.log("[CardModal] handleFileUpload iniciado");
-    console.log("[CardModal] Arquivos selecionados:", files);
 
     // Limite conforme documentação: 1 anexo por card, 5MB
     const maxSize = 5 * 1024 * 1024;
@@ -307,10 +305,8 @@ export function CardModal({
 
     // Para criação de card (mode === "add"), apenas selecionar o arquivo
     if (mode === "add") {
-      console.log("[CardModal] Modo 'add' - armazenando arquivo localmente");
 
       for (const file of files) {
-        console.log("[CardModal] Processando arquivo:", {
           name: file.name,
           size: file.size,
           type: file.type,
@@ -330,12 +326,10 @@ export function CardModal({
 
         // Se for uma imagem, comprimir antes de armazenar
         if (file.type.startsWith("image/")) {
-          console.log("[CardModal] Comprimindo imagem...");
           const result = await compressImage(file, { maxSizeKB: 300 });
 
           if (result.success && result.file) {
             finalFile = result.file;
-            console.log("[CardModal] Imagem comprimida:", {
               originalSize: file.size,
               compressedSize: finalFile.size,
             });
@@ -355,19 +349,16 @@ export function CardModal({
           createdAt: new Date().toISOString(),
         };
 
-        console.log("[CardModal] Novo anexo criado:", newAttachment);
 
         setAttachments((prev) => {
           const newAttachments = [...prev, newAttachment];
-          console.log(
             "[CardModal] Estado de anexos atualizado:",
             newAttachments
           );
           return newAttachments;
         });
 
-        // Remover toast de sucesso ao selecionar arquivo - só mostrar após upload
-        // showToast(`Arquivo ${file.name} selecionado!`, "success");
+
       }
 
       // Limpar input
@@ -511,27 +502,20 @@ export function CardModal({
         // attachments são gerenciados separadamente via attachmentService
       };
 
-      console.log("[CardModal] Salvando card com dados:", cardData);
-      console.log("[CardModal] Anexos pendentes:", attachments);
 
       const createdCard = await onSave(cardData);
 
-      console.log("[CardModal] Card criado:", createdCard);
 
       // Se há anexos pendentes, fazer upload após criação do card
       if (mode === "add" && attachments.length > 0 && createdCard?.id) {
-        console.log("[CardModal] Iniciando upload de anexos...");
         const pendingAttachments = attachments.filter((att) => att.file);
 
-        console.log("[CardModal] Anexos com arquivo:", pendingAttachments);
 
         for (const attachment of pendingAttachments) {
           try {
-            console.log(
               "[CardModal] Fazendo upload do anexo:",
               attachment.name
             );
-            console.log("[CardModal] Dados do anexo:", {
               token: !!token,
               organizationId: organization?.id,
               boardId,
@@ -549,14 +533,10 @@ export function CardModal({
               createdCard.id,
               attachment.file!
             );
-            console.log(
               "[CardModal] Upload do anexo concluído:",
               attachment.name
             );
-            showToast(
-              `Anexo ${attachment.name} enviado com sucesso!`,
-              "success"
-            );
+
           } catch (error: any) {
             console.error("Erro ao fazer upload do anexo:", error);
             showToast(
@@ -566,14 +546,18 @@ export function CardModal({
           }
         }
       } else {
-        console.log(
           "[CardModal] Nenhum anexo para upload ou card não foi criado corretamente"
         );
-        console.log("[CardModal] mode:", mode);
-        console.log("[CardModal] attachments.length:", attachments.length);
-        console.log("[CardModal] createdCard?.id:", createdCard?.id);
-        console.log("[CardModal] createdCard completo:", createdCard);
       }
+
+      // Mostrar toast de sucesso único no final
+      const hasAttachments = mode === "add" && attachments.length > 0;
+      showToast(
+        hasAttachments 
+          ? "Card criado e anexos enviados com sucesso!" 
+          : "Card criado com sucesso!",
+        "success"
+      );
 
       // Só fechar a modal após todo o processo estar completo
       onClose();
@@ -594,7 +578,9 @@ export function CardModal({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50"
+        className={`fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 ${
+          isSubmitting ? "pointer-events-none" : ""
+        }`}
         onClick={isSubmitting ? undefined : handleClose}
       >
         <div
@@ -621,12 +607,11 @@ export function CardModal({
             </h2>
             <button
               onClick={onClose}
-              disabled={isSubmitting}
               className={`${
                 isDark
                   ? "text-gray-400 hover:text-gray-300"
                   : "text-gray-500 hover:text-gray-700"
-              } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+              }`}
             >
               <X size={20} />
             </button>
@@ -646,12 +631,11 @@ export function CardModal({
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  disabled={isSubmitting}
                   className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                     isDark
                       ? "bg-dark-800 text-gray-100 border-gray-600"
                       : "bg-white border-gray-300 text-gray-900"
-                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+                  }`}
                   required
                 />
               </div>
@@ -667,12 +651,11 @@ export function CardModal({
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  disabled={isSubmitting}
                   className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                     isDark
                       ? "bg-dark-800 text-gray-100 border-gray-600"
                       : "bg-white border-gray-300 text-gray-900"
-                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+                  }`}
                   rows={4}
                   placeholder="Digite a descrição do cartão..."
                 />
@@ -694,12 +677,11 @@ export function CardModal({
                     type="number"
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
-                    disabled={isSubmitting}
                     className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                       isDark
                         ? "bg-dark-800 text-gray-100 border-gray-600"
                         : "bg-white border-gray-300 text-gray-900"
-                    } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+                    }`}
                     step="0.01"
                   />
                 </div>
@@ -719,12 +701,12 @@ export function CardModal({
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    disabled={isSubmitting}
+                    
                     className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                       isDark
                         ? "bg-dark-800 text-gray-100 border-gray-600"
                         : "bg-white border-gray-300 text-gray-900"
-                    } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+                    }`}
                   />
                 </div>
               </div>
@@ -745,12 +727,12 @@ export function CardModal({
                     type="date"
                     value={scheduledDate}
                     onChange={(e) => setScheduledDate(e.target.value)}
-                    disabled={isSubmitting}
+                    
                     className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                       isDark
                         ? "bg-dark-800 text-gray-100 border-gray-600"
                         : "bg-white border-gray-300 text-gray-900"
-                    } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+                    }`}
                   />
                 </div>
 
@@ -769,12 +751,12 @@ export function CardModal({
                     type="time"
                     value={scheduledTime}
                     onChange={(e) => setScheduledTime(e.target.value)}
-                    disabled={isSubmitting}
+                    
                     className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                       isDark
                         ? "bg-dark-800 text-gray-100 border-gray-600"
                         : "bg-white border-gray-300 text-gray-900"
-                    } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+                    }`}
                   />
                 </div>
               </div>
@@ -793,12 +775,12 @@ export function CardModal({
                 <Select
                   value={responsibleId}
                   onChange={(e) => setResponsibleId(e.target.value)}
-                  disabled={isSubmitting}
+                  
                   className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                     isDark
                       ? "bg-dark-800 text-gray-100 border-gray-600"
                       : "bg-white border-gray-300 text-gray-900"
-                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+                  }`}
                 >
                   <option value="">Selecione um responsável</option>
                   {members.map((member) => (
@@ -823,12 +805,12 @@ export function CardModal({
                 <Select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
-                  disabled={isSubmitting}
+                  
                   className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                     isDark
                       ? "bg-dark-800 text-gray-100 border-gray-600"
                       : "bg-white border-gray-300 text-gray-900"
-                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+                  }`}
                 >
                   <option value="">Selecione a prioridade</option>
                   <option value="LOW">Baixa</option>
@@ -861,7 +843,7 @@ export function CardModal({
                             : [...prev, tag.id]
                         );
                       }}
-                      disabled={isSubmitting}
+                      
                       className={`px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors ${
                         selectedTagIds.includes(tag.id)
                           ? "bg-opacity-100"
@@ -898,7 +880,7 @@ export function CardModal({
                   <button
                     type="button"
                     onClick={() => setShowNewSubtaskForm(true)}
-                    disabled={isSubmitting}
+                    
                     className="flex items-center gap-1 px-2 py-1 text-sm text-[#7f00ff] hover:bg-[#7f00ff]/10 rounded-md transition-colors"
                   >
                     <Plus className="w-4 h-4" />
@@ -914,7 +896,7 @@ export function CardModal({
                         value={newSubtaskTitle}
                         onChange={(e) => setNewSubtaskTitle(e.target.value)}
                         placeholder="Título da subtarefa"
-                        disabled={isSubmitting}
+                        
                         className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                           isDark
                             ? "bg-dark-800 text-gray-100 border-gray-600"
@@ -928,7 +910,7 @@ export function CardModal({
                         }
                         placeholder="Descrição da subtarefa"
                         rows={2}
-                        disabled={isSubmitting}
+                        
                         className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
                           isDark
                             ? "bg-dark-800 text-gray-100 border-gray-600"
@@ -943,229 +925,9 @@ export function CardModal({
                             setNewSubtaskTitle("");
                             setNewSubtaskDescription("");
                           }}
-                          disabled={isSubmitting}
+                          
                           className={`px-3 py-1.5 rounded-md ${
                             isDark
                               ? "text-gray-300 hover:bg-gray-700"
                               : "text-gray-700 hover:bg-gray-100"
-                          }`}
-                        >
-                          Cancelar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleAddSubtask}
-                          disabled={
-                            !newSubtaskTitle.trim() ||
-                            isCreatingSubtask ||
-                            isSubmitting
-                          }
-                          className="px-3 py-1.5 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isCreatingSubtask ? "Criando..." : "Adicionar"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  {subtasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className={`p-3 rounded-lg border ${
-                        isDark ? "border-gray-700" : "border-gray-200"
-                      } flex items-start gap-3`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => handleToggleSubtask(task.id)}
-                        disabled={isUpdatingSubtask || isSubmitting}
-                        className={`mt-1 ${
-                          task.completed
-                            ? "text-[#7f00ff]"
-                            : isDark
-                            ? "text-gray-600"
-                            : "text-gray-400"
-                        } ${
-                          isUpdatingSubtask || isSubmitting
-                            ? "opacity-50 cursor-not-allowed"
-                            : ""
-                        }`}
-                      >
-                        {task.completed ? (
-                          <CheckSquare className="w-4 h-4" />
-                        ) : (
-                          <Square className="w-4 h-4" />
-                        )}
-                      </button>
-                      <div className="flex-1">
-                        <h4
-                          className={`text-sm font-medium ${
-                            task.completed ? "line-through opacity-50" : ""
-                          }`}
-                        >
-                          {task.title}
-                        </h4>
-                        {task.description && (
-                          <p
-                            className={`text-sm mt-1 ${
-                              isDark ? "text-gray-400" : "text-gray-500"
-                            } ${
-                              task.completed ? "line-through opacity-50" : ""
-                            }`}
-                          >
-                            {task.description}
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteSubtask(task.id)}
-                        disabled={isSubmitting}
-                        className={`p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors ${
-                          isSubmitting ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {subtasks.length > 0 && (
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-sm mb-1">
-                      <span
-                        className={isDark ? "text-gray-400" : "text-gray-500"}
-                      >
-                        {completedSubtasks} de {subtasks.length} concluídas
-                      </span>
-                      <span
-                        className={isDark ? "text-gray-400" : "text-gray-500"}
-                      >
-                        {Math.round(progress)}%
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-[#7f00ff] rounded-full transition-all duration-300"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label
-                    className={`flex items-center gap-2 text-sm font-medium ${
-                      isDark ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    <Paperclip className="w-4 h-4 text-blue-500" />
-                    Anexos
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploadingAttachment || isSubmitting}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Upload className="w-4 h-4" />
-                    {isUploadingAttachment ? "Enviando..." : "Adicionar Anexo"}
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    onChange={handleFileUpload}
-                    disabled={isSubmitting}
-                    className="hidden"
-                    accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  {attachments.map((attachment) => (
-                    <div
-                      key={attachment.id}
-                      className={`flex items-center justify-between p-3 rounded-lg ${
-                        isDark
-                          ? "bg-dark-800/80 border border-blue-900/30"
-                          : "bg-blue-50 border border-blue-100"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Paperclip className="w-4 h-4 text-blue-500" />
-                        <span
-                          className={`text-sm ${
-                            isDark ? "text-gray-300" : "text-gray-700"
-                          }`}
-                        >
-                          {attachment.name}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          ({(attachment.size / 1024 / 1024).toFixed(2)} MB)
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAttachment(attachment.id)}
-                        disabled={isSubmitting}
-                        className={`p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 ${
-                          isDark ? "text-red-400" : "text-red-500"
-                        } ${
-                          isSubmitting ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-8">
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={isSubmitting}
-                className={`px-4 py-2 rounded-lg ${
-                  isDark
-                    ? "text-gray-300 hover:bg-gray-700"
-                    : "text-gray-700 hover:bg-gray-100"
-                } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting
-                  ? attachments.length > 0 && mode === "add"
-                    ? "Salvando e enviando anexos..."
-                    : "Salvando..."
-                  : "Salvar"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <ConfirmationModal
-        isOpen={showConfirmClose}
-        onClose={() => setShowConfirmClose(false)}
-        onConfirm={onClose}
-        title="Cancelar edição"
-        message="Tem certeza que deseja cancelar? Todas as alterações serão perdidas."
-        confirmText="Sim, cancelar"
-        cancelText="Não, continuar editando"
-      />
-    </>
-  );
-}
+                          }`

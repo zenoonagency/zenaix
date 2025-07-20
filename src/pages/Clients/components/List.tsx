@@ -113,8 +113,6 @@ export const List = React.memo(
 
       setIsCreatingCard(true);
       try {
-        console.log("[List] Criando card com dados:", cardData);
-
         const newCard = await cardService.createCard(
           token,
           organization.id,
@@ -123,13 +121,8 @@ export const List = React.memo(
           cardData
         );
 
-        console.log("[List] Card criado:", newCard);
-
         // Atualizar na cardStore
         addCard(newCard);
-
-        setShowCardModal(false);
-        showToast("Card criado com sucesso!", "success");
 
         // Retornar o card criado para o CardModal
         return newCard;
@@ -156,7 +149,6 @@ export const List = React.memo(
             list.id
           );
 
-          // Remover da listStore
           removeList(list.id);
 
           showToast("Lista excluída com sucesso!", "success");

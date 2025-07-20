@@ -20,8 +20,6 @@ export const attachmentService = {
     file: File
   ): Promise<AttachmentDTO[]> {
     try {
-      console.log("[AttachmentService] Iniciando upload de anexo");
-      console.log("[AttachmentService] Parâmetros:", {
         organizationId,
         boardId,
         listId,
@@ -38,25 +36,18 @@ export const attachmentService = {
         cardId
       )}`;
 
-      console.log("[AttachmentService] URL:", url);
 
       const formData = new FormData();
       formData.append("file", file);
 
-      console.log("[AttachmentService] FormData criado, fazendo requisição...");
-      console.log(
         "[AttachmentService] Tamanho do arquivo:",
         file.size,
         "bytes"
       );
-      console.log("[AttachmentService] Tipo do arquivo:", file.type);
-      console.log("[AttachmentService] Nome do arquivo:", file.name);
 
-      // Seguir o mesmo padrão dos outros serviços que funcionam
       const headers = getAuthHeaders(token);
-      delete headers["Content-Type"]; // Remover Content-Type para FormData
+      delete headers["Content-Type"];
 
-      console.log("[AttachmentService] Headers finais:", headers);
 
       const response = await fetchWithAuth(url, {
         method: "POST",
@@ -64,7 +55,6 @@ export const attachmentService = {
         body: formData,
       });
 
-      console.log("[AttachmentService] Resposta recebida:", {
         status: response.status,
         ok: response.ok,
         statusText: response.statusText,
@@ -79,7 +69,6 @@ export const attachmentService = {
       }
 
       const responseData: AttachmentResponse = await response.json();
-      console.log(
         "[AttachmentService] Upload concluído com sucesso:",
         responseData
       );
