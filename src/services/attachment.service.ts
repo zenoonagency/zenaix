@@ -20,15 +20,6 @@ export const attachmentService = {
     file: File
   ): Promise<AttachmentDTO[]> {
     try {
-        organizationId,
-        boardId,
-        listId,
-        cardId,
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type,
-      });
-
       const url = `${API_CONFIG.baseUrl}${API_CONFIG.cards.attachments.create(
         organizationId,
         boardId,
@@ -36,10 +27,10 @@ export const attachmentService = {
         cardId
       )}`;
 
-
       const formData = new FormData();
       formData.append("file", file);
 
+      console.log(
         "[AttachmentService] Tamanho do arquivo:",
         file.size,
         "bytes"
@@ -48,13 +39,13 @@ export const attachmentService = {
       const headers = getAuthHeaders(token);
       delete headers["Content-Type"];
 
-
       const response = await fetchWithAuth(url, {
         method: "POST",
         headers,
         body: formData,
       });
 
+      console.log("[AttachmentService] Resposta do servidor:", {
         status: response.status,
         ok: response.ok,
         statusText: response.statusText,
@@ -69,6 +60,7 @@ export const attachmentService = {
       }
 
       const responseData: AttachmentResponse = await response.json();
+      console.log(
         "[AttachmentService] Upload concluído com sucesso:",
         responseData
       );
@@ -185,7 +177,6 @@ export const attachmentService = {
         method: "PUT",
         headers: {
           ...getAuthHeaders(token),
-          // Remover Content-Type para deixar o browser definir com boundary
         },
         body: formData,
       });

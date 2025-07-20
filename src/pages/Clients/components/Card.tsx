@@ -203,8 +203,11 @@ const Card = React.memo(
 
           setShowEditModal(false);
           showToast("Card atualizado com sucesso!", "success");
+
+          return updatedCardData;
         } catch (err: any) {
           showToast(err.message || "Erro ao atualizar card", "error");
+          throw err;
         }
       },
       [
