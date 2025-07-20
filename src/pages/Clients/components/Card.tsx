@@ -155,6 +155,13 @@ const Card = React.memo(
       return [];
     }, []);
     // Trocar useDraggable por useSortable
+    const sortableData = {
+      type: "card",
+      cardId: cardData.id,
+      listId,
+      boardId,
+    };
+
     const { attributes, listeners, setNodeRef, transform, transition } =
       useSortable({
         id: cardData.id,
@@ -163,10 +170,6 @@ const Card = React.memo(
           cardId: cardData.id,
           listId,
           boardId,
-        },
-        transition: {
-          duration: 200,
-          easing: "cubic-bezier(0.25, 1, 0.5, 1)",
         },
       });
     const style = {

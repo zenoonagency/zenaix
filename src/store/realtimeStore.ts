@@ -208,6 +208,9 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
             case "LIST_DELETED":
               useListStore.getState().updateList(eventData.data.id);
               break;
+            case "CARD_UPDATED":
+              // useListStore.getState().updateList(eventData.data.id);
+              break;
           }
         })
         .subscribe((status) => {

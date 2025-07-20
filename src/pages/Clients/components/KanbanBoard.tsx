@@ -426,9 +426,27 @@ export function KanbanBoard() {
     async (event: DragEndEvent) => {
       const { active, over } = event;
 
-      if (active && over && active.data.current?.type === "card") {
-        const { cardId, listId: fromListId } = active.data.current;
+      // Verificar se é um card verificando se o ID está em alguma lista
+      const isCard = board?.lists?.some((list) =>
+        list.cards?.some((card) => card.id === active.id)
+      );
+
+      if (active && over && isCard) {
+        // Encontrar o card e sua lista de origem
+        let cardId = active.id as string;
+        let fromListId = "";
+
+        for (const list of board?.lists || []) {
+          const card = list.cards?.find((c) => c.id === cardId);
+          if (card) {
+            fromListId = list.id;
+            break;
+          }
+        }
+
         const toListId = over.data.current?.listId || over.id;
+
+        console.log("📋 Dados do drag:", { cardId, fromListId, toListId });
 
         // Se for a mesma lista, reordenar
         if (fromListId === toListId) {
@@ -503,6 +521,23 @@ export function KanbanBoard() {
               (l: any) => l.id === toListId
             );
 
+            // Calcular nova posição na lista de destino
+            let newPosition: number;
+
+            if (toList && toList.cards.length === 0) {
+              // Se a lista estiver vazia, posição 1
+              newPosition = 1;
+            } else if (toList) {
+              // Se já tiver cards, pegar a próxima posição
+              const maxPosition = Math.max(
+                ...toList.cards.map((c: any) => c.position || 0)
+              );
+              newPosition = maxPosition + 1;
+            } else {
+              // Fallback
+              newPosition = 1;
+            }
+
             if (fromList && toList) {
               // Remover o card da lista de origem
               const cardIndex = fromList.cards?.findIndex(
@@ -510,13 +545,6 @@ export function KanbanBoard() {
               );
               if (cardIndex !== -1) {
                 const [movedCard] = fromList.cards.splice(cardIndex, 1);
-
-                // Calcular nova posição na lista de destino
-                const maxPosition =
-                  toList.cards.length > 0
-                    ? Math.max(...toList.cards.map((c: any) => c.position || 0))
-                    : 0;
-                const newPosition = maxPosition + 1;
 
                 // Adicionar o card na lista de destino
                 movedCard.list_id = toListId;
@@ -536,7 +564,7 @@ export function KanbanBoard() {
             // Atualizar no backend
             const dto: InputUpdateCardDTO = {
               list_id: toListId,
-              position: 1000,
+              position: newPosition,
             };
 
             await cardService.updateCard(
