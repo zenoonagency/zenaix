@@ -13,9 +13,9 @@ import {
 } from "lucide-react";
 import { useTagStore } from "../../../store/tagStore";
 import { useThemeStore } from "../../../store/themeStore";
-import { Card as CardType } from "../../types/card";
+import { OutputCardDTO } from "../../../types/card";
 import { CardModal } from "./CardModal";
-import { useDraggable } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ConfirmationModal } from "../../../components/ConfirmationModal";
 import { useToast } from "../../../hooks/useToast";
@@ -26,9 +26,10 @@ import { useCardStore } from "../../../store/cardStore";
 import { cardService } from "../../../services/card.service";
 import { useAuthStore } from "../../../store/authStore";
 import { InputUpdateCardDTO } from "../../../types/card";
+import { useTeamMembersStore } from "../../../store/teamMembersStore";
 
 interface CardProps {
-  card: CardType;
+  card: OutputCardDTO;
   boardId: string;
   listId: string;
   isDragging?: boolean;
@@ -120,7 +121,7 @@ const Card = React.memo(
     const { updateCard, removeCard } = useCardStore();
     const { token, organization } = useAuthStore();
     const tags = tagStore?.tags || [];
-    const members = teamStore?.members || [];
+    const { members } = useTeamMembersStore();
     const { showToast } = useToast();
     const [showMenu, setShowMenu] = useState(false);
     const [showMoveModal, setShowMoveModal] = useState(false);
@@ -135,17 +136,17 @@ const Card = React.memo(
       () => ({
         ...card,
         value: card.value || 0,
-        assignedTo: card.assignedTo || [],
-        tagIds: card.tagIds || [],
+        assignee_id: card.assignee_id || card.assignee?.id || null,
+        tag_ids: card.tag_ids || [],
       }),
       [card]
     );
     const cardTags = useMemo(
       () =>
-        (cardData.tagIds || [])
+        (cardData.tag_ids || [])
           .map((tagId) => tags.find((t) => t.id === tagId))
           .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined),
-      [cardData.tagIds, tags]
+      [cardData.tag_ids, tags]
     );
     // Se precisar de completedList, buscar de outra store ou prop
     const availableLists = useMemo(() => {
@@ -153,26 +154,31 @@ const Card = React.memo(
       // For now, we'll return an empty array as boards is removed from dependencies
       return [];
     }, []);
-    const { attributes, listeners, setNodeRef, transform } = useDraggable({
-      id: cardData.id,
-      data: {
-        type: "card",
-        cardId: cardData.id,
-        listId,
-        boardId,
-      },
-    });
-    const style = transform
-      ? {
-          transform: CSS.Transform.toString(transform),
-        }
-      : undefined;
+    // Trocar useDraggable por useSortable
+    const { attributes, listeners, setNodeRef, transform, transition } =
+      useSortable({
+        id: cardData.id,
+        data: {
+          type: "card",
+          cardId: cardData.id,
+          listId,
+          boardId,
+        },
+        transition: {
+          duration: 200,
+          easing: "cubic-bezier(0.25, 1, 0.5, 1)",
+        },
+      });
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+    };
     const handleEdit = useCallback((e?: React.MouseEvent) => {
       if (e) e.stopPropagation();
       setShowEditModal(true);
     }, []);
     const handleSaveEdit = useCallback(
-      async (updatedCard: Partial<CardType>) => {
+      async (updatedCard: Partial<OutputCardDTO>) => {
         if (!token || !organization?.id) return;
 
         try {
@@ -182,9 +188,9 @@ const Card = React.memo(
             value: updatedCard.value,
             phone: updatedCard.phone,
             priority: updatedCard.priority,
-            tag_ids: updatedCard.tagIds,
-            due_date: updatedCard.dueDate,
-            assignee_id: updatedCard.responsibleId,
+            tag_ids: updatedCard.tag_ids,
+            due_date: updatedCard.due_date,
+            assignee_id: updatedCard.assignee_id,
             subtasks: updatedCard.subtasks,
             attachments: updatedCard.attachments,
           };
@@ -303,9 +309,10 @@ const Card = React.memo(
     relative group bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700
     ${
       isDragging
-        ? "cursor-grabbing opacity-50"
-        : "cursor-grab hover:border-[#7f00ff] dark:hover:border-[#7f00ff] opacity-100"
+        ? "cursor-grabbing shadow-xl"
+        : "cursor-grab hover:border-[#7f00ff] dark:hover:border-[#7f00ff] opacity-100 hover:scale-[1.01] hover:-translate-y-1"
     }
+    transition-all duration-200 ease-in-out
     ${className || ""}
   `,
       [isDragging, className]
@@ -366,11 +373,11 @@ const Card = React.memo(
             {/* Card metadata */}
             <div className="space-y-2">
               {/* Deadline if exists */}
-              {cardData.dueDate && (
+              {cardData.due_date && (
                 <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                   <Calendar className="w-4 h-4" />
                   <span>
-                    {format(new Date(cardData.dueDate), "dd MMM yyyy", {
+                    {format(new Date(cardData.due_date), "dd MMM yyyy", {
                       locale: ptBR,
                     })}
                   </span>
@@ -414,25 +421,22 @@ const Card = React.memo(
               )}
 
               {/* Assigned team members if any */}
-              {cardData.assignedTo && cardData.assignedTo.length > 0 && (
+              {cardData.assignee_id && (
                 <div className="flex -space-x-1 overflow-hidden">
-                  {cardData.assignedTo.slice(0, 3).map((userId) => {
-                    const member = members.find((m) => m.id === userId);
-                    return member ? (
-                      <div
-                        key={member.id}
-                        className="w-6 h-6 rounded-full bg-[#7f00ff] flex items-center justify-center text-xs text-white"
-                        title={member.name}
-                      >
-                        {member.name.charAt(0).toUpperCase()}
-                      </div>
-                    ) : null;
-                  })}
-                  {cardData.assignedTo.length > 3 && (
-                    <div className="w-6 h-6 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-xs">
-                      +{cardData.assignedTo.length - 3}
+                  {members.find((m) => m.id === cardData.assignee_id) ? (
+                    <div
+                      key={cardData.assignee_id}
+                      className="w-6 h-6 rounded-full bg-[#7f00ff] flex items-center justify-center text-xs text-white"
+                      title={
+                        members.find((m) => m.id === cardData.assignee_id)?.name
+                      }
+                    >
+                      {members
+                        .find((m) => m.id === cardData.assignee_id)
+                        ?.name.charAt(0)
+                        .toUpperCase()}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               )}
             </div>
@@ -458,7 +462,7 @@ const Card = React.memo(
             message={`Tem certeza que deseja excluir o card "${cardData.title}"? Esta ação não pode ser desfeita.`}
             confirmText="Excluir"
             cancelText="Cancelar"
-            confirmButtonStyle="danger"
+            confirmButtonClass="danger"
           />
         )}
 

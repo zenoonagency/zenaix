@@ -80,7 +80,7 @@
 }
 
 .kanban-card-value {
-  color: #34C759;
+  color: #34c759;
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 8px;
@@ -228,13 +228,78 @@
 
 .card-icon:hover {
   transform: scale(1.1);
-} 
+}
 
 .kanban-card--drag-overlay {
   width: 280px;
   max-width: 100%;
   z-index: 9999;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   pointer-events: none;
   opacity: 1 !important;
-} 
+  transform: rotate(2deg) scale(1.02);
+  transition: transform 0.2s ease;
+}
+
+/* Melhorar a aparência das listas durante o drag */
+.list-container.drag-over {
+  background-color: rgba(127, 0, 255, 0.05);
+  border: 2px dashed #7f00ff;
+  border-radius: 8px;
+}
+
+/* Estilo para o card sendo arrastado */
+.card-dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+  transition: all 0.2s ease;
+}
+
+/* Estilo para a área de drop */
+.drop-zone {
+  min-height: 100px;
+  border: 2px dashed transparent;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.drop-zone.drag-over {
+  border-color: #7f00ff;
+  background-color: rgba(127, 0, 255, 0.05);
+}
+
+.drop-zone.drag-over::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(127, 0, 255, 0.1);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+/* Melhorar o feedback visual durante o drag */
+.kanban-card {
+  transition: all 0.2s ease;
+  cursor: grab;
+}
+
+.kanban-card:active {
+  cursor: grabbing;
+}
+
+.kanban-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Estilo para o overlay de drag */
+.drag-overlay {
+  pointer-events: none;
+  z-index: 9999;
+  transform: rotate(1deg) scale(1.01);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}

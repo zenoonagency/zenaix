@@ -8,6 +8,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  MeasuringStrategy,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -20,7 +21,13 @@ import { KeyboardSensor } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { List as ListComponent } from "./List";
 import { Card } from "./Card";
-import { Plus, Loader2, GripVertical } from "lucide-react";
+import {
+  Plus,
+  Loader2,
+  GripVertical,
+  DollarSign,
+  AlertTriangle,
+} from "lucide-react";
 import { useThemeStore } from "../../../store/themeStore";
 import { useToast } from "../../../hooks/useToast";
 import { boardService } from "../../../services/board.service";
@@ -28,7 +35,6 @@ import { listService } from "../../../services/list.service";
 import { cardService } from "../../../services/card.service";
 import { useAuthStore } from "../../../store/authStore";
 import { useBoardStore } from "../../../store/boardStore";
-import { useListStore } from "../../../store/listStore";
 import { useCardStore } from "../../../store/cardStore";
 import { InputCreateBoardDTO } from "../../../types/board";
 import { InputCreateListDTO, InputUpdateListDTO } from "../../../types/list";
@@ -305,13 +311,14 @@ export function KanbanBoard() {
     activeBoard,
     setActiveBoardId,
     selectAndLoadBoard,
+    setActiveBoard,
   } = useBoardStore();
-  const { lists, addList, fetchLists } = useListStore();
   const { updateCard } = useCardStore();
   const { token, organization } = useAuthStore();
   const [activeCard, setActiveCard] = useState<OutputCardDTO | null>(null);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [overListId, setOverListId] = useState<string | null>(null);
+  const [isDraggingCard, setIsDraggingCard] = useState(false);
   const [showCreateListModal, setShowCreateListModal] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
   const [newListColor, setNewListColor] = useState("");
@@ -330,12 +337,8 @@ export function KanbanBoard() {
     })
   );
 
-  // Usar o activeBoard que já vem com listas e cards, ou fallback para o board básico
-  const board =
-    activeBoard ||
-    (boards.length
-      ? boards.find((b) => b.id === activeBoardId) || boards[0]
-      : null);
+  // Usar o activeBoard que já vem com listas e cards
+  const board = activeBoard;
 
   // Sempre buscar o nome mais atualizado do board
   const boardName =
@@ -343,18 +346,49 @@ export function KanbanBoard() {
     board?.name ||
     "Quadro não encontrado";
 
-  // Carregar listas quando o board ativo mudar
+  // Carregar o board completo quando o activeBoardId mudar
   useEffect(() => {
-    if (activeBoardId) {
-      fetchLists(activeBoardId);
+    if (
+      activeBoardId &&
+      (!activeBoard?.lists || activeBoard.lists.length === 0)
+    ) {
+      selectAndLoadBoard(activeBoardId);
     }
-  }, [activeBoardId, fetchLists]);
+  }, [activeBoardId, activeBoard?.lists, selectAndLoadBoard]);
 
   useEffect(() => {
     if (board && board.id !== activeBoardId) {
       setActiveBoardId(board.id);
     }
   }, [board?.id, activeBoardId]);
+
+  // Listener para tecla ESC para cancelar drag
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isDraggingCard) {
+        setActiveCard(null);
+        setActiveListId(null);
+        setOverListId(null);
+        setIsDraggingCard(false);
+      }
+    };
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isDraggingCard && !event.target) {
+        setActiveCard(null);
+        setActiveListId(null);
+        setOverListId(null);
+        setIsDraggingCard(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [isDraggingCard]);
 
   const handleDragStart = useCallback(
     (event: any) => {
@@ -366,6 +400,7 @@ export function KanbanBoard() {
         if (card) {
           setActiveCard(card);
           setActiveListId(listId);
+          setIsDraggingCard(true);
         }
       }
     },
@@ -379,6 +414,8 @@ export function KanbanBoard() {
         if (overId !== overListId) {
           setOverListId(overId);
         }
+      } else if (!event.over && overListId) {
+        setOverListId(null);
       }
     },
     [overListId]
@@ -391,21 +428,118 @@ export function KanbanBoard() {
 
       if (active && over && active.data.current?.type === "card") {
         const { cardId, listId: fromListId } = active.data.current;
-        const toListId = over.id as string;
+        const toListId = over.data.current?.listId || over.id;
 
-        // Se o card foi movido para uma lista diferente
-        if (fromListId !== toListId) {
+        // Se for a mesma lista, reordenar
+        if (fromListId === toListId) {
+          const list = board?.lists?.find((l: any) => l.id === fromListId);
+          if (list) {
+            const oldIndex = list.cards.findIndex(
+              (c: any) => c.id === active.id
+            );
+            const newIndex = list.cards.findIndex((c: any) => c.id === over.id);
+            if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+              // Calcular nova posição baseada na posição do card de destino
+              const targetCard = list.cards[newIndex];
+              let newPosition: number;
+
+              if (newIndex === 0) {
+                // Movendo para o primeiro lugar
+                const firstCardPosition = list.cards[1]?.position || 2;
+                newPosition = firstCardPosition - 1; // Ex: 2 -> 1
+              } else if (newIndex === list.cards.length - 1) {
+                // Movendo para o último lugar
+                const lastCardPosition =
+                  list.cards[newIndex - 1]?.position || newIndex;
+                newPosition = lastCardPosition + 1; // Ex: 4 -> 5
+              } else {
+                // Movendo para o meio
+                const prevCardPosition =
+                  list.cards[newIndex - 1]?.position || newIndex;
+                const nextCardPosition =
+                  list.cards[newIndex + 1]?.position || newIndex + 2;
+                newPosition =
+                  prevCardPosition + (nextCardPosition - prevCardPosition) / 2; // Ex: entre 2 e 4 = 3
+              }
+
+              // Atualizar posição do card movido (active.id)
+              const movedCard = list.cards[oldIndex];
+              movedCard.position = newPosition;
+
+              // Reordenar cards por posição
+              list.cards.sort(
+                (a: any, b: any) => (a.position || 0) - (b.position || 0)
+              );
+
+              // Atualizar estado local
+              setActiveBoard({ ...board });
+
+              // Atualizar no backend
+              try {
+                await cardService.updateCard(
+                  token,
+                  organization.id,
+                  board.id,
+                  fromListId,
+                  active.id as string,
+                  { position: newPosition }
+                );
+                showToast("Card reordenado com sucesso!", "success");
+              } catch (err: any) {
+                await selectAndLoadBoard(activeBoardId);
+                showToast(err.message || "Erro ao reordenar card", "error");
+              }
+            }
+          }
+        } else {
+          // Se o card foi movido para uma lista diferente
           try {
-            // Calcular nova posição (última posição da lista de destino)
-            const newPosition = 1000; // Posição padrão para novos cards
+            // Atualização otimista
+            const updatedBoard = { ...board };
+            const fromList = updatedBoard.lists?.find(
+              (l: any) => l.id === fromListId
+            );
+            const toList = updatedBoard.lists?.find(
+              (l: any) => l.id === toListId
+            );
 
-            // Atualizar o card no backend
+            if (fromList && toList) {
+              // Remover o card da lista de origem
+              const cardIndex = fromList.cards?.findIndex(
+                (c: any) => c.id === cardId
+              );
+              if (cardIndex !== -1) {
+                const [movedCard] = fromList.cards.splice(cardIndex, 1);
+
+                // Calcular nova posição na lista de destino
+                const maxPosition =
+                  toList.cards.length > 0
+                    ? Math.max(...toList.cards.map((c: any) => c.position || 0))
+                    : 0;
+                const newPosition = maxPosition + 1;
+
+                // Adicionar o card na lista de destino
+                movedCard.list_id = toListId;
+                movedCard.position = newPosition;
+                toList.cards.push(movedCard);
+
+                // Reordenar cards por posição
+                toList.cards.sort(
+                  (a: any, b: any) => (a.position || 0) - (b.position || 0)
+                );
+
+                // Atualizar o estado local imediatamente
+                setActiveBoard(updatedBoard);
+              }
+            }
+
+            // Atualizar no backend
             const dto: InputUpdateCardDTO = {
               list_id: toListId,
-              position: newPosition,
+              position: 1000,
             };
 
-            const updatedCard = await cardService.updateCard(
+            await cardService.updateCard(
               token,
               organization.id,
               activeBoardId,
@@ -414,21 +548,29 @@ export function KanbanBoard() {
               dto
             );
 
-            // Atualizar na cardStore
-            updateCard(updatedCard);
-
             showToast("Card movido com sucesso!", "success");
           } catch (err: any) {
+            await selectAndLoadBoard(activeBoardId);
             showToast(err.message || "Erro ao mover card", "error");
           }
         }
       }
 
+      // Sempre limpar o estado, independente do resultado
       setActiveCard(null);
       setActiveListId(null);
       setOverListId(null);
+      setIsDraggingCard(false);
     },
-    [activeBoardId, lists, token, organization?.id, updateCard, showToast]
+    [
+      activeBoardId,
+      board,
+      token,
+      organization?.id,
+      showToast,
+      selectAndLoadBoard,
+      setActiveBoard,
+    ]
   );
 
   const handleAddList = useCallback(() => {
@@ -474,6 +616,8 @@ export function KanbanBoard() {
 
       handleCloseModal();
       showToast("Lista criada com sucesso!", "success");
+
+      // Recarregar o board para incluir a nova lista
       await selectAndLoadBoard(activeBoardId);
     } catch (err: any) {
       showToast(err.message || "Erro ao criar lista", "error");
@@ -506,37 +650,33 @@ export function KanbanBoard() {
     }
   };
 
-  // Função para reordenar listas
   const handleSortLists = async (newLists: any[]) => {
-    if (!token || !organization?.id || !activeBoardId) return;
+    if (!activeBoardId || !token || !organization?.id) return;
 
     try {
       // Encontrar todas as listas que mudaram de posição
       const movedLists = newLists.filter((newList) => {
-        const originalList = lists.find((l) => l.id === newList.id);
+        const originalList = board?.lists?.find((l) => l.id === newList.id);
         return newList.position !== originalList?.position;
       });
 
-      if (movedLists.length > 0) {
-        // Atualizar todas as listas que mudaram
-        const updatePromises = movedLists.map((list) => {
-          const dto: InputUpdateListDTO = {
-            position: list.position,
-          };
-          return listService.updateList(
-            token,
-            organization.id,
-            activeBoardId,
-            list.id,
-            dto
-          );
-        });
+      // Atualizar cada lista que mudou de posição
+      for (const list of movedLists) {
+        const dto: InputUpdateListDTO = {
+          position: list.position,
+        };
 
-        await Promise.all(updatePromises);
+        await listService.updateList(
+          token,
+          organization.id,
+          activeBoardId,
+          list.id,
+          dto
+        );
       }
 
-      // Recarregar as listas para refletir a nova ordem
-      await fetchLists(activeBoardId);
+      // Recarregar o board para refletir a nova ordem
+      await selectAndLoadBoard(activeBoardId);
 
       showToast("Listas reordenadas com sucesso!", "success");
     } catch (err: any) {
@@ -553,6 +693,12 @@ export function KanbanBoard() {
       onDragEnd={handleDragEnd}
     >
       <div className="flex flex-col min-h-[calc(100vh-10vh)] bg-background dark:bg-background">
+        {isDraggingCard && (
+          <div className="fixed top-4 right-4 z-50 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-3 py-2 rounded-lg text-sm flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+            Movendo card...
+          </div>
+        )}
         {!boards.length || !board ? (
           <Spinner />
         ) : (
@@ -577,7 +723,7 @@ export function KanbanBoard() {
                 <Plus className="w-5 h-5" />
                 Adicionar Lista
               </button>
-              {lists.length > 1 && (
+              {board?.lists?.length > 1 && (
                 <button
                   onClick={() => setShowSortModal(true)}
                   className="flex-shrink-0 px-4 py-3 flex items-center justify-center gap-2 text-base bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 transition-colors"
@@ -589,18 +735,21 @@ export function KanbanBoard() {
             </div>
             <div className="flex gap-4 p-4 overflow-x-auto min-w-full scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent [&::-webkit-scrollbar]:h-2">
               <div className="flex gap-4">
-                {lists
-                  .sort((a, b) => (a.position || 0) - (b.position || 0))
+                {board?.lists
+                  ?.sort((a, b) => (a.position || 0) - (b.position || 0))
                   .map((list: any) => (
                     <ListComponent
                       key={list.id}
                       list={{
                         id: list.id,
-                        title: list.name || list.title || "",
+                        name: list.name,
                         cards: list.cards || [],
                         color: list.color,
-                        createdAt: list.created_at || list.createdAt || "",
-                        updatedAt: list.updated_at || list.updatedAt || "",
+                        position: list.position,
+                        board_id: list.board_id,
+                        created_at: list.created_at,
+                        updated_at: list.updated_at,
+                        is_deletable: list.is_deletable,
                       }}
                       boardId={board.id}
                       isOver={list.id === overListId}
@@ -608,7 +757,7 @@ export function KanbanBoard() {
                     />
                   ))}
                 {/* Botão '+' só aparece se houver pelo menos uma lista */}
-                {lists.length > 0 && (
+                {board?.lists?.length > 0 && (
                   <button
                     onClick={handleAddList}
                     className="flex items-center justify-center w-12 h-24 rounded-lg border-2 border-dashed border-[#7f00ff] text-[#7f00ff] text-3xl hover:bg-[#7f00ff]/10 transition-colors"
@@ -726,7 +875,7 @@ export function KanbanBoard() {
             boardId={board?.id || ""}
             listId={activeListId || ""}
             isDragging
-            className="kanban-card--drag-overlay"
+            className="w-80 shadow-2xl opacity-95 z-50 bg-white dark:bg-dark-800"
           />
         </DragOverlay>
       )}
@@ -735,7 +884,7 @@ export function KanbanBoard() {
         isOpen={showSortModal}
         onClose={() => setShowSortModal(false)}
         onSort={handleSortLists}
-        lists={lists}
+        lists={board?.lists || []}
       />
       {/* BoardSelector removido - já existe no header principal */}
     </DndContext>

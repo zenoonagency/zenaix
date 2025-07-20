@@ -1,9 +1,12 @@
 // src/pages/Clients/components/List.tsx
 import React, { useState, useRef, useMemo } from "react";
 import { useDroppable } from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { Card } from "./Card";
-import { List as ListType } from "../../types/list";
-import { Card as CardType } from "../../types/card";
+import { BoardList, BoardCard } from "../../../types/board";
 import {
   Plus,
   MoreVertical,
@@ -16,11 +19,10 @@ import {
 } from "lucide-react";
 import { useThemeStore } from "../../../store/themeStore";
 import { useToast } from "../../../hooks/useToast";
-import { CardModal } from "./CardModal";
 import { useCustomModal } from "../../../components/CustomModal";
 import { listService } from "../../../services/list.service";
 import { cardService } from "../../../services/card.service";
-import { useListStore } from "../../../store/listStore";
+import { useBoardStore } from "../../../store/boardStore";
 import { useCardStore } from "../../../store/cardStore";
 import { useAuthStore } from "../../../store/authStore";
 import { InputUpdateListDTO } from "../../../types/list";
@@ -32,10 +34,10 @@ import "../../../styles/scrollbar.css";
 import { ListMenuModal } from "./ListMenuModal";
 
 interface ListProps {
-  list: ListType;
+  list: BoardList;
   boardId: string;
   isOver?: boolean;
-  activeCard?: CardType | null;
+  activeCard?: BoardCard | null;
 }
 
 export const List = React.memo(
@@ -43,14 +45,14 @@ export const List = React.memo(
     const { theme } = useThemeStore();
     const { showToast } = useToast();
     const { customConfirm } = useCustomModal();
-    const { updateList, removeList } = useListStore();
+    const { selectAndLoadBoard } = useBoardStore();
     const { addCard } = useCardStore();
     const { token, organization } = useAuthStore();
     const isDark = theme === "dark";
     const [showMenu, setShowMenu] = useState(false);
     const [showCardModal, setShowCardModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const [title, setTitle] = useState(list.title);
+    const [title, setTitle] = useState(list.name);
     const [color, setColor] = useState(list.color || "");
     const [isUpdating, setIsUpdating] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -59,7 +61,7 @@ export const List = React.memo(
     const isCompletedList = false; // getCompletedListId(boardId) === list.id;
     const containerRef = useRef<HTMLDivElement>(null);
     const [showListMenuModal, setShowListMenuModal] = useState(false);
-    const { setNodeRef } = useDroppable({
+    const { setNodeRef, isOver: isDroppableOver } = useDroppable({
       id: list.id,
       data: {
         type: "list",
@@ -67,6 +69,7 @@ export const List = React.memo(
         boardId,
       },
     });
+
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowMenu(false);
@@ -96,8 +99,8 @@ export const List = React.memo(
           dto
         );
 
-        // Atualizar na listStore
-        updateList(updatedList);
+        // Recarregar o board para refletir as mudanças
+        await selectAndLoadBoard(boardId);
 
         showToast("Lista atualizada com sucesso!", "success");
         setIsEditing(false);
@@ -124,6 +127,9 @@ export const List = React.memo(
         // Atualizar na cardStore
         addCard(newCard);
 
+        // Recarregar o board para refletir as mudanças
+        await selectAndLoadBoard(boardId);
+
         // Retornar o card criado para o CardModal
         return newCard;
       } catch (err: any) {
@@ -149,7 +155,8 @@ export const List = React.memo(
             list.id
           );
 
-          removeList(list.id);
+          // Recarregar o board para refletir as mudanças
+          await selectAndLoadBoard(boardId);
 
           showToast("Lista excluída com sucesso!", "success");
         } catch (err: any) {
@@ -166,9 +173,6 @@ export const List = React.memo(
       if (card.subtasks?.length) {
         height += card.subtasks.length * 24;
       }
-      if (card.customFields) {
-        height += Object.keys(card.customFields).length * 24;
-      }
       return height;
     };
     const renderCard = ({
@@ -179,7 +183,6 @@ export const List = React.memo(
       style: React.CSSProperties;
     }) => {
       const card = cardData[index];
-      if (card.isDragging) return null;
       return (
         <div style={style}>
           <Card key={card.id} card={card} boardId={boardId} listId={list.id} />
@@ -202,10 +205,11 @@ export const List = React.memo(
     ];
     return (
       <div
-        ref={setNodeRef}
         className={`flex-shrink-0 w-80 h-fit shadow-md ${
           isDark ? "bg-dark-700" : "bg-white"
-        } rounded-lg flex flex-col ${isOver ? "ring-2 ring-[#7f00ff]" : ""}`}
+        } rounded-lg flex flex-col transition-all duration-200 ${
+          isOver || isDroppableOver ? "ring-2 ring-[#7f00ff]" : ""
+        }`}
       >
         <div className="p-2 flex items-center justify-between shrink-0">
           {isEditing ? (
@@ -278,7 +282,7 @@ export const List = React.memo(
                         isDark ? "text-gray-100" : "text-gray-900"
                       }`}
                     >
-                      {list.title}
+                      {list.name}
                     </h3>
                   </div>
                   {isCompletedList && (
@@ -328,25 +332,34 @@ export const List = React.memo(
         </div>
 
         <div
-          ref={containerRef}
-          className="p-2 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar"
+          ref={setNodeRef}
+          className="p-2 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-[100px] transition-all duration-200 "
           style={{
             maxHeight: "calc(65vh - 120px)",
+            minHeight: "200px",
           }}
         >
-          {list.cards.map((card) => {
-            // Oculta o card original apenas se ele está sendo arrastado e a lista é a de origem
-            const isActive = activeCard && activeCard.id === card.id;
-            if (isActive && activeCard.listId === list.id) return null;
-            return (
-              <Card
-                key={card.id}
-                card={card}
-                boardId={boardId}
-                listId={list.id}
-              />
-            );
-          })}
+          <SortableContext
+            items={list.cards
+              .sort((a, b) => (a.position || 0) - (b.position || 0))
+              .map((card) => card.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {list.cards
+              .sort((a, b) => (a.position || 0) - (b.position || 0))
+              .map((card) => {
+                const isActive = activeCard && activeCard.id === card.id;
+                if (isActive) return null;
+                return (
+                  <Card
+                    key={card.id}
+                    card={card}
+                    boardId={boardId}
+                    listId={list.id}
+                  />
+                );
+              })}
+          </SortableContext>
         </div>
 
         <div className="p-2 shrink-0">
@@ -363,17 +376,6 @@ export const List = React.memo(
             {isCreatingCard ? "Criando..." : "Adicionar Card"}
           </button>
         </div>
-
-        {showCardModal && (
-          <CardModal
-            isOpen={showCardModal}
-            onClose={() => setShowCardModal(false)}
-            onSave={handleCreateCard}
-            mode="add"
-            boardId={boardId}
-            listId={list.id}
-          />
-        )}
       </div>
     );
   }

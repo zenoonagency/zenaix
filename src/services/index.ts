@@ -1,29 +1,20 @@
-// Calendar Service
-export { calendarService } from "./calendar";
-
-// Auth Service
-export { authService } from "./authService";
-
-// AI Service
-export { aiService } from "./aiService";
-
-// Document Service
-export { documentService } from "./documentService";
-
-// Google Calendar Service
-export { googleCalendarService } from "./googleCalendar";
-
-// Kanban Service
-export { kanbanService } from "./kanbanService";
-
-// Proxy Service
-export { proxyService } from "./proxyService";
-
-// PDF Proxy Service
-export { pdfProxyService } from "./pdfProxyService";
-
-// Performance Monitor
-export { performanceMonitor } from "./performanceMonitor";
-
-// Main API
-export { api } from "./api";
+export { boardService } from "./board.service";
+export { listService } from "./list.service";
+export { cardService } from "./card.service";
+export { tagService } from "./tag.service";
+export { teamService } from "./team.service";
+export { userService } from "./user.service";
+export { organizationService } from "./organization.service";
+export { planService } from "./plan.service";
+export { subscriptionService } from "./subscription.service";
+export { inviteService } from "./invite.service";
+export { permissionService } from "./permission.service";
+export { transactionService } from "./transaction.service";
+export { contractService } from "./contract.service";
+export { attachmentService } from "./attachment.service";
+export { documentService } from "./document.service";
+export { aiService } from "./ai.service";
+export { calendarService } from "./calendar/calendar.service";
+export { embedService } from "./embed/embed.service";
+export { dataTablesService } from "./dataTables.service";
+export { embedPagesService } from "./embedPages.service";
