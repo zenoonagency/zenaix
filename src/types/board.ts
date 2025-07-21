@@ -72,6 +72,7 @@ export interface Board {
   completed_list_id?: string;
   lists: BoardList[];
   membersWithAccess?: BoardMember[];
+  members_with_access?: BoardMember[]; // compatível com a nova resposta da API
 }
 
 export interface InputCreateBoardDTO {

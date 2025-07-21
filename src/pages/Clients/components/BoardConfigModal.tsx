@@ -27,7 +27,7 @@ export function BoardConfigModal({
   onClose,
   boardId,
 }: BoardConfigModalProps) {
-  const { boards, updateBoard } = useBoardStore();
+  const { activeBoard } = useBoardStore();
   const { theme } = useThemeStore();
   const { members } = useTeamMembersStore();
   const { showToast } = useToast();
@@ -35,20 +35,23 @@ export function BoardConfigModal({
   const isDark = theme === "dark";
   const [isSaving, setIsSaving] = useState(false);
 
-  const currentBoard = boards.find((b) => b.id === boardId);
+  const currentBoard = activeBoard;
 
-  // Inicializa a configuração a partir do board atual ou com valores padrão
+  const getMemberIdsFromBoard = (board: any) =>
+    board?.membersWithAccess?.map((m: any) => m.id) ||
+    board?.members_with_access?.map((m: any) => m.id) ||
+    [];
+
   const [config, setConfig] = useState<BoardConfig>({
     access_level: currentBoard?.access_level || "TEAM_WIDE",
-    member_ids: currentBoard?.membersWithAccess?.map((m) => m.id) || [],
+    member_ids: getMemberIdsFromBoard(currentBoard),
   });
 
-  // Atualiza o estado quando o board muda
   useEffect(() => {
     if (currentBoard) {
       setConfig({
         access_level: currentBoard.access_level,
-        member_ids: currentBoard.membersWithAccess?.map((m) => m.id) || [],
+        member_ids: getMemberIdsFromBoard(currentBoard),
       });
     } else {
       setConfig({
@@ -66,22 +69,14 @@ export function BoardConfigModal({
 
     setIsSaving(true);
     try {
-      // Chamar o service para atualizar o quadro
       await boardService.updateBoard(token, organization.id, boardId, {
         access_level: config.access_level,
         member_ids: config.member_ids,
       });
 
-      // Buscar o board atualizado para garantir membros corretos
-      const updatedBoard = await boardService.getBoardById(
-        token,
-        organization.id,
-        boardId
-      );
-      updateBoard(updatedBoard);
       setConfig({
-        access_level: updatedBoard.access_level,
-        member_ids: updatedBoard.membersWithAccess?.map((m) => m.id) || [],
+        access_level: currentBoard.access_level,
+        member_ids: getMemberIdsFromBoard(currentBoard),
       });
 
       showToast("Configurações do quadro salvas com sucesso!", "success");

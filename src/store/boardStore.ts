@@ -86,7 +86,13 @@ export const useBoardStore = create<BoardState>()(
 
       updateBoard: (board) => {
         set((state) => ({
-          boards: state.boards.map((b) => (b.id === board.id ? board : b)),
+          boards: state.boards.map((b) =>
+            b.id === board.id ? { ...b, ...board } : b
+          ),
+          activeBoard:
+            state.activeBoard?.id === board.id
+              ? { ...state.activeBoard, ...board }
+              : state.activeBoard,
         }));
       },
 
@@ -122,7 +128,6 @@ export const useBoardStore = create<BoardState>()(
           )
             return {};
 
-          // CORREÇÃO: Adiciona a propriedade 'cards' em falta ao novo objeto de lista.
           const newListWithCards = { ...list, cards: [] };
 
           return {
@@ -183,7 +188,6 @@ export const useBoardStore = create<BoardState>()(
           if (!state.activeBoard) return {};
 
           const newLists = state.activeBoard.lists.map((list) => {
-            // Remove o cartão da sua lista antiga (se ele mudou de lista)
             const filteredCards = list.cards.filter(
               (c) => c.id !== updatedCard.id
             );
