@@ -334,21 +334,27 @@ const Card = React.memo(
           onClick={openDetailModal}
           className={cardClassName}
         >
-          <div className="p-4 space-y-4">
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-2">
-                {/* isCompletedList && ( // Removed as per edit hint
-                  <CheckSquare className="w-5 h-5 text-green-500 flex-shrink-0" />
-                ) */}
-                <h3
-                  className={`font-medium ${
-                    theme === "dark" ? "text-gray-100" : "text-gray-900"
+          <div className="p-4 space-y-3">
+            {/* Priority Badge */}
+            {cardData.priority && (
+              <div className="flex justify-between items-start">
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full font-medium ${
+                    PRIORITY_COLORS[
+                      cardData.priority as keyof typeof PRIORITY_COLORS
+                    ]
                   }`}
                 >
-                  {cardData.title}
-                </h3>
-              </div>
-              <div className="relative">
+                  {
+                    PRIORITY_ICONS[
+                      cardData.priority as keyof typeof PRIORITY_ICONS
+                    ]
+                  }
+                  <span>
+                    {cardData.priority.charAt(0).toUpperCase() +
+                      cardData.priority.slice(1)}
+                  </span>
+                </span>
                 <button
                   onClick={openCardMenu}
                   className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
@@ -356,11 +362,162 @@ const Card = React.memo(
                   <MoreVertical className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 </button>
               </div>
-            </div>
+            )}
+
+            {/* Card Title */}
+            <h3
+              className={`font-semibold text-lg leading-tight ${
+                theme === "dark" ? "text-gray-100" : "text-gray-900"
+              }`}
+            >
+              {cardData.title}
+            </h3>
+
+            {/* Description - Limited to 2 lines */}
+            {cardData.description && (
+              <p
+                className={`text-sm leading-relaxed ${
+                  theme === "dark" ? "text-gray-300" : "text-gray-600"
+                } line-clamp-2`}
+                title={cardData.description}
+              >
+                {cardData.description}
+              </p>
+            )}
+
+            {/* Value with green border */}
+            {cardData.value > 0 && (
+              <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
+                <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                  {new Intl.NumberFormat("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  }).format(cardData.value)}
+                </span>
+              </div>
+            )}
+
+            {/* Subtasks Progress */}
+            {cardData.subtasks && cardData.subtasks.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                  <span>Subtarefas</span>
+                  <span>
+                    {
+                      cardData.subtasks.filter((task) => task.is_completed)
+                        .length
+                    }
+                    /{cardData.subtasks.length}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                  <div
+                    className="bg-[#7f00ff] h-1.5 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${
+                        (cardData.subtasks.filter((task) => task.is_completed)
+                          .length /
+                          cardData.subtasks.length) *
+                        100
+                      }%`,
+                    }}
+                  />
+                </div>
+                {/* Lista de subtarefas */}
+                <div className="space-y-1">
+                  {cardData.subtasks.slice(0, 3).map((subtask) => (
+                    <div
+                      key={subtask.id}
+                      className={`flex items-center gap-2 text-xs ${
+                        subtask.is_completed
+                          ? "text-gray-400 dark:text-gray-500 line-through"
+                          : "text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          subtask.is_completed
+                            ? "bg-green-500"
+                            : "bg-gray-300 dark:bg-gray-600"
+                        }`}
+                      />
+                      <span className="truncate">{subtask.title}</span>
+                    </div>
+                  ))}
+                  {cardData.subtasks.length > 3 && (
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                      +{cardData.subtasks.length - 3} mais...
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Date */}
+            {cardData.due_date &&
+              (() => {
+                const dateObj = new Date(cardData.due_date);
+                if (!isNaN(dateObj.getTime())) {
+                  return (
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <Calendar className="w-4 h-4" />
+                      <span>
+                        {format(dateObj, "dd/MM/yyyy", { locale: ptBR })}
+                      </span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+            {/* Assigned Member */}
+            {cardData.assignee_id && (
+              <div className="flex items-center gap-2">
+                {members.find((m) => m.id === cardData.assignee_id) ? (
+                  <>
+                    {members.find((m) => m.id === cardData.assignee_id)
+                      ?.avatar_url ? (
+                      <img
+                        src={
+                          members.find((m) => m.id === cardData.assignee_id)
+                            ?.avatar_url
+                        }
+                        alt={
+                          members.find((m) => m.id === cardData.assignee_id)
+                            ?.name
+                        }
+                        className="w-6 h-6 rounded-full object-cover"
+                        title={
+                          members.find((m) => m.id === cardData.assignee_id)
+                            ?.name
+                        }
+                      />
+                    ) : (
+                      <div
+                        className="w-6 h-6 rounded-full bg-[#7f00ff] flex items-center justify-center text-xs text-white font-medium"
+                        title={
+                          members.find((m) => m.id === cardData.assignee_id)
+                            ?.name
+                        }
+                      >
+                        {members
+                          .find((m) => m.id === cardData.assignee_id)
+                          ?.name.charAt(0)
+                          .toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {members.find((m) => m.id === cardData.assignee_id)?.name}
+                    </span>
+                  </>
+                ) : null}
+              </div>
+            )}
 
             {/* Card tags */}
             {cardTags.length > 0 && (
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1 pt-1">
                 {cardTags.map((tag) => (
                   <span
                     key={tag.id}
@@ -375,82 +532,6 @@ const Card = React.memo(
                 ))}
               </div>
             )}
-
-            {/* Card metadata */}
-            <div className="space-y-2">
-              {/* Deadline if exists */}
-              {cardData.due_date &&
-                (() => {
-                  const dateObj = new Date(cardData.due_date);
-                  if (!isNaN(dateObj.getTime())) {
-                    return (
-                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <Calendar className="w-4 h-4" />
-                        <span>
-                          {format(dateObj, "dd MMM yyyy", { locale: ptBR })}
-                        </span>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-
-              {/* Value if exists */}
-              {cardData.value > 0 && (
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <DollarSign className="w-4 h-4" />
-                  <span>
-                    {new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(cardData.value)}
-                  </span>
-                </div>
-              )}
-
-              {/* Priority if exists */}
-              {cardData.priority && (
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
-                      PRIORITY_COLORS[
-                        cardData.priority as keyof typeof PRIORITY_COLORS
-                      ]
-                    }`}
-                  >
-                    {
-                      PRIORITY_ICONS[
-                        cardData.priority as keyof typeof PRIORITY_ICONS
-                      ]
-                    }
-                    <span>
-                      {cardData.priority.charAt(0).toUpperCase() +
-                        cardData.priority.slice(1)}
-                    </span>
-                  </span>
-                </div>
-              )}
-
-              {/* Assigned team members if any */}
-              {cardData.assignee_id && (
-                <div className="flex -space-x-1 overflow-hidden">
-                  {members.find((m) => m.id === cardData.assignee_id) ? (
-                    <div
-                      key={cardData.assignee_id}
-                      className="w-6 h-6 rounded-full bg-[#7f00ff] flex items-center justify-center text-xs text-white"
-                      title={
-                        members.find((m) => m.id === cardData.assignee_id)?.name
-                      }
-                    >
-                      {members
-                        .find((m) => m.id === cardData.assignee_id)
-                        ?.name.charAt(0)
-                        .toUpperCase()}
-                    </div>
-                  ) : null}
-                </div>
-              )}
-            </div>
           </div>
         </div>
 

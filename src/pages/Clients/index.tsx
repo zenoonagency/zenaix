@@ -26,6 +26,7 @@ import { boardService } from "../../services/board.service";
 import { useAuthStore } from "../../store/authStore";
 import { InputCreateBoardDTO } from "../../types/board";
 import { OutputCardDTO } from "../../types/card";
+import { CardModal } from "./components/CardModal";
 
 export function Clients() {
   const { theme } = useThemeStore();
@@ -593,38 +594,27 @@ export function Clients() {
         />
       )}
 
-      {/* Temporariamente removido até implementar corretamente com as novas stores */}
-      {showEditCardModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div
-            className={`w-full max-w-md p-6 rounded-lg shadow-xl ${
-              isDark ? "bg-dark-800" : "bg-white"
-            }`}
-          >
-            <h3
-              className={`text-lg font-medium mb-4 ${
-                isDark ? "text-gray-100" : "text-gray-900"
-              }`}
-            >
-              Editar Cartão
-            </h3>
-            <p className={`mb-6 ${isDark ? "text-gray-300" : "text-gray-600"}`}>
-              Funcionalidade em desenvolvimento. Em breve você poderá editar
-              cartões.
-            </p>
-            <div className="flex justify-end">
-              <button
-                onClick={() => {
-                  setShowEditCardModal(false);
-                  setSelectedCardForEdit(null);
-                }}
-                className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Substituir o EditCardModal temporário pelo CardModal real */}
+      {showEditCardModal && selectedCardForEdit && (
+        <CardModal
+          isOpen={showEditCardModal}
+          onClose={() => {
+            setShowEditCardModal(false);
+            setSelectedCardForEdit(null);
+          }}
+          onSave={async (cardData) => {
+            // Implementar lógica de atualização do card
+            console.log("Atualizando card:", cardData);
+            // Por enquanto, apenas fechar o modal
+            setShowEditCardModal(false);
+            setSelectedCardForEdit(null);
+            return selectedCardForEdit; // Retornar o card atualizado
+          }}
+          mode="edit"
+          boardId={activeBoardId!}
+          listId={currentList?.id || ""}
+          initialData={selectedCardForEdit}
+        />
       )}
 
       {showAutomationModal && (

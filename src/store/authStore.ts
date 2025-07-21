@@ -45,6 +45,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
       },
 
       logout: () => {
+        supabase.auth.signOut();
         set({
           isAuthenticated: false,
           user: null,

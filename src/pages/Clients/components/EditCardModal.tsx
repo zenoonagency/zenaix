@@ -5,6 +5,7 @@ import { OutputCardDTO } from "../../../types/card";
 import { AttachmentDTO } from "../../../types/card";
 // Temporariamente removido até implementar com as novas stores
 import { useToast } from "../../../hooks/useToast";
+import { useTeamMembersStore } from "../../../store/teamMembersStore";
 
 interface EditCardModalProps {
   isOpen: boolean;
@@ -36,9 +37,11 @@ export const EditCardModal: React.FC<EditCardModalProps> = ({
   const [description, setDescription] = useState(card.description || "");
   const [value, setValue] = useState(card.value?.toString() || "");
   const [phone, setPhone] = useState(card.phone || "");
+  const [assigneeId, setAssigneeId] = useState(card.assignee_id || "");
   const [attachments, setAttachments] = useState<AttachmentDTO[]>(
     card.attachments || []
   );
+  const { members } = useTeamMembersStore();
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -94,6 +97,10 @@ export const EditCardModal: React.FC<EditCardModalProps> = ({
       showToast("O título é obrigatório", "error");
       return;
     }
+    if (!assigneeId) {
+      showToast("O responsável é obrigatório", "error");
+      return;
+    }
     const updatedCard = {
       ...card,
       title: title.trim(),
@@ -101,6 +108,7 @@ export const EditCardModal: React.FC<EditCardModalProps> = ({
       value: value ? parseFloat(value) : undefined,
       phone: phone.trim(),
       attachments,
+      assignee_id: assigneeId,
       updatedAt: new Date().toISOString(),
     };
     showToast("Cartão atualizado com sucesso!", "success");
@@ -210,6 +218,33 @@ export const EditCardModal: React.FC<EditCardModalProps> = ({
                 }`}
               />
             </div>
+          </div>
+
+          <div>
+            <label
+              className={`block text-sm font-medium ${
+                isDark ? "text-gray-300" : "text-gray-700"
+              } mb-1`}
+            >
+              Responsável
+            </label>
+            <select
+              value={assigneeId}
+              onChange={(e) => setAssigneeId(e.target.value)}
+              className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border ${
+                isDark
+                  ? "bg-dark-800 text-gray-100 border-gray-600"
+                  : "bg-white border-gray-300 text-gray-900"
+              }`}
+              required
+            >
+              <option value="">Selecione um responsável</option>
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

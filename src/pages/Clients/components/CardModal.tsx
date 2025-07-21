@@ -91,7 +91,7 @@ export function CardModal({
     initialData?.scheduledTime || ""
   );
   const [responsibleId, setResponsibleId] = useState(
-    initialData?.responsibleId || ""
+    initialData?.assignee_id || ""
   );
   const [subtasks, setSubtasks] = useState<SubtaskDTO[]>(
     initialData?.subtasks || []
@@ -133,7 +133,7 @@ export function CardModal({
       phone !== initialData.phone ||
       scheduledDate !== initialData.scheduledDate ||
       scheduledTime !== initialData.scheduledTime ||
-      responsibleId !== initialData.responsibleId ||
+      responsibleId !== initialData.assignee_id ||
       JSON.stringify(selectedTagIds) !== JSON.stringify(initialData.tag_ids) ||
       JSON.stringify(subtasks) !== JSON.stringify(initialData.subtasks)
     );
@@ -195,8 +195,13 @@ export function CardModal({
         subtaskData
       );
 
+      // Garantir que createdSubtasks seja sempre um array
+      const subtasksArray = Array.isArray(createdSubtasks)
+        ? createdSubtasks
+        : [createdSubtasks];
+
       // Converter para formato local
-      const newSubtasks = createdSubtasks.map((subtask) => ({
+      const newSubtasks = subtasksArray.map((subtask) => ({
         id: subtask.id,
         title: subtask.title,
         description: subtask.description || "",
@@ -688,7 +693,7 @@ export function CardModal({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 disabled={isSubmitting}
-                className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
                 required
               />
             </div>
@@ -705,7 +710,7 @@ export function CardModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 disabled={isSubmitting}
-                className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 resize-none"
                 rows={4}
                 placeholder="Digite a descrição do cartão..."
               />
@@ -728,7 +733,7 @@ export function CardModal({
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
                   disabled={isSubmitting}
-                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
                   step="0.01"
                 />
               </div>
@@ -749,7 +754,7 @@ export function CardModal({
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   disabled={isSubmitting}
-                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
                 />
               </div>
             </div>
@@ -771,7 +776,7 @@ export function CardModal({
                   value={scheduledDate}
                   onChange={(e) => setScheduledDate(e.target.value)}
                   disabled={isSubmitting}
-                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
                 />
               </div>
 
@@ -790,7 +795,7 @@ export function CardModal({
                   type="time"
                   value={scheduledTime}
                   onChange={(e) => setScheduledTime(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
                 />
               </div>
             </div>
@@ -810,7 +815,7 @@ export function CardModal({
                 value={responsibleId}
                 onChange={(e) => setResponsibleId(e.target.value)}
                 disabled={isSubmitting}
-                className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
               >
                 <option value="">Selecione um responsável</option>
                 {members.map((member) => (
@@ -837,7 +842,7 @@ export function CardModal({
                 onChange={(e) => setPriority(e.target.value)}
                 disabled={isSubmitting}
                 required
-                className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
               >
                 <option value="">Selecione a prioridade</option>
                 <option value="LOW">Baixa</option>
@@ -924,7 +929,7 @@ export function CardModal({
                       onChange={(e) => setNewSubtaskTitle(e.target.value)}
                       placeholder="Título da subtarefa"
                       disabled={isSubmitting}
-                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
                     />
                     <Textarea
                       value={newSubtaskDescription}
@@ -932,7 +937,7 @@ export function CardModal({
                       placeholder="Descrição da subtarefa"
                       rows={2}
                       disabled={isSubmitting}
-                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7f00ff] border"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
                     />
                     <div className="flex justify-end gap-2">
                       <button

@@ -10,7 +10,6 @@ export function Select({
   children,
   ...props
 }: SelectProps) {
-  const isDisabled = props.disabled;
   return (
     <div>
       {label && (
@@ -18,21 +17,12 @@ export function Select({
           {label}
         </label>
       )}
-      <div className="relative">
-        {!isDisabled && (
-          <div className="absolute -inset-[1px] bg-gradient-to-r from-[#7f00ff] to-[#e100ff] rounded-lg opacity-50"></div>
-        )}
-        <select
-          {...props}
-          className={`relative w-full px-3 py-2 ${
-            isDisabled
-              ? "bg-white dark:bg-dark-700"
-              : "bg-gray-50 dark:bg-dark-700"
-          } rounded-lg text-gray-900 dark:text-white focus:outline-none ${className}`}
-        >
-          {children}
-        </select>
-      </div>
+      <select
+        {...props}
+        className={`w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 ${className}`}
+      >
+        {children}
+      </select>
     </div>
   );
 }
