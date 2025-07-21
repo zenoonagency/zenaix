@@ -303,7 +303,7 @@ export function ContractsList({ itensFiltrados }: ContractsListProps) {
       )}
 
       {viewingContract && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] !mt-0">
           <div className="w-full max-w-4xl bg-white dark:bg-dark-800 rounded-lg shadow-xl p-6 max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">

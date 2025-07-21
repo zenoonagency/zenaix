@@ -39,7 +39,7 @@ export function Clients() {
     activeBoard,
     isLoading: boardStoreLoading,
     activeBoardId,
-    selectAndLoadBoard,
+    selectAndLoadKanbanBoard,
   } = useBoardStore();
 
   const { modal, customConfirm } = useCustomModal();
@@ -179,9 +179,9 @@ export function Clients() {
       activeBoardId &&
       (!activeBoard?.lists || activeBoard.lists.length === 0)
     ) {
-      selectAndLoadBoard(activeBoardId);
+      selectAndLoadKanbanBoard(activeBoardId);
     }
-  }, [activeBoardId, activeBoard?.lists, selectAndLoadBoard]);
+  }, [activeBoardId, activeBoard?.lists, selectAndLoadKanbanBoard]);
 
   return (
     <div className="flex flex-col">
@@ -344,7 +344,7 @@ export function Clients() {
         <BoardSelector
           boards={boards.map((b: Board) => ({ id: b.id, name: b.name }))}
           activeBoardId={activeBoardId}
-          onSelectBoard={selectAndLoadBoard}
+          onSelectBoard={selectAndLoadKanbanBoard}
           isOpen={showBoardSelector}
           onClose={() => setShowBoardSelector(false)}
           onCreateBoard={handleAddBoard}

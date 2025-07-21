@@ -23,7 +23,12 @@ export function BoardSelector({
   const { theme } = useThemeStore();
   const isDark = theme === "dark";
 
-  const filteredBoards = (boards || []).filter((board) =>
+  // Mover o board ativo para o topo da lista
+  const sortedBoards = [
+    ...boards.filter((b) => b.id === activeBoardId),
+    ...boards.filter((b) => b.id !== activeBoardId),
+  ];
+  const filteredBoards = (sortedBoards || []).filter((board) =>
     board?.name?.toLowerCase().includes(searchTerm?.toLowerCase() || "")
   );
 
@@ -35,7 +40,7 @@ export function BoardSelector({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] !mt-0">
       <div
         className={`w-full max-w-md p-6 rounded-lg shadow-xl m-4 ${
           isDark ? "bg-dark-800" : "bg-white"
@@ -103,10 +108,12 @@ export function BoardSelector({
                   onClick={() => handleSelectBoard(board.id)}
                   className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                     board.id === activeBoardId
-                      ? "bg-[#7f00ff]/10 text-[#7f00ff]"
+                      ? "bg-[#7f00ff]/10 text-[#7f00ff] border-2 border-[#7f00ff] shadow-md"
                       : `${
                           isDark ? "hover:bg-dark-700" : "hover:bg-gray-100"
-                        } ${isDark ? "text-gray-200" : "text-gray-700"}`
+                        } ${
+                          isDark ? "text-gray-200" : "text-gray-700"
+                        } border border-transparent`
                   }`}
                 >
                   {board.name}

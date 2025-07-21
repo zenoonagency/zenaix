@@ -5,6 +5,7 @@ import {
   Board,
   InputCreateBoardDTO,
   InputUpdateBoardDTO,
+  TopSellersResponse,
 } from "../types/board";
 import { useAuthStore } from "./authStore";
 import { useToastStore } from "../components/Notification";
@@ -12,6 +13,7 @@ import { useListStore } from "./listStore";
 import { APIError } from "../services/errors/api.errors";
 import { OutputListDTO } from "../types/list";
 import { AttachmentDTO, OutputCardDTO, SubtaskDTO } from "../types/card";
+import { subscribeWithSelector } from "zustand/middleware";
 
 interface BoardState {
   boards: Board[];
@@ -19,9 +21,25 @@ interface BoardState {
   error: string | null;
   selectedBoard: Board | null;
   lastFetched: number | null;
+  // --- Kanban (Quadro principal) ---
   activeBoardId: string | null;
   lastUsedBoardId: string | null;
   activeBoard: Board | null;
+  setActiveBoardId: (boardId: string | null) => void;
+  setLastUsedBoardId: (boardId: string | null) => void;
+  setActiveBoard: (board: Board | null) => void;
+  selectActiveBoard: (boards: Board[]) => void;
+  fetchFullBoard: (boardId: string) => Promise<void>;
+  selectAndLoadKanbanBoard: (boardId: string) => Promise<void>;
+
+  // --- Dashboard ---
+  boardDashboardActiveId: string | null;
+  boardDashboardActive: Board | null;
+  setBoardDashboardActiveId: (boardId: string | null) => void;
+  setBoardDashboardActive: (board: Board | null) => void;
+  fetchFullDashboardBoard: (boardId: string) => Promise<void>;
+  selectAndLoadDashboardBoard: (boardId: string) => Promise<void>;
+  topSellers: TopSellersResponse;
 
   setBoards: (boards: Board[]) => void;
   addBoard: (board: Board) => void;
@@ -29,11 +47,6 @@ interface BoardState {
   removeBoard: (boardId: string) => void;
 
   setSelectedBoard: (board: Board | null) => void;
-  setActiveBoardId: (boardId: string | null) => void;
-  setLastUsedBoardId: (boardId: string | null) => void;
-  setActiveBoard: (board: Board | null) => void;
-  selectActiveBoard: (boards: Board[]) => void;
-
   addListToActiveBoard: (list: OutputListDTO) => void;
   updateListInActiveBoard: (list: OutputListDTO) => void;
   removeListFromActiveBoard: (listId: string) => void;
@@ -51,8 +64,7 @@ interface BoardState {
   }) => void;
 
   fetchAllBoards: (token: string, organizationId: string) => Promise<void>;
-  fetchFullBoard: (boardId: string) => Promise<void>;
-  selectAndLoadBoard: (boardId: string) => Promise<void>;
+  fetchTopSellers: (boardId: string) => Promise<void>;
 }
 
 export const useBoardStore = create<BoardState>()(
@@ -63,13 +75,159 @@ export const useBoardStore = create<BoardState>()(
       error: null,
       selectedBoard: null,
       lastFetched: null,
+      // --- Kanban (Quadro principal) ---
       activeBoardId: null,
       lastUsedBoardId: null,
       activeBoard: null,
+      setActiveBoardId: (boardId) => {
+        set({ activeBoardId: boardId });
+        if (boardId) {
+          get().setLastUsedBoardId(boardId);
+        }
+      },
+      setLastUsedBoardId: (boardId) => set({ lastUsedBoardId: boardId }),
+      setActiveBoard: (board) => set({ activeBoard: board }),
+      selectActiveBoard: (boards: Board[]) => {
+        const state = get();
+        if (boards.length === 0) {
+          set({ activeBoardId: null });
+          return;
+        }
+        if (
+          state.activeBoardId &&
+          boards.some((b) => b.id === state.activeBoardId)
+        ) {
+          return;
+        }
+        if (
+          state.lastUsedBoardId &&
+          boards.some((b) => b.id === state.lastUsedBoardId)
+        ) {
+          set({ activeBoardId: state.lastUsedBoardId });
+          return;
+        }
+        set({ activeBoardId: boards[0].id });
+      },
+      fetchFullBoard: async (boardId) => {
+        const { token, organization } = useAuthStore.getState();
+        if (!token || !organization.id) {
+          console.error("Token ou organização não encontrados");
+          return;
+        }
+        set({ isLoading: true });
+        try {
+          const board = await boardService.getBoardById(
+            token,
+            organization.id,
+            boardId
+          );
+          get().updateBoard(board);
+          set({
+            selectedBoard: board,
+            activeBoard: board,
+            isLoading: false,
+            error: null,
+          });
+        } catch (error: any) {
+          console.error("Erro ao buscar quadro:", error);
+          const errorMessage =
+            error instanceof APIError
+              ? error.message
+              : error?.message || error?.error || "Erro ao buscar quadro";
+          set({ error: errorMessage, isLoading: false });
+          useToastStore.getState().addToast(errorMessage, "error");
+        }
+      },
+      selectAndLoadKanbanBoard: async (boardId: string) => {
+        const { token, organization } = useAuthStore.getState();
+        if (!token || !organization.id) {
+          console.error("Token ou organização não encontrados");
+          return;
+        }
+        try {
+          get().setActiveBoardId(boardId);
+          get().setLastUsedBoardId(boardId);
+          await get().fetchFullBoard(boardId);
+          const board =
+            get().boards.find((b) => b.id === boardId) || get().activeBoard;
+          set({ activeBoardId: boardId, activeBoard: board });
+        } catch (error: any) {
+          console.error("Erro ao carregar board (Kanban):", error);
+          const errorMessage =
+            error?.message || error?.error || "Erro ao carregar quadro";
+          useToastStore.getState().addToast(errorMessage, "error");
+        }
+      },
+
+      // --- Dashboard ---
+      boardDashboardActiveId: null,
+      boardDashboardActive: null,
+      setBoardDashboardActiveId: (boardId) => {
+        set({ boardDashboardActiveId: boardId });
+        const board = get().boards.find((b) => b.id === boardId) || null;
+        set({ boardDashboardActive: board });
+      },
+      setBoardDashboardActive: (board) => set({ boardDashboardActive: board }),
+      fetchFullDashboardBoard: async (boardId) => {
+        const { token, organization } = useAuthStore.getState();
+        if (!token || !organization.id) {
+          console.error("Token ou organização não encontrados");
+          return;
+        }
+        set({ isLoading: true });
+        try {
+          const board = await boardService.getBoardById(
+            token,
+            organization.id,
+            boardId
+          );
+          get().updateBoard(board);
+          set({
+            boardDashboardActive: board,
+            isLoading: false,
+            error: null,
+          });
+        } catch (error: any) {
+          console.error("Erro ao buscar quadro (Dashboard):", error);
+          const errorMessage =
+            error instanceof APIError
+              ? error.message
+              : error?.message || error?.error || "Erro ao buscar quadro";
+          set({ error: errorMessage, isLoading: false });
+          useToastStore.getState().addToast(errorMessage, "error");
+        }
+      },
+      selectAndLoadDashboardBoard: async (boardId: string) => {
+        const { token, organization } = useAuthStore.getState();
+        if (!token || !organization.id) {
+          console.error("Token ou organização não encontrados");
+          return;
+        }
+        try {
+          get().setBoardDashboardActiveId(boardId);
+          await get().fetchFullDashboardBoard(boardId);
+          const board =
+            get().boards.find((b) => b.id === boardId) ||
+            get().boardDashboardActive;
+          set({ boardDashboardActiveId: boardId, boardDashboardActive: board });
+        } catch (error: any) {
+          console.error("Erro ao carregar board (Dashboard):", error);
+          const errorMessage =
+            error?.message || error?.error || "Erro ao carregar quadro";
+          useToastStore.getState().addToast(errorMessage, "error");
+        }
+      },
+      topSellers: { data: [] },
 
       setBoards: (boards) => {
         set({ boards });
         get().selectActiveBoard(boards);
+        // Atualizar boardDashboardActive se boardDashboardActiveId existir
+        const boardId = get().boardDashboardActiveId;
+        if (boardId) {
+          const board = boards.find((b) => b.id === boardId) || null;
+          set({ boardDashboardActive: board });
+        }
       },
 
       addBoard: (board) => {
@@ -117,7 +275,7 @@ export const useBoardStore = create<BoardState>()(
               : newBoards[0].id;
 
             if (nextBoardIdToLoad) {
-              get().selectAndLoadBoard(nextBoardIdToLoad);
+              get().selectActiveBoard(newBoards); // Use the new selectActiveBoard
             }
           } else {
             set({
@@ -239,43 +397,6 @@ export const useBoardStore = create<BoardState>()(
 
       setSelectedBoard: (board) => set({ selectedBoard: board }),
 
-      setActiveBoardId: (boardId) => {
-        set({ activeBoardId: boardId });
-        if (boardId) {
-          get().setLastUsedBoardId(boardId);
-        }
-      },
-
-      setLastUsedBoardId: (boardId) => set({ lastUsedBoardId: boardId }),
-
-      setActiveBoard: (board) => set({ activeBoard: board }),
-
-      selectActiveBoard: (boards: Board[]) => {
-        const state = get();
-
-        if (boards.length === 0) {
-          set({ activeBoardId: null });
-          return;
-        }
-
-        if (
-          state.activeBoardId &&
-          boards.some((b) => b.id === state.activeBoardId)
-        ) {
-          return;
-        }
-
-        if (
-          state.lastUsedBoardId &&
-          boards.some((b) => b.id === state.lastUsedBoardId)
-        ) {
-          set({ activeBoardId: state.lastUsedBoardId });
-          return;
-        }
-
-        set({ activeBoardId: boards[0].id });
-      },
-
       fetchAllBoards: async (token: string, organizationId: string) => {
         if (!token || !organizationId) {
           console.error("Token ou organizationId não fornecidos");
@@ -301,6 +422,9 @@ export const useBoardStore = create<BoardState>()(
           });
 
           get().selectActiveBoard(boards);
+          get().setBoardDashboardActiveId(
+            boards.length > 0 ? boards[0].id : null
+          );
 
           const activeId = get().activeBoardId;
           if (activeId) {
@@ -318,56 +442,18 @@ export const useBoardStore = create<BoardState>()(
         }
       },
 
-      fetchFullBoard: async (boardId) => {
+      fetchTopSellers: async (boardId) => {
         const { token, organization } = useAuthStore.getState();
-        if (!token || !organization.id) {
-          console.error("Token ou organização não encontrados");
-          return;
-        }
-
-        set({ isLoading: true });
+        if (!token || !organization?.id || !boardId) return;
         try {
-          const board = await boardService.getBoardById(
+          const sellers = await boardService.getTopSellers(
             token,
             organization.id,
             boardId
           );
-
-          get().updateBoard(board);
-          set({
-            selectedBoard: board,
-            activeBoard: board,
-            isLoading: false,
-            error: null,
-          });
-        } catch (error: any) {
-          console.error("Erro ao buscar quadro:", error);
-          const errorMessage =
-            error instanceof APIError
-              ? error.message
-              : error?.message || error?.error || "Erro ao buscar quadro";
-          set({ error: errorMessage, isLoading: false });
-          useToastStore.getState().addToast(errorMessage, "error");
-        }
-      },
-
-      selectAndLoadBoard: async (boardId: string) => {
-        const { token, organization } = useAuthStore.getState();
-        if (!token || !organization.id) {
-          console.error("Token ou organização não encontrados");
-          return;
-        }
-
-        try {
-          get().setActiveBoardId(boardId);
-          get().setLastUsedBoardId(boardId);
-
-          await get().fetchFullBoard(boardId);
-        } catch (error: any) {
-          console.error("Erro ao carregar board:", error);
-          const errorMessage =
-            error?.message || error?.error || "Erro ao carregar quadro";
-          useToastStore.getState().addToast(errorMessage, "error");
+          set({ topSellers: sellers });
+        } catch (error) {
+          set({ topSellers: { data: [] } });
         }
       },
 
@@ -539,6 +625,8 @@ export const useBoardStore = create<BoardState>()(
         activeBoardId: state.activeBoardId,
         lastUsedBoardId: state.lastUsedBoardId,
         activeBoard: state.activeBoard,
+        boardDashboardActiveId: state.boardDashboardActiveId,
+        boardDashboardActive: state.boardDashboardActive,
       }),
     }
   )

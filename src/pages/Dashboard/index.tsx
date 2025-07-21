@@ -30,6 +30,8 @@ import {
   isBefore,
   startOfDay,
   endOfDay,
+  startOfMonth,
+  endOfMonth,
 } from "date-fns";
 import { ErrorBoundary } from "react-error-boundary";
 import { Link } from "react-router-dom";
@@ -40,6 +42,7 @@ import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../services/authService";
 import { useBoardStore } from "../../store/boardStore";
 import { useInviteStore } from "../../store/inviteStore";
+import { useTransactionStore } from "../../store/transactionStore";
 
 // Registrar locale ptBR para o DatePicker
 registerLocale("pt-BR", ptBR);
@@ -60,7 +63,6 @@ const ErrorDisplay = ({ message }: { message: string }) => (
 
 export function Dashboard() {
   const { logout } = useAuthStore();
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [exportOptions, setExportOptions] = useState({
@@ -70,7 +72,6 @@ export function Dashboard() {
     sellerRanking: true,
   });
   const [showExportModal, setShowExportModal] = useState(false);
-  const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
   const [showBoardSelector, setShowBoardSelector] = useState(false);
   const [startDate, setStartDate] = useState<Date>(
     new Date(new Date().setDate(new Date().getDate() - 30))
@@ -90,6 +91,13 @@ export function Dashboard() {
   });
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [selectedCalendarEvent, setSelectedCalendarEvent] = useState<any>(null);
+
+  const { summary, fetchSummary } = useTransactionStore();
+  const { token, user } = useAuthStore();
+  const [filterDate, setFilterDate] = useState(() => {
+    const now = new Date();
+    return format(now, "yyyy-MM");
+  });
 
   // Função para controlar o scroll do body quando modais estão abertos
   useEffect(() => {
@@ -112,13 +120,15 @@ export function Dashboard() {
 
   const {
     boards,
-    activeBoard,
-    activeBoardId,
+    boardDashboardActiveId,
+    boardDashboardActive,
     fetchAllBoards,
-    selectAndLoadBoard,
+    selectAndLoadDashboardBoard,
+    isLoading,
   } = useBoardStore();
   const contractStore = useContractStore();
   const { invites: members } = useInviteStore();
+  const { topSellers, fetchTopSellers } = useBoardStore();
 
   const transactions = [];
   const contracts = contractStore?.contracts ?? [];
@@ -128,7 +138,7 @@ export function Dashboard() {
   // Melhorar a inicialização dos stores com useCallback
   const initializeStores = useCallback(async () => {
     try {
-      setIsLoading(true);
+      // setIsLoading(true); // Removido o estado local
       setError(null);
 
       const { token, organization } = useAuthStore.getState();
@@ -146,7 +156,7 @@ export function Dashboard() {
         throw new Error("Falha ao carregar dados dos stores");
       }
 
-      setIsLoading(false);
+      // setIsLoading(false); // Removido o estado local
     } catch (err) {
       console.error("Erro ao inicializar stores:", err);
       setError(
@@ -165,10 +175,17 @@ export function Dashboard() {
 
   // Efeito separado para carregar o board ativo quando necessário
   useEffect(() => {
-    if (activeBoardId && (!activeBoard?.lists || activeBoard.lists.length === 0)) {
-      selectAndLoadBoard(activeBoardId);
+    if (
+      boardDashboardActiveId &&
+      (!boardDashboardActive?.lists || boardDashboardActive.lists.length === 0)
+    ) {
+      selectAndLoadDashboardBoard(boardDashboardActiveId);
     }
-  }, [activeBoardId, activeBoard?.lists, selectAndLoadBoard]);
+  }, [
+    boardDashboardActiveId,
+    boardDashboardActive?.lists,
+    selectAndLoadDashboardBoard,
+  ]);
 
   // Usar useEffect para inicialização e cleanup
   useEffect(() => {
@@ -201,55 +218,23 @@ export function Dashboard() {
     };
   }, [initializeStores]);
 
-  // Usar o activeBoard que já vem com listas e cards
-  const selectedKanbanBoard = activeBoard;
+  // Usar o boardDashboardActive que já vem com listas e cards
+  const selectedKanbanBoard = boardDashboardActive;
 
   const completedListId = React.useMemo(() => {
     try {
-      if (!selectedKanbanBoard?.id || !getCompletedListId) return null;
-      return getCompletedListId(selectedKanbanBoard.id);
+      if (!boardDashboardActiveId || !getCompletedListId) return null;
+      return getCompletedListId(boardDashboardActiveId);
     } catch {
       console.warn("Erro ao buscar lista completada");
       return null;
     }
-  }, [selectedKanbanBoard, getCompletedListId]);
+  }, [boardDashboardActiveId, getCompletedListId]);
 
   const completedList = React.useMemo(
     () => selectedKanbanBoard?.lists?.find((l) => l?.id === completedListId),
     [selectedKanbanBoard, completedListId]
   );
-
-  const totalKanbanValue = React.useMemo(() => {
-    try {
-      return (
-        selectedKanbanBoard?.lists?.reduce((total, list) => {
-          if (!list?.cards) return total;
-          const listTotal = list.cards.reduce((sum, card) => {
-            if (!card) return sum;
-            const cardValue = Number(card.value);
-            return sum + (isNaN(cardValue) ? 0 : cardValue);
-          }, 0);
-          return total + (listTotal ?? 0);
-        }, 0) ?? 0
-      );
-    } catch {
-      return 0;
-    }
-  }, [selectedKanbanBoard]);
-
-  const completedSalesValue = React.useMemo(() => {
-    try {
-      return (
-        completedList?.cards?.reduce((sum, card) => {
-          if (!card) return sum;
-          const cardValue = Number(card.value);
-          return sum + (isNaN(cardValue) ? 0 : cardValue);
-        }, 0) ?? 0
-      );
-    } catch {
-      return 0;
-    }
-  }, [completedList]);
 
   // Filtrar transações com verificações de segurança
   const filteredTransactions = React.useMemo(() => {
@@ -269,98 +254,25 @@ export function Dashboard() {
     () => [
       {
         status: "Rascunho",
-        value: contracts.filter((c) => c?.status === "Draft").length,
+        value: contracts.filter((c) => c?.status === "DRAFT").length,
       },
       {
         status: "Pendente",
-        value: contracts.filter((c) => c?.status === "Pending").length,
+        value: contracts.filter((c) => c?.status === "PENDING").length,
       },
       {
         status: "Ativo",
-        value: contracts.filter((c) => c?.status === "Active").length,
+        value: contracts.filter((c) => c?.status === "ACTIVE").length,
       },
     ],
     [contracts]
   );
 
-  // Obter os top vendedores a partir dos cartões concluídos
-  const topSellers = React.useMemo(() => {
-    try {
-      // 1. Verificar o quadro selecionado
-      // 2. Verificar lista de concluídos
-      // 3. Verificar se a lista tem cartões
-      // 4. Verificar membros disponíveis
-
-      if (!selectedBoard) {
-        return [];
-      }
-
-      if (!completedListId) {
-        return [];
-      }
-
-      if (!completedList) {
-        return [];
-      }
-
-      if (!completedList?.cards || completedList.cards.length === 0) {
-        return [];
-      }
-
-      // Verificar se os cartões têm responsáveis
-      const cardsWithResponsible = completedList.cards.filter(
-        (card) => card.responsibleId
-      );
-
-      if (cardsWithResponsible.length === 0) {
-        return [];
-      }
-
-      // Agrupar os cartões por responsável
-      const sellerStats = completedList.cards.reduce((acc, card) => {
-        if (!card.responsibleId) {
-          return acc;
-        }
-
-        const responsibleId = card.responsibleId;
-        const cardValue = Number(card.value) || 0;
-
-        // Buscar o responsável nos membros disponíveis
-        const responsibleMember = members.find((m) => m.id === responsibleId);
-
-        // Chave para agrupar os cartões do mesmo responsável
-        const sellerKey = responsibleId;
-
-        if (!acc[sellerKey]) {
-          acc[sellerKey] = {
-            id: responsibleId,
-            name: responsibleMember?.name || "Responsável Desconhecido",
-            count: 0,
-            totalValue: 0,
-          };
-        }
-
-        acc[sellerKey].count += 1;
-        acc[sellerKey].totalValue += cardValue;
-
-        return acc;
-      }, {} as Record<string, { id: string; name: string; count: number; totalValue: number }>);
-
-      // Converter para array e ordenar por valor total
-      return Object.values(sellerStats).sort(
-        (a, b) => b.totalValue - a.totalValue
-      );
-    } catch (error) {
-      console.error("Erro ao processar top vendedores:", error);
-      return [];
+  useEffect(() => {
+    if (boardDashboardActiveId) {
+      fetchTopSellers(boardDashboardActiveId);
     }
-  }, [
-    completedList,
-    members,
-    selectedBoard,
-    selectedKanbanBoard,
-    completedListId,
-  ]);
+  }, [boardDashboardActiveId, fetchTopSellers]);
 
   // Dados financeiros com verificações de segurança
   const financialData = useMemo(() => {
@@ -683,9 +595,9 @@ export function Dashboard() {
 
   const contractChartData = useMemo(
     () => [
-      contracts.filter((c) => c?.status === "Active").length,
-      contracts.filter((c) => c?.status === "Pending").length,
-      contracts.filter((c) => c?.status === "Draft").length,
+      contracts.filter((c) => c?.status === "ACTIVE").length,
+      contracts.filter((c) => c?.status === "PENDING").length,
+      contracts.filter((c) => c?.status === "DRAFT").length,
     ],
     [contracts]
   );
@@ -791,13 +703,67 @@ export function Dashboard() {
     setShowEventDetails(true);
   };
 
-  if (isLoading) {
-    return <LoadingFallback />;
-  }
+  useEffect(() => {
+    if (token && user?.organization_id && boardDashboardActiveId) {
+      const [year, month] = filterDate.split("-").map(Number);
+      fetchSummary(token, user.organization_id, {
+        year,
+        month,
+        boardId: boardDashboardActiveId,
+      });
+    }
+  }, [token, user, filterDate, boardDashboardActiveId, fetchSummary]);
 
-  if (error) {
-    return <ErrorDisplay message={error} />;
+  // Identificar listas do sistema pelo nome (ignorando acentos e espaços)
+  function normalize(str) {
+    return str
+      ? str
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, "")
+          .toLowerCase()
+      : "";
   }
+  const systemLists = React.useMemo(() => {
+    if (!boardDashboardActive?.lists)
+      return { andamento: null, pendente: null, concluido: null };
+    const andamento = boardDashboardActive.lists.find((l) =>
+      normalize(l.name).includes("emandamento")
+    );
+    const pendente = boardDashboardActive.lists.find((l) =>
+      normalize(l.name).includes("pendente")
+    );
+    const concluido = boardDashboardActive.lists.find((l) =>
+      normalize(l.name).includes("concluido")
+    );
+    return { andamento, pendente, concluido };
+  }, [boardDashboardActive]);
+
+  // Valor total em negociação = andamento + pendente
+  const totalKanbanValue = React.useMemo(() => {
+    const { andamento, pendente } = systemLists;
+    const sumList = (list) =>
+      list?.cards?.reduce((sum, card) => sum + (Number(card.value) || 0), 0) ||
+      0;
+    return sumList(andamento) + sumList(pendente);
+  }, [systemLists]);
+
+  // Vendas concluídas = concluído
+  const completedSalesValue = React.useMemo(() => {
+    const { concluido } = systemLists;
+    return (
+      concluido?.cards?.reduce(
+        (sum, card) => sum + (Number(card.value) || 0),
+        0
+      ) || 0
+    );
+  }, [systemLists]);
+
+  // Taxa de conversão = concluído / (andamento + pendente)
+  const conversionRate = React.useMemo(() => {
+    if (totalKanbanValue === 0) return 0;
+    return (completedSalesValue / totalKanbanValue) * 100;
+  }, [completedSalesValue, totalKanbanValue]);
 
   return (
     <ErrorBoundary
@@ -852,9 +818,11 @@ export function Dashboard() {
                 className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
               >
                 <span className="text-sm font-medium">
-                  {selectedKanbanBoard
-                    ? selectedKanbanBoard.title
-                    : "Selecionar Quadro"}
+                  {boardDashboardActive ? (
+                    boardDashboardActive.name
+                  ) : (
+                    <span className="inline-block w-32 h-5 bg-gray-200 rounded animate-pulse" />
+                  )}
                 </span>
                 <ChevronDown className="w-4 h-4" />
               </button>
@@ -872,8 +840,8 @@ export function Dashboard() {
           {/* Board Selector Modal */}
           <BoardSelector
             boards={boards}
-            activeBoard={selectedBoard}
-            onSelectBoard={setSelectedBoard}
+            activeBoardId={boardDashboardActiveId}
+            onSelectBoard={selectAndLoadDashboardBoard}
             isOpen={showBoardSelector}
             onClose={() => setShowBoardSelector(false)}
           />
@@ -1000,11 +968,7 @@ export function Dashboard() {
                 </div>
               </div>
               <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                {totalKanbanValue > 0
-                  ? `${((completedSalesValue / totalKanbanValue) * 100).toFixed(
-                      1
-                    )}%`
-                  : "0%"}
+                {`${conversionRate.toFixed(1)}%`}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                 Vendas concluídas / Total em negociação
@@ -1020,20 +984,11 @@ export function Dashboard() {
                   Movimentação Financeira
                 </h3>
                 <div className="flex items-center gap-2">
-                  <DatePicker
-                    selected={startDate}
-                    onChange={(date: Date | null) => date && setStartDate(date)}
+                  <input
+                    type="month"
+                    value={filterDate}
+                    onChange={(e) => setFilterDate(e.target.value)}
                     className="px-3 py-2 bg-gray-50 dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-sm text-gray-600 dark:text-gray-200"
-                    dateFormat="dd/MM/yyyy"
-                    locale={ptBR}
-                  />
-                  <span className="text-gray-500 dark:text-gray-400">até</span>
-                  <DatePicker
-                    selected={endDate}
-                    onChange={(date: Date | null) => date && setEndDate(date)}
-                    className="px-3 py-2 bg-gray-50 dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-sm text-gray-600 dark:text-gray-200"
-                    dateFormat="dd/MM/yyyy"
-                    locale={ptBR}
                   />
                 </div>
               </div>
@@ -1077,7 +1032,15 @@ export function Dashboard() {
               </div>
 
               <div className="mt-4">
-                {topSellers.length > 0 ? (
+                {!topSellers.data || typeof topSellers.data === "undefined" ? (
+                  <div className="h-24 flex items-center justify-center">
+                    <span className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7f00ff]" />
+                  </div>
+                ) : topSellers.data.length === 0 ? (
+                  <div className="h-24 flex items-center justify-center text-gray-400">
+                    Nenhum vendedor encontrado
+                  </div>
+                ) : (
                   <>
                     <div className="mb-2 px-1">
                       <div className="flex justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -1086,7 +1049,7 @@ export function Dashboard() {
                       </div>
                     </div>
                     <div className="space-y-3">
-                      {topSellers.slice(0, 3).map((seller, index) => {
+                      {topSellers.data.slice(0, 3).map((seller, index) => {
                         // Definir cores diferentes para cada posição
                         const positionColor =
                           index === 0
@@ -1115,11 +1078,9 @@ export function Dashboard() {
                             ? "from-amber-700 to-amber-800"
                             : "from-purple-500 to-indigo-600";
 
-                        // Buscar o nome correto do responsável diretamente de members
+                        const user = seller.user;
                         const sellerName =
-                          seller.name || "Responsável Desconhecido";
-
-                        // Calcular as iniciais do nome
+                          user?.name || "Responsável Desconhecido";
                         const initials = sellerName
                           .split(" ")
                           .map((part) => part[0])
@@ -1132,7 +1093,7 @@ export function Dashboard() {
 
                         return (
                           <div
-                            key={seller.id}
+                            key={user?.id || index}
                             className={`relative p-3 rounded-lg transition-all ${cardBgClass} group`}
                           >
                             {/* Badge de posição */}
@@ -1144,11 +1105,19 @@ export function Dashboard() {
 
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3 pl-2">
-                                <div
-                                  className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarBgClass} flex items-center justify-center text-white text-sm font-medium shadow-sm`}
-                                >
-                                  {initials}
-                                </div>
+                                {user?.avatar_url ? (
+                                  <img
+                                    src={user.avatar_url}
+                                    alt={sellerName}
+                                    className="w-10 h-10 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div
+                                    className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarBgClass} flex items-center justify-center text-white text-sm font-medium shadow-sm`}
+                                  >
+                                    {initials}
+                                  </div>
+                                )}
                                 <div>
                                   <p className="font-medium text-gray-800 dark:text-gray-200">
                                     {sellerName}
@@ -1171,158 +1140,18 @@ export function Dashboard() {
                         );
                       })}
                     </div>
-                    {topSellers.length > 3 && (
+                    {topSellers.data.length > 3 && (
                       <div className="mt-4 pt-3 border-t border-gray-100 dark:border-dark-700">
                         <button
                           onClick={() => setShowAllSellersModal(true)}
                           className="w-full py-2 px-3 bg-purple-50 dark:bg-purple-900/10 text-purple-700 dark:text-purple-400 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors text-xs font-medium flex items-center justify-center gap-1"
                         >
-                          Ver todos os vendedores ({topSellers.length})
+                          Ver todos os vendedores ({topSellers.data.length})
                           <ChevronDown className="w-3 h-3 transform rotate-[-90deg]" />
                         </button>
                       </div>
                     )}
                   </>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-6 text-center">
-                    <Users className="w-10 h-10 text-gray-300 dark:text-gray-600 mb-2" />
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {selectedBoard
-                        ? completedListId
-                          ? completedList?.cards?.length
-                            ? completedList.cards.some((c) => c.responsibleId)
-                              ? "Erro ao processar vendedores. Verifique o console."
-                              : "Os cartões concluídos não têm responsáveis atribuídos"
-                            : "Não há cartões na lista concluída"
-                          : "Nenhuma lista definida como concluída neste quadro"
-                        : "Selecione um quadro para ver os vendedores"}
-                    </p>
-                    {selectedBoard && !completedListId && (
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 mb-3 max-w-xs">
-                        Configure uma lista como "Concluída" nas configurações
-                        do quadro Kanban
-                      </p>
-                    )}
-                    {selectedBoard &&
-                      selectedKanbanBoard &&
-                      !completedListId &&
-                      selectedKanbanBoard.lists?.length > 0 && (
-                        <div className="mb-3">
-                          <select
-                            className="px-3 py-1.5 text-xs bg-gray-50 dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-600 dark:text-gray-200 mb-2"
-                            onChange={(e) => {
-                              const listId = e.target.value;
-                              if (listId && selectedBoard) {
-                                // Temporariamente removido até implementar com as novas stores
-                                console.log(
-                                  "Configurando lista como concluída:",
-                                  listId
-                                );
-                                // Forçar a atualização
-                                setTimeout(() => {
-                                  // Forçar re-renderização após configurar a lista
-                                }, 500);
-                              }
-                            }}
-                            defaultValue=""
-                          >
-                            <option value="">
-                              Selecione uma lista para marcar como concluída
-                            </option>
-                            {selectedKanbanBoard.lists.map((list) => (
-                              <option key={list.id} value={list.id}>
-                                {list.title}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            className="px-3 py-1.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg text-xs font-medium"
-                            onClick={(e) => {
-                              const select = e.currentTarget
-                                .previousSibling as HTMLSelectElement;
-                              const listId = select.value;
-                              if (listId && selectedBoard) {
-                                // Temporariamente removido até implementar com as novas stores
-                                console.log(
-                                  "Configurando lista como concluída:",
-                                  listId
-                                );
-                                // Forçar a atualização
-                                setTimeout(() => {
-                                  window.location.reload();
-                                }, 500);
-                              }
-                            }}
-                          >
-                            Configurar como Concluída
-                          </button>
-                        </div>
-                      )}
-
-                    <div className="flex gap-2">
-                      <button
-                        className="mt-1 py-1.5 px-3 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-lg text-xs font-medium"
-                        onClick={() => setShowBoardSelector(true)}
-                      >
-                        {selectedBoard ? "Mudar quadro" : "Selecionar quadro"}
-                      </button>
-
-                      <button
-                        className="mt-1 py-1.5 px-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-medium"
-                        onClick={() => {
-                          // Auto-diagnóstico e tentativa de reparo
-                          console.log("Iniciando diagnóstico automático...");
-
-                          // 1. Verificar o store do Kanban
-                          if (!selectedBoard) {
-                            if (boards.length > 0) {
-                              setSelectedBoard(boards[0].id);
-                              console.log(
-                                "Selecionando automaticamente o primeiro quadro:",
-                                boards[0].id
-                              );
-                            } else {
-                              console.log(
-                                "Não há quadros disponíveis para selecionar"
-                              );
-                              return;
-                            }
-                          }
-
-                          // 2. Verificar lista completada
-                          if (
-                            selectedBoard &&
-                            !completedListId &&
-                            selectedKanbanBoard?.lists?.length > 0
-                          ) {
-                            // Selecionar a última lista como concluída (geralmente é a de "Concluídos")
-                            const lastList =
-                              selectedKanbanBoard.lists[
-                                selectedKanbanBoard.lists.length - 1
-                              ];
-                            if (lastList) {
-                              console.log(
-                                "Configurando automaticamente a última lista como concluída:",
-                                lastList.id
-                              );
-                              // Temporariamente removido até implementar com as novas stores
-                            }
-                          }
-
-                          // 3. Verificar team store
-                          console.log("Team store members:", members);
-
-                          // 4. Recarregar a página para aplicar as alterações
-                          alert(
-                            "Correções aplicadas. A página será recarregada para aplicar as mudanças."
-                          );
-                          window.location.reload();
-                        }}
-                      >
-                        Verificação Automática
-                      </button>
-                    </div>
-                  </div>
                 )}
               </div>
             </div>
@@ -1466,7 +1295,7 @@ export function Dashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                      {topSellers.map((seller, index) => {
+                      {topSellers.data.map((seller, index) => {
                         // Definir cores para posição
                         const positionColor =
                           index === 0
@@ -1545,7 +1374,7 @@ export function Dashboard() {
           )}
 
           {showExportModal && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] !mt-0">
               <div className="bg-white dark:bg-dark-800 rounded-lg p-6 w-96 shadow-xl m-4">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-dark-700">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -1630,7 +1459,7 @@ export function Dashboard() {
           )}
 
           {showNewEventModal && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] !mt-0">
               <div className="bg-white dark:bg-dark-800 rounded-lg p-6 w-full max-w-md overflow-hidden flex flex-col shadow-xl m-4">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-dark-700">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -1758,7 +1587,7 @@ export function Dashboard() {
           )}
 
           {selectedCalendarEvent && showEventDetails && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] !mt-0">
               <div className="bg-white dark:bg-dark-800 rounded-lg p-6 w-full max-w-md overflow-hidden flex flex-col shadow-xl m-4">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-dark-700">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
