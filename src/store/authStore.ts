@@ -12,7 +12,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
       isAuthenticated: false,
       user: null,
       token: null,
-      refreshToken: null,
       organization: null,
       permissions: [],
       _hasHydrated: false,
@@ -24,13 +23,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
       },
 
       login: async (payload: AuthSuccessPayload) => {
-        const { data, error } = await supabase.auth.setSession({
-          access_token: payload.token,
-          refresh_token: payload.refreshToken,
-        });
-
-        supabase.realtime.setAuth(payload.token);
-
         set({
           isAuthenticated: true,
           user: payload.user,
@@ -44,24 +36,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         set({ token: newToken });
       },
 
-      setSession: async (accessToken: string, refreshToken: string) => {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-
-        if (error) {
-          console.error(
-            "[AuthStore] ❌ Falha ao sincronizar a nova sessão com o cliente Supabase:",
-            error
-          );
-        } else {
-          console.log(
-            "[AuthStore] ✅ Nova sessão sincronizada com o cliente Supabase."
-          );
-        }
-
-        supabase.realtime.setAuth(accessToken);
+      setSession: async (accessToken: string) => {
         set({ token: accessToken });
       },
 

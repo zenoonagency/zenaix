@@ -373,13 +373,22 @@ const Card = React.memo(
               </button>
             </div>
             {/* Card Title */}
-            <h3
+            <div
               className={`font-semibold text-lg leading-tight ${
                 theme === "dark" ? "text-gray-100" : "text-gray-900"
               }`}
+              style={{
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "normal",
+              }}
+              title={cardData.title}
             >
               {cardData.title}
-            </h3>
+            </div>
 
             {/* Description - Limited to 2 lines */}
             {cardData.description && (

@@ -186,12 +186,21 @@ export function Clients() {
   return (
     <div className="flex flex-col">
       <div className={`p-6 bg-background dark:bg-background`}>
-        <div className="flex items-center space-x-2 mb-4">
+        <div className="flex items-center space-x-4 ">
           <Zap className="w-6 h-6 text-[#7f00ff]" />
           <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] text-transparent bg-clip-text">
             Gestão de funil
           </h1>
         </div>
+        <div className="flex items-center space-x-2 my-4">
+          <h2 className="text-xl font-bold bg-gradient-to-r inline-block  from-[#7f00ff] to-[#e100ff]   text-transparent bg-clip-text">
+            Quadro:
+          </h2>
+          <h2 className="text-xl font-bold inline-block text-[#000]  text-transparent bg-clip-text">
+            {currentBoardTitle}
+          </h2>
+        </div>
+
         <div className="flex gap-4">
           <div className="flex items-center space-x-4">
             <button
@@ -615,8 +624,6 @@ export function Clients() {
           }}
           onSave={async (cardData) => {
             // Implementar lógica de atualização do card
-            console.log("Atualizando card:", cardData);
-            // Por enquanto, apenas fechar o modal
             setShowEditCardModal(false);
             setSelectedCardForEdit(null);
             return selectedCardForEdit; // Retornar o card atualizado

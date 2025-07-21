@@ -1,4 +1,3 @@
-// src/pages/Clients/components/KanbanBoard.tsx
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   DndContext,
@@ -483,15 +482,6 @@ export function KanbanBoard() {
 
         const toListId = over.data.current?.listId || over.id;
 
-        console.log("📋 Dados do drag:", {
-          cardId,
-          fromListId,
-          toListId,
-          overId: over.id,
-          overData: over.data.current,
-          overType: over.data.current?.type,
-        });
-
         // Se for a mesma lista, reordenar
         if (fromListId === toListId) {
           const list = board?.lists?.find((l: any) => l.id === fromListId);
@@ -784,18 +774,6 @@ export function KanbanBoard() {
           <Spinner />
         ) : (
           <>
-            {/* Nome do quadro ativo acima do botão Adicionar Lista */}
-            {board && (
-              <div className="mb-6 mt-8 pl-6">
-                <h2
-                  className="text-2xl font-bold text-gray-900 dark:text-white mb-4"
-                  style={{ textAlign: "left" }}
-                >
-                  Quadro: {boardName}
-                </h2>
-              </div>
-            )}
-            {/* Botão Adicionar Lista */}
             <div className="flex items-center gap-4 p-4">
               <button
                 onClick={handleAddList}

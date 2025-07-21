@@ -421,13 +421,14 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
 
         <div className="space-y-6">
           <div className="p-4 rounded-lg border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
-            <h3
+            <div
               className={`text-2xl font-semibold ${
                 theme === "dark" ? "text-gray-200" : "text-gray-800"
-              } mb-2`}
+              } mb-2 break-words w-full`}
+              style={{ wordBreak: "break-word", whiteSpace: "normal" }}
             >
               {card.title}
-            </h3>
+            </div>
             <p
               className={`${
                 theme === "dark" ? "text-gray-300" : "text-gray-600"

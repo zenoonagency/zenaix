@@ -863,7 +863,7 @@ export function CardModal({
                     className={`px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors ${
                       selectedTagIds.includes(tag.id)
                         ? "bg-opacity-100"
-                        : "bg-opacity-20"
+                        : "bg-opacity-20 opacity-60"
                     }`}
                     style={{
                       backgroundColor: selectedTagIds.includes(tag.id)
@@ -1121,7 +1121,6 @@ export function CardModal({
                         }`}
                       >
                         {attachment.name ||
-                          attachment.file_name ||
                           attachment.url ||
                           "Sem nome"}
                       </span>

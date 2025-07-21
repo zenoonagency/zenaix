@@ -24,7 +24,6 @@ export const authService = {
       return {
         user: responseData.data,
         token: responseData.token,
-        refreshToken: responseData.refreshToken,
         organization: responseData.data.organization || null,
         permissions: responseData.data.permissions || [],
       };
@@ -59,7 +58,6 @@ export const authService = {
       return {
         user: responseData.data,
         token: responseData.token,
-        refreshToken: responseData.refreshToken,
         organization: responseData.data.organization || null,
         permissions: responseData.data.permissions || [],
       };
@@ -70,7 +68,7 @@ export const authService = {
     }
   },
 
-  async refreshToken(): Promise<{ token: string; refreshToken: string }> {
+  async refreshToken(): Promise<{ token: string;  }> {
     const response = await fetch(`${API_CONFIG.baseUrl}/auth/refresh`, {
       method: "POST",
       headers: {

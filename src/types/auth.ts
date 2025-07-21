@@ -40,7 +40,6 @@ export interface AuthSuccessPayload {
   organization: OrganizationOutput | null;
   permissions: string[];
   token: string;
-  refreshToken: string;
 }
 
 export interface AuthState {
@@ -53,9 +52,9 @@ export interface AuthState {
   isSyncingUser: boolean;
 
   setToken: (token: string) => void;
-  setSession: (accessToken: string, refreshToken: string) => Promise<void>;
+  setSession: (accessToken: string) => Promise<void>;
   hasPermission: (permission: string) => boolean;
-  login: (payload: AuthSuccessPayload) => void;
+  login: (payload: AuthSuccessPayload) => Promise<void>;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
   setOrganization: (organization: OrganizationOutput) => void;
