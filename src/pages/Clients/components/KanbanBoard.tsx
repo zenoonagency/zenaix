@@ -715,24 +715,26 @@ export function KanbanBoard() {
         return newList.position !== originalList?.position;
       });
 
-      // Atualizar cada lista que mudou de posição
-      for (const list of movedLists) {
-        const dto: InputUpdateListDTO = {
-          position: list.position,
-        };
-
-        await listService.updateList(
-          token,
-          organization.id,
-          activeBoardId,
-          list.id,
-          dto
-        );
-      }
+      // Atualizar todas as listas em paralelo
+      await Promise.all(
+        movedLists.map(async (list) => {
+          const dto: InputUpdateListDTO = {
+            position: list.position,
+          };
+          await listService.updateList(
+            token,
+            organization.id,
+            activeBoardId,
+            list.id,
+            dto
+          );
+        })
+      );
 
       showToast("Listas reordenadas com sucesso!", "success");
     } catch (err: any) {
       showToast(err.message || "Erro ao reordenar listas", "error");
+      throw err; // importante: lançar para o modal não fechar
     }
   };
 
