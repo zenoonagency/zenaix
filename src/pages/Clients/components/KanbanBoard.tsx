@@ -126,12 +126,28 @@ function SortModal({ isOpen, onClose, onSort, lists }: SortModalProps) {
   const [items, setItems] = useState(lists);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  // Novo: guardar os positions originais para comparar depois
+  const [originalPositions, setOriginalPositions] = useState<{
+    [id: string]: number;
+  }>({});
+  // Novo: guardar ids das listas alteradas
+  const [changedIds, setChangedIds] = useState<Set<string>>(new Set());
+  // Novo: loading ao salvar
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Reset items when modal opens
+  // Reset items e positions quando modal abre
   useEffect(() => {
     if (isOpen) {
       setItems(lists);
       setHasChanges(false);
+      setOriginalPositions(
+        lists.reduce((acc, l) => {
+          acc[l.id] = l.position;
+          return acc;
+        }, {} as { [id: string]: number })
+      );
+      setChangedIds(new Set());
+      setIsSaving(false);
     }
   }, [isOpen, lists]);
 
@@ -148,44 +164,44 @@ function SortModal({ isOpen, onClose, onSort, lists }: SortModalProps) {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-
     if (over && active.id !== over.id) {
-      setItems((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        const newLists = arrayMove(items, oldIndex, newIndex);
-
-        // Calcular nova posição apenas para a lista movida
-        const movedList = newLists[newIndex];
+      setItems((prevItems) => {
+        const oldIndex = prevItems.findIndex((item) => item.id === active.id);
+        const newIndex = prevItems.findIndex((item) => item.id === over.id);
+        const newLists = arrayMove(prevItems, oldIndex, newIndex);
+        // Corrigido: novo position float para a lista movida
         let newPosition: number;
-
         if (newIndex === 0) {
-          // Movendo para o primeiro lugar
-          const firstListPosition = newLists[1]?.position || 10;
-          newPosition = firstListPosition - 1; // Ex: 10 -> 9
+          // No topo: menor que o próximo
+          const next = newLists[1];
+          newPosition = next ? next.position - 1 : 0;
         } else if (newIndex === newLists.length - 1) {
-          // Movendo para o último lugar
-          const lastListPosition = newLists[newIndex - 1]?.position || 10;
-          newPosition = lastListPosition + 1; // Ex: 30 -> 31
+          // No final: +1 do anterior
+          const prev = newLists[newIndex - 1];
+          newPosition = prev ? prev.position + 1 : 1;
         } else {
-          // Movendo para o meio
-          const prevListPosition = newLists[newIndex - 1]?.position || 10;
-          const nextListPosition = newLists[newIndex + 1]?.position || 10;
-          newPosition =
-            prevListPosition + (nextListPosition - prevListPosition) / 2; // Ex: entre 10 e 20 = 15
+          // No meio: média dos vizinhos
+          const prev = newLists[newIndex - 1];
+          const next = newLists[newIndex + 1];
+          newPosition = (prev.position + next.position) / 2;
         }
-
-        // Atualizar apenas a lista movida
-        const updatedLists = newLists.map((list, index) => {
-          if (index === newIndex) {
-            return {
-              ...list,
-              position: newPosition,
-            };
+        // Atualizar só a lista movida
+        const updatedLists = newLists.map((list, idx) => {
+          if (idx === newIndex) {
+            return { ...list, position: newPosition };
           }
           return list;
         });
-
+        // Marcar como alterada se mudou o position
+        const movedId = newLists[newIndex].id;
+        const origPos = originalPositions[movedId];
+        const changed = origPos !== newPosition;
+        setChangedIds((prev) => {
+          const newSet = new Set(prev);
+          if (changed) newSet.add(movedId);
+          else newSet.delete(movedId);
+          return newSet;
+        });
         setHasChanges(true);
         return updatedLists;
       });
@@ -276,24 +292,43 @@ function SortModal({ isOpen, onClose, onSort, lists }: SortModalProps) {
                 ? "text-gray-300 hover:bg-gray-700"
                 : "text-gray-700 hover:bg-gray-100"
             }`}
+            disabled={isSaving}
           >
             Cancelar
           </button>
           <button
-            onClick={() => {
-              if (hasChanges) {
-                onSort(items);
+            onClick={async () => {
+              if (hasChanges && changedIds.size > 0) {
+                setIsSaving(true);
+                try {
+                  const changedLists = items.filter((item) =>
+                    changedIds.has(item.id)
+                  );
+                  await onSort(changedLists); // onSort agora deve ser async
+                  setIsSaving(false);
+                  onClose();
+                } catch (err) {
+                  setIsSaving(false);
+                  // O toast de erro deve ser disparado pelo onSort
+                }
+              } else {
+                onClose();
               }
-              onClose();
             }}
-            disabled={!hasChanges}
+            disabled={!hasChanges || changedIds.size === 0 || isSaving}
             className={`px-4 py-2 rounded-md ${
-              hasChanges
+              hasChanges && changedIds.size > 0 && !isSaving
                 ? "bg-[#7f00ff] text-white hover:bg-[#7f00ff]/90"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
             }`}
           >
-            Concluir
+            {isSaving ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="animate-spin w-4 h-4" /> Salvando...
+              </span>
+            ) : (
+              "Concluir"
+            )}
           </button>
         </div>
       </div>
