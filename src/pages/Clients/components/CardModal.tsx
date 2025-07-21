@@ -348,9 +348,6 @@ export function CardModal({
     ];
 
     if (mode === "add") {
-      console.log("[CardModal] Modo 'add' - armazenando arquivo localmente");
-
-      // Permitir apenas um anexo: pega o último arquivo válido
       let lastValidAttachment = null;
       for (const file of files) {
         if (file.size > maxSize) {
@@ -569,19 +566,11 @@ export function CardModal({
         // attachments são gerenciados separadamente via attachmentService
       };
 
-      console.log("[CardModal] Salvando card com dados:", cardData);
-      console.log("[CardModal] Anexos pendentes:", attachments);
-
       const createdCard = await onSave(cardData);
-
-      console.log("[CardModal] Card criado:", createdCard);
 
       // Se há anexos pendentes, fazer upload após criação do card
       if (mode === "add" && attachments.length > 0 && createdCard?.id) {
-        console.log("[CardModal] Iniciando upload de anexos...");
         const pendingAttachments = attachments.filter((att) => att.file);
-
-        console.log("[CardModal] Anexos com arquivo:", pendingAttachments);
 
         for (const attachment of pendingAttachments) {
           try {
@@ -605,14 +594,6 @@ export function CardModal({
             );
           }
         }
-      } else {
-        console.log(
-          "[CardModal] Nenhum anexo para upload ou card não foi criado corretamente"
-        );
-        console.log("[CardModal] mode:", mode);
-        console.log("[CardModal] attachments.length:", attachments.length);
-        console.log("[CardModal] createdCard?.id:", createdCard?.id);
-        console.log("[CardModal] createdCard completo:", createdCard);
       }
 
       // Só fechar a modal após todo o processo estar completo
@@ -1120,9 +1101,7 @@ export function CardModal({
                           isDark ? "text-gray-300" : "text-gray-700"
                         }`}
                       >
-                        {attachment.name ||
-                          attachment.url ||
-                          "Sem nome"}
+                        {attachment.name || attachment.url || "Sem nome"}
                       </span>
                       {typeof attachment.size === "number" &&
                         !isNaN(attachment.size) && (

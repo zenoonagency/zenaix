@@ -234,7 +234,6 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   };
 
   const handleDeleteAttachment = (attachmentId: string) => {
-    // deleteAttachment(boardId, listId, card.id, attachmentId); // Originalmente removido
     showToast("Anexo removido com sucesso!", "success");
     setShowDeleteAttachmentConfirm(null);
   };
@@ -303,13 +302,6 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
     if (!token || !organization?.id) return;
     setDownloadingAttachmentId(attachment.id);
     try {
-      console.log({
-        token,
-        organizationId: organization.id,
-        boardId,
-        listId,
-        attachmentId: attachment.id,
-      });
       const url = await attachmentService.downloadAttachment(
         token,
         organization.id,
