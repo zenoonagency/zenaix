@@ -198,4 +198,42 @@ export const cardService = {
       throw new APIError("Ocorreu um erro inesperado ao deletar o card.");
     }
   },
+
+  async duplicateCard(
+    token: string,
+    organizationId: string,
+    boardId: string,
+    listId: string,
+    cardId: string
+  ): Promise<OutputCardDTO> {
+    try {
+      const url = `${API_CONFIG.baseUrl}${API_CONFIG.cards.duplicate(
+        organizationId,
+        boardId,
+        listId,
+        cardId
+      )}`;
+      const response = await fetchWithAuth(url, {
+        method: "POST",
+        headers: getAuthHeaders(token),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        console.error("Erro na API ao duplicar card:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
+        const error = formatApiError(errorData, "Falha ao duplicar card.");
+        (error as any).status = response.status;
+        throw error;
+      }
+      const responseData: CardResponse = await response.json();
+      return responseData.data;
+    } catch (error) {
+      console.error("Erro ao duplicar card:", error);
+      if (error instanceof APIError) throw error;
+      throw new APIError("Ocorreu um erro inesperado ao duplicar o card.");
+    }
+  },
 };

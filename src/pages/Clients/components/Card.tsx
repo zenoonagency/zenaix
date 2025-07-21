@@ -219,15 +219,29 @@ const Card = React.memo(
       removeCard,
       showToast,
     ]);
+    const [isDuplicatingCard, setIsDuplicatingCard] = useState(false);
     const handleDuplicate = useCallback(
-      (e?: React.MouseEvent) => {
+      async (e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
-        // duplicateCard(boardId, listId, cardData.id); // Removed as per edit hint
-        showToast("Card duplicado com sucesso!", "success");
+        if (!token || !organization?.id) return;
+        setIsDuplicatingCard(true);
+        try {
+          await cardService.duplicateCard(
+            token,
+            organization.id,
+            boardId,
+            listId,
+            cardData.id
+          );
+          showToast("Card duplicado com sucesso!", "success");
+        } catch (err: any) {
+          showToast(err?.message || "Erro ao duplicar card", "error");
+        } finally {
+          setIsDuplicatingCard(false);
+          setShowCardMenuModal(false);
+        }
       },
-      [
-        /* duplicateCard, boardId, listId, cardData.id, showToast */
-      ]
+      [token, organization?.id, boardId, listId, cardData.id, showToast]
     );
     const [moveLoading, setMoveLoading] = useState(false);
     const handleMove = useCallback(
@@ -560,6 +574,7 @@ const Card = React.memo(
           onClose={closeMenuModal}
           onEdit={handleEdit}
           onDuplicate={handleDuplicate}
+          duplicating={isDuplicatingCard}
           onMove={openMoveModal}
           onDelete={handleDelete}
         />

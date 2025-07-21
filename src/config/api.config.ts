@@ -229,6 +229,13 @@ export const API_CONFIG = {
       cardId: string
     ) =>
       `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}`,
+    duplicate: (
+      organizationId: string,
+      boardId: string,
+      listId: string,
+      cardId: string
+    ) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/duplicate`,
     // Anexos endpoints
     attachments: {
       create: (

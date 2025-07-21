@@ -11,6 +11,7 @@ interface CardMenuModalProps {
   onDuplicate: () => void;
   onMove: () => void;
   onDelete: () => void;
+  duplicating?: boolean;
 }
 
 export function CardMenuModal({
@@ -20,6 +21,7 @@ export function CardMenuModal({
   onDuplicate,
   onMove,
   onDelete,
+  duplicating = false,
 }: CardMenuModalProps) {
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -69,27 +71,33 @@ export function CardMenuModal({
                       onEdit();
                       onClose();
                     }}
-                    className="w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center transition-colors"
+                    className={`w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center transition-colors${
+                      duplicating ? " opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    disabled={duplicating}
                   >
                     <Pencil className="w-5 h-5 mr-3 text-purple-500" />
                     Editar
                   </button>
                   <button
-                    onClick={() => {
-                      onDuplicate();
-                      onClose();
-                    }}
-                    className="w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center transition-colors"
+                    onClick={onDuplicate}
+                    className={`w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center transition-colors${
+                      duplicating ? " opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    disabled={duplicating}
                   >
                     <Copy className="w-5 h-5 mr-3 text-purple-500" />
-                    Duplicar
+                    {duplicating ? "Duplicando..." : "Duplicar"}
                   </button>
                   <button
                     onClick={() => {
                       onMove();
                       onClose();
                     }}
-                    className="w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center transition-colors"
+                    className={`w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center transition-colors${
+                      duplicating ? " opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    disabled={duplicating}
                   >
                     <ArrowUpDown className="w-5 h-5 mr-3 text-purple-500" />
                     Mover
@@ -99,7 +107,10 @@ export function CardMenuModal({
                       await onDelete();
                       onClose();
                     }}
-                    className="w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg flex items-center transition-colors"
+                    className={`w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg flex items-center transition-colors${
+                      duplicating ? " opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    disabled={duplicating}
                   >
                     <Trash2 className="w-5 h-5 mr-3 text-red-500" />
                     Excluir

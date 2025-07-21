@@ -98,13 +98,13 @@ export function ListMenuModal({
                   <button
                     onClick={onDelete}
                     disabled={!canDelete || duplicating || deleting}
-                    className={`w-full text-left px-4 py-3 rounded-lg flex items-center transition-colors ${
-                      canDelete
-                        ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                        : "text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                    } ${
+                    className={`w-full text-left px-4 py-3 rounded-lg flex items-center transition-colors text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20${
+                      !canDelete
+                        ? " text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                        : ""
+                    }${
                       duplicating || deleting
-                        ? "opacity-50 cursor-not-allowed"
+                        ? " opacity-50 cursor-not-allowed"
                         : ""
                     }`}
                   >
