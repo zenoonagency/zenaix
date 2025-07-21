@@ -70,7 +70,7 @@ export const authService = {
     }
   },
 
-  async refreshToken(): Promise<{ token: string }> {
+  async refreshToken(): Promise<{ token: string; refreshToken: string }> {
     const response = await fetch(`${API_CONFIG.baseUrl}/auth/refresh`, {
       method: "POST",
       headers: {

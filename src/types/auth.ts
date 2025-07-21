@@ -52,10 +52,11 @@ export interface AuthState {
   _hasHydrated: boolean;
   isSyncingUser: boolean;
 
+  setToken: (token: string) => void;
+  setSession: (accessToken: string, refreshToken: string) => Promise<void>;
   hasPermission: (permission: string) => boolean;
   login: (payload: AuthSuccessPayload) => void;
   logout: () => void;
-  setToken: (token: string) => void;
   updateUser: (user: Partial<User>) => void;
   setOrganization: (organization: OrganizationOutput) => void;
   fetchAndSyncUser: () => Promise<User | null>;

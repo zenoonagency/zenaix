@@ -40,7 +40,7 @@ import {
   OutputCardDTO,
   SubtaskDTO,
 } from "../../../types/card";
-import { PDFViewer } from '../../../components/PDFViewer';
+import { PDFViewer } from "../../../components/PDFViewer";
 
 interface CardModalProps {
   isOpen: boolean;
@@ -341,68 +341,38 @@ export function CardModal({
     if (mode === "add") {
       console.log("[CardModal] Modo 'add' - armazenando arquivo localmente");
 
+      // Permitir apenas um anexo: pega o último arquivo válido
+      let lastValidAttachment = null;
       for (const file of files) {
-        console.log("[CardModal] Processando arquivo:", {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-        });
-
         if (file.size > maxSize) {
           showToast(`O arquivo ${file.name} excede o limite de 5MB`, "error");
           continue;
         }
-
         if (!allowedTypes.includes(file.type)) {
           showToast(`O tipo de arquivo ${file.name} não é permitido`, "error");
           continue;
         }
-
         let finalFile = file;
-
-        // Se for uma imagem, comprimir antes de armazenar
         if (file.type.startsWith("image/")) {
-          console.log("[CardModal] Comprimindo imagem...");
           const result = await compressImage(file, { maxSizeKB: 300 });
-
           if (result.success && result.file) {
             finalFile = result.file;
-            console.log("[CardModal] Imagem comprimida:", {
-              originalSize: file.size,
-              compressedSize: finalFile.size,
-            });
           } else {
-            console.error("[CardModal] Erro na compressão:", result.error);
             showToast(result.error || "Erro ao comprimir imagem", "error");
             continue;
           }
         }
-
-        // Armazenar arquivo localmente para upload posterior
-        const newAttachment = {
-          id: generateId(), // ID temporário
+        lastValidAttachment = {
+          id: generateId(),
           name: file.name,
-          file: finalFile, // Guardar o arquivo para upload posterior
+          file: finalFile,
           size: finalFile.size,
           createdAt: new Date().toISOString(),
         };
-
-        console.log("[CardModal] Novo anexo criado:", newAttachment);
-
-        setAttachments((prev) => {
-          const newAttachments = [...prev, newAttachment];
-          console.log(
-            "[CardModal] Estado de anexos atualizado:",
-            newAttachments
-          );
-          return newAttachments;
-        });
-
-        // Remover toast de sucesso ao selecionar arquivo - só mostrar após upload
-        // showToast(`Arquivo ${file.name} selecionado!`, "success");
       }
-
-      // Limpar input
+      if (lastValidAttachment) {
+        setAttachments([lastValidAttachment]);
+      }
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -1150,16 +1120,17 @@ export function CardModal({
                           </span>
                         )}
                       {/* Botão visualizar PDF se for PDF */}
-                      {attachment.url && attachment.name?.toLowerCase().endsWith('.pdf') && (
-                        <button
-                          type="button"
-                          className="ml-2 p-1 rounded hover:bg-gray-200 dark:hover:bg-dark-700 text-[#7f00ff]"
-                          title="Visualizar PDF"
-                          onClick={() => setViewingAttachment(attachment)}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      )}
+                      {attachment.url &&
+                        attachment.name?.toLowerCase().endsWith(".pdf") && (
+                          <button
+                            type="button"
+                            className="ml-2 p-1 rounded hover:bg-gray-200 dark:hover:bg-dark-700 text-[#7f00ff]"
+                            title="Visualizar PDF"
+                            onClick={() => setViewingAttachment(attachment)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        )}
                       {/* Botão abrir em nova aba */}
                       {attachment.url && (
                         <a
@@ -1272,12 +1243,21 @@ export function CardModal({
         <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center">
           <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl p-4 max-w-3xl w-full max-h-[90vh] flex flex-col">
             <div className="flex justify-between items-center mb-2">
-              <span className="font-medium text-gray-900 dark:text-gray-100">{viewingAttachment.name}</span>
-              <button onClick={() => setViewingAttachment(null)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+              <span className="font-medium text-gray-900 dark:text-gray-100">
+                {viewingAttachment.name}
+              </span>
+              <button
+                onClick={() => setViewingAttachment(null)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <PDFViewer fileUrl={viewingAttachment.url} fileName={viewingAttachment.name} height="70vh" />
+            <PDFViewer
+              fileUrl={viewingAttachment.url}
+              fileName={viewingAttachment.name}
+              height="70vh"
+            />
           </div>
         </div>
       )}

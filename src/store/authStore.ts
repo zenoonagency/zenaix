@@ -44,6 +44,27 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         set({ token: newToken });
       },
 
+      setSession: async (accessToken: string, refreshToken: string) => {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (error) {
+          console.error(
+            "[AuthStore] ❌ Falha ao sincronizar a nova sessão com o cliente Supabase:",
+            error
+          );
+        } else {
+          console.log(
+            "[AuthStore] ✅ Nova sessão sincronizada com o cliente Supabase."
+          );
+        }
+
+        supabase.realtime.setAuth(accessToken);
+        set({ token: accessToken });
+      },
+
       logout: () => {
         supabase.auth.signOut();
         set({

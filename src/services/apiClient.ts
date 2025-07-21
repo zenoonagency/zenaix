@@ -53,9 +53,9 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
   isRefreshing = true;
 
   try {
-    const { token } = await authService.refreshToken();
+    const { token, refreshToken } = await authService.refreshToken();
 
-    useAuthStore.getState().setToken(token);
+    await useAuthStore.getState().setSession(token, refreshToken);
 
     processQueue(null, token);
 
