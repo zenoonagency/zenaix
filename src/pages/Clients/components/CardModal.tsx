@@ -14,6 +14,9 @@ import {
   AlertTriangle,
   Upload,
   Paperclip,
+  Eye,
+  ExternalLink,
+  Download,
 } from "lucide-react";
 import { useTagStore } from "../../../store/tagStore";
 import { useTeamMembersStore } from "../../../store/teamMembersStore";
@@ -37,6 +40,7 @@ import {
   OutputCardDTO,
   SubtaskDTO,
 } from "../../../types/card";
+import { PDFViewer } from '../../../components/PDFViewer';
 
 interface CardModalProps {
   isOpen: boolean;
@@ -110,6 +114,7 @@ export function CardModal({
   const [removingSubtaskId, setRemovingSubtaskId] = useState<string | null>(
     null
   );
+  const [viewingAttachment, setViewingAttachment] = useState<any | null>(null);
 
   React.useEffect(() => {
     if (initialData?.tags) {
@@ -1144,6 +1149,42 @@ export function CardModal({
                             ({(attachment.size / 1024 / 1024).toFixed(2)} MB)
                           </span>
                         )}
+                      {/* Botão visualizar PDF se for PDF */}
+                      {attachment.url && attachment.name?.toLowerCase().endsWith('.pdf') && (
+                        <button
+                          type="button"
+                          className="ml-2 p-1 rounded hover:bg-gray-200 dark:hover:bg-dark-700 text-[#7f00ff]"
+                          title="Visualizar PDF"
+                          onClick={() => setViewingAttachment(attachment)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      )}
+                      {/* Botão abrir em nova aba */}
+                      {attachment.url && (
+                        <a
+                          href={attachment.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-1 p-1 rounded hover:bg-gray-200 dark:hover:bg-dark-700 text-blue-500"
+                          title="Abrir em nova aba"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                      {/* Botão download */}
+                      {attachment.url && (
+                        <a
+                          href={attachment.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download={attachment.name}
+                          className="ml-1 p-1 rounded hover:bg-gray-200 dark:hover:bg-dark-700 text-green-600"
+                          title="Baixar"
+                        >
+                          <Download className="w-4 h-4" />
+                        </a>
+                      )}
                     </div>
                     <button
                       type="button"
@@ -1226,6 +1267,20 @@ export function CardModal({
         confirmText="Sim, cancelar"
         cancelText="Não, continuar editando"
       />
+      {/* Modal de visualização de PDF */}
+      {viewingAttachment && (
+        <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center">
+          <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl p-4 max-w-3xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-medium text-gray-900 dark:text-gray-100">{viewingAttachment.name}</span>
+              <button onClick={() => setViewingAttachment(null)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <PDFViewer fileUrl={viewingAttachment.url} fileName={viewingAttachment.name} height="70vh" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

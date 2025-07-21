@@ -22,6 +22,7 @@ import {
   Paperclip,
   Trash2,
   ExternalLink,
+  Eye,
 } from "lucide-react";
 import { useThemeStore } from "../../../store/themeStore";
 import { useTagStore } from "../../../store/tagStore";
@@ -33,6 +34,8 @@ import { subtaskService } from "../../../services/subtask.service";
 import { useAuthStore } from "../../../store/authStore";
 import { cardService } from "../../../services/card.service";
 import { attachmentService } from "../../../services/attachment.service";
+import { PDFViewer } from "../../../components/PDFViewer";
+import { useState } from "react";
 
 interface CardDetailModalProps {
   isOpen: boolean;
@@ -82,6 +85,9 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   const [downloadingAttachmentId, setDownloadingAttachmentId] = React.useState<
     string | null
   >(null);
+  const [viewingAttachment, setViewingAttachment] = useState<any | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [loadingPdf, setLoadingPdf] = useState(false);
 
   React.useEffect(() => {
     setSubtasks(card.subtasks || []);
@@ -235,17 +241,37 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
 
   // Função para abrir anexo em nova guia
   const handleOpenAttachment = async (attachment: any) => {
+    if (attachment.file_name?.toLowerCase().endsWith(".pdf")) {
+      setViewingAttachment(attachment);
+      setLoadingPdf(true);
+      setPdfUrl(null);
+      try {
+        const url = await attachmentService.downloadAttachment(
+          token,
+          organization.id,
+          boardId,
+          listId,
+          card.id,
+          attachment.id
+        );
+        // Se não for blob/data, faz fetch e converte para blob
+        let safeUrl = url;
+        if (url && !url.startsWith("blob:") && !url.startsWith("data:")) {
+          const response = await fetch(url);
+          const blob = await response.blob();
+          safeUrl = URL.createObjectURL(blob);
+        }
+        setPdfUrl(safeUrl);
+      } catch (e) {
+        showToast("Erro ao carregar PDF", "error");
+        setPdfUrl(null);
+      }
+      setLoadingPdf(false);
+      return;
+    }
     if (!token || !organization?.id) return;
     setDownloadingAttachmentId(attachment.id);
     try {
-      console.log({
-        token,
-        organizationId: organization.id,
-        boardId,
-        listId,
-        cardId: card.id,
-        attachmentId: attachment.id,
-      });
       const url = await attachmentService.downloadAttachment(
         token,
         organization.id,
@@ -263,6 +289,17 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   };
   // Função para baixar anexo
   const handleDownloadAttachment = async (attachment: any) => {
+    if (attachment.file_url) {
+      // Download direto em nova aba
+      const a = document.createElement("a");
+      a.href = attachment.file_url;
+      a.target = "_blank";
+      a.download = attachment.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
     if (!token || !organization?.id) return;
     setDownloadingAttachmentId(attachment.id);
     try {
@@ -646,36 +683,70 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                       </h5>
                     </div>
                     <div className="flex items-center gap-2 ml-auto">
-                      <button
-                        onClick={() => handleOpenAttachment(attachment)}
-                        className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                        title="Visualizar anexo"
-                        disabled={downloadingAttachmentId === attachment.id}
-                      >
-                        {downloadingAttachmentId === attachment.id ? (
-                          <svg
-                            className="animate-spin w-4 h-4 text-blue-500"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                              fill="none"
-                            />
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                            />
-                          </svg>
-                        ) : (
-                          <ExternalLink className="w-4 h-4 text-blue-500" />
-                        )}
-                      </button>
+                      {/* Trocar ExternalLink por Eye para PDF */}
+                      {attachment.file_name?.toLowerCase().endsWith(".pdf") ? (
+                        <button
+                          onClick={() => handleOpenAttachment(attachment)}
+                          className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                          title="Visualizar PDF"
+                          disabled={downloadingAttachmentId === attachment.id}
+                        >
+                          {downloadingAttachmentId === attachment.id ? (
+                            <svg
+                              className="animate-spin w-4 h-4 text-blue-500"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                                fill="none"
+                              />
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                              />
+                            </svg>
+                          ) : (
+                            <Eye className="w-4 h-4 text-blue-500" />
+                          )}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleOpenAttachment(attachment)}
+                          className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                          title="Abrir em nova aba"
+                          disabled={downloadingAttachmentId === attachment.id}
+                        >
+                          {downloadingAttachmentId === attachment.id ? (
+                            <svg
+                              className="animate-spin w-4 h-4 text-blue-500"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                                fill="none"
+                              />
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                              />
+                            </svg>
+                          ) : (
+                            <ExternalLink className="w-4 h-4 text-blue-500" />
+                          )}
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDownloadAttachment(attachment)}
                         className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
@@ -699,7 +770,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                             <path
                               className="opacity-75"
                               fill="currentColor"
-                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                              d="M4 12a8 8 0 018-8v8z"
                             />
                           </svg>
                         ) : (
@@ -758,6 +829,47 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
           isLoading={isDeletingCard}
         />
       </div>{" "}
+      {/* Modal de visualização de PDF */}
+      {viewingAttachment && (
+        <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center">
+          <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl p-4 max-w-3xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-medium text-gray-900 dark:text-gray-100">
+                {viewingAttachment.file_name}
+              </span>
+              <button
+                onClick={() => {
+                  setViewingAttachment(null);
+                  setPdfUrl(null);
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {loadingPdf ? (
+              <div className="flex flex-col items-center justify-center w-full h-full">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#7f00ff]"></div>
+                <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
+                  Carregando PDF...
+                </p>
+              </div>
+            ) : pdfUrl ? (
+              <PDFViewer
+                fileUrl={pdfUrl}
+                fileName={viewingAttachment?.file_name}
+                height="70vh"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center w-full h-full">
+                <p className="text-red-500 dark:text-red-400">
+                  Erro ao carregar PDF
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
