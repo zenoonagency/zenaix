@@ -15,6 +15,7 @@ import { useTagStore } from "../../../store/tagStore";
 import { useThemeStore } from "../../../store/themeStore";
 import { OutputCardDTO } from "../../../types/card";
 import { CardModal } from "./CardModal";
+import { MoveCardModal } from "./MoveCardModal";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ConfirmationModal } from "../../../components/ConfirmationModal";
@@ -27,6 +28,7 @@ import { cardService } from "../../../services/card.service";
 import { useAuthStore } from "../../../store/authStore";
 import { InputUpdateCardDTO } from "../../../types/card";
 import { useTeamMembersStore } from "../../../store/teamMembersStore";
+import { useBoardStore } from "../../../store/boardStore";
 
 interface CardProps {
   card: OutputCardDTO;
@@ -35,19 +37,6 @@ interface CardProps {
   isDragging?: boolean;
   className?: string;
   isLoading?: boolean;
-}
-
-interface TeamMember {
-  id: string;
-  name: string;
-}
-
-interface MoveCardModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onMove: (targetListId: string) => void;
-  lists: { id: string; title: string }[];
-  currentListId: string;
 }
 
 // Constantes movidas para fora do componente para evitar recriações
@@ -73,53 +62,6 @@ const PRIORITY_LABELS = {
   URGENT: "Urgente",
 };
 
-// Componente MoveCardModal memoizado para evitar re-renders desnecessários
-const MoveCardModal = React.memo(
-  ({ isOpen, onClose, onMove, lists, currentListId }: MoveCardModalProps) => {
-    const { theme } = useThemeStore();
-    const isDark = theme === "dark";
-
-    if (!isOpen) return null;
-
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
-        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-        <div
-          className={`relative w-full max-w-md p-6 rounded-lg shadow-lg ${
-            isDark ? "bg-[#1e1f25] text-gray-100" : "bg-white text-gray-900"
-          }`}
-        >
-          <h3 className="text-lg font-semibold mb-4">Mover para Lista</h3>
-          <div className="space-y-2">
-            {lists.map((list) => (
-              <button
-                key={list.id}
-                onClick={() => {
-                  onMove(list.id);
-                  onClose();
-                }}
-                disabled={list.id === currentListId}
-                className={`
-                w-full px-4 py-2 rounded-lg text-left transition-colors
-                ${
-                  list.id === currentListId
-                    ? "bg-gray-100 dark:bg-dark-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                    : "hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-700 dark:text-gray-200"
-                }
-              `}
-              >
-                {list.title}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-);
-
-MoveCardModal.displayName = "MoveCardModal";
-
 const Card = React.memo(
   ({ card, boardId, listId, isDragging, className, isLoading }: CardProps) => {
     const { theme } = useThemeStore();
@@ -128,6 +70,7 @@ const Card = React.memo(
     const teamStore = useInviteStore();
     const { updateCard, removeCard } = useCardStore();
     const { token, organization } = useAuthStore();
+    const { activeBoard, boards } = useBoardStore();
     const tags = tagStore?.tags || [];
     // Estados de modais e loading
     const [showEditModal, setShowEditModal] = useState(false);
@@ -157,12 +100,15 @@ const Card = React.memo(
       }
       return [];
     }, [cardData.tags, cardData.tag_ids, tags]);
-    // Se precisar de completedList, buscar de outra store ou prop
+    // Busca o board correto pelas props, para garantir listas certas mesmo em overlay
+    const currentBoard = useMemo(() => {
+      if (activeBoard && activeBoard.id === boardId) return activeBoard;
+      return boards.find((b) => b.id === boardId) || activeBoard;
+    }, [activeBoard, boards, boardId]);
     const availableLists = useMemo(() => {
-      // Assuming boards is available globally or passed as a prop
-      // For now, we'll return an empty array as boards is removed from dependencies
-      return [];
-    }, []);
+      if (!currentBoard) return [];
+      return currentBoard.lists.map((l) => ({ id: l.id, title: l.name }));
+    }, [currentBoard]);
     // Trocar useDraggable por useSortable
     const sortableData = {
       type: "card",
@@ -283,13 +229,40 @@ const Card = React.memo(
         /* duplicateCard, boardId, listId, cardData.id, showToast */
       ]
     );
+    const [moveLoading, setMoveLoading] = useState(false);
     const handleMove = useCallback(
-      (targetListId: string) => {
-        // moveCard(boardId, listId, targetListId, cardData.id); // Removed as per edit hint
-        setShowMoveModal(false);
+      async (targetListId: string) => {
+        if (!token || !organization?.id || !currentBoard) return;
+        if (targetListId === listId) return;
+        setMoveLoading(true);
+        try {
+          const dto: InputUpdateCardDTO = { list_id: targetListId };
+          const updatedCardData = await cardService.updateCard(
+            token,
+            organization.id,
+            boardId,
+            listId,
+            cardData.id,
+            dto
+          );
+          updateCard(updatedCardData);
+          showToast("Card movido com sucesso!", "success");
+        } catch (err: any) {
+          showToast(err?.message || "Erro ao mover card", "error");
+        } finally {
+          setMoveLoading(false);
+          setShowMoveModal(false);
+        }
       },
       [
-        /* moveCard, boardId, listId, cardData.id */
+        token,
+        organization?.id,
+        currentBoard,
+        boardId,
+        listId,
+        cardData.id,
+        updateCard,
+        showToast,
       ]
     );
     const openCardMenu = useCallback((e: React.MouseEvent) => {
@@ -353,38 +326,38 @@ const Card = React.memo(
               isLoading ? "opacity-60 pointer-events-none" : ""
             }`}
           >
-            {/* Priority Badge */}
-            {cardData.priority && (
-              <div className="flex justify-between items-start">
-                <span
-                  className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full font-medium ${
-                    PRIORITY_COLORS[
-                      cardData.priority as keyof typeof PRIORITY_COLORS
-                    ]
-                  }`}
-                >
-                  {
-                    PRIORITY_ICONS[
-                      cardData.priority as keyof typeof PRIORITY_ICONS
-                    ]
-                  }
-                  <span>
+            <div className="flex justify-between items-start">
+              {cardData.priority && (
+                <div>
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full font-medium ${
+                      PRIORITY_COLORS[
+                        cardData.priority as keyof typeof PRIORITY_COLORS
+                      ]
+                    }`}
+                  >
                     {
-                      PRIORITY_LABELS[
-                        cardData.priority as keyof typeof PRIORITY_LABELS
+                      PRIORITY_ICONS[
+                        cardData.priority as keyof typeof PRIORITY_ICONS
                       ]
                     }
+                    <span>
+                      {
+                        PRIORITY_LABELS[
+                          cardData.priority as keyof typeof PRIORITY_LABELS
+                        ]
+                      }
+                    </span>
                   </span>
-                </span>
-                <button
-                  onClick={openCardMenu}
-                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <MoreVertical className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                </button>
-              </div>
-            )}
-
+                </div>
+              )}
+              <button
+                onClick={openCardMenu}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <MoreVertical className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
             {/* Card Title */}
             <h3
               className={`font-semibold text-lg leading-tight ${
@@ -405,6 +378,23 @@ const Card = React.memo(
                 {cardData.description}
               </p>
             )}
+
+            {/* Date */}
+            {cardData.due_date &&
+              (() => {
+                const dateObj = new Date(cardData.due_date);
+                if (!isNaN(dateObj.getTime())) {
+                  return (
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <Calendar className="w-4 h-4" />
+                      <span>
+                        {format(dateObj, "dd/MM/yyyy", { locale: ptBR })}
+                      </span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
             {/* Value with green border */}
             {cardData.value > 0 && (
@@ -474,23 +464,6 @@ const Card = React.memo(
                 </div>
               </div>
             )}
-
-            {/* Date */}
-            {cardData.due_date &&
-              (() => {
-                const dateObj = new Date(cardData.due_date);
-                if (!isNaN(dateObj.getTime())) {
-                  return (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <Calendar className="w-4 h-4" />
-                      <span>
-                        {format(dateObj, "dd/MM/yyyy", { locale: ptBR })}
-                      </span>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
 
             {/* Assigned Member */}
             {cardData.assignee_id && (
@@ -563,6 +536,7 @@ const Card = React.memo(
           onMove={handleMove}
           lists={availableLists}
           currentListId={listId}
+          loading={moveLoading}
         />
 
         {/* Delete confirmation modal */}

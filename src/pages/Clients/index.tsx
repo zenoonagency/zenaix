@@ -34,7 +34,6 @@ export function Clients() {
   const { showToast } = useToast();
   const { token, organization } = useAuthStore();
 
-  // BoardStore (dados do backend)
   const {
     boards,
     activeBoard,

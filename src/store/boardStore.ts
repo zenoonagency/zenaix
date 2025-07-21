@@ -69,19 +69,23 @@ export const useBoardStore = create<BoardState>()(
 
       setBoards: (boards) => {
         set({ boards });
-        // Após definir os boards, selecionar o ativo automaticamente
         get().selectActiveBoard(boards);
       },
 
       addBoard: (board) => {
-        set((state) => ({
-          boards: state.boards.some((b) => b.id === board.id)
-            ? state.boards
-            : [...state.boards, board],
-        }));
-        // Após adicionar um board, selecioná-lo como ativo
-        get().setActiveBoardId(board.id);
-        get().setLastUsedBoardId(board.id);
+        set((state) => {
+          const boardExists = state.boards.some((b) => b.id === board.id);
+          const newBoards = boardExists
+            ? state.boards.map((b) => (b.id === board.id ? board : b))
+            : [...state.boards, board];
+
+          return {
+            boards: newBoards,
+            activeBoardId: board.id,
+            lastUsedBoardId: board.id,
+            activeBoard: board,
+          };
+        });
       },
 
       updateBoard: (board) => {
@@ -97,27 +101,32 @@ export const useBoardStore = create<BoardState>()(
       },
 
       removeBoard: (boardId) => {
-        set((state) => {
-          const newBoards = state.boards.filter((b) => b.id !== boardId);
+        const stateBefore = get();
+        const wasActive = stateBefore.activeBoardId === boardId;
 
-          // Se o board removido era o ativo, selecionar outro
-          let newActiveBoardId = state.activeBoardId;
-          if (state.activeBoardId === boardId) {
-            newActiveBoardId = newBoards.length > 0 ? newBoards[0].id : null;
+        const newBoards = stateBefore.boards.filter((b) => b.id !== boardId);
+        set({ boards: newBoards });
+
+        if (wasActive) {
+          if (newBoards.length > 0) {
+            const lastUsedIsValid = newBoards.some(
+              (b) => b.id === stateBefore.lastUsedBoardId
+            );
+            const nextBoardIdToLoad = lastUsedIsValid
+              ? stateBefore.lastUsedBoardId
+              : newBoards[0].id;
+
+            if (nextBoardIdToLoad) {
+              get().selectAndLoadBoard(nextBoardIdToLoad);
+            }
+          } else {
+            set({
+              activeBoardId: null,
+              lastUsedBoardId: null,
+              activeBoard: null,
+            });
           }
-
-          // Se o board removido era o último usado, limpar
-          let newLastUsedBoardId = state.lastUsedBoardId;
-          if (state.lastUsedBoardId === boardId) {
-            newLastUsedBoardId = newBoards.length > 0 ? newBoards[0].id : null;
-          }
-
-          return {
-            boards: newBoards,
-            activeBoardId: newActiveBoardId,
-            lastUsedBoardId: newLastUsedBoardId,
-          };
-        });
+        }
       },
 
       addListToActiveBoard: (list) => {

@@ -1,65 +1,66 @@
 import React from "react";
 import { X } from "lucide-react";
-import { useBoardStore } from "../../../store/boardStore";
 import { useThemeStore } from "../../../store/themeStore";
-import { useToast } from "../../../hooks/useToast";
 
 interface MoveCardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  cardId: string;
+  onMove: (targetListId: string) => void;
+  lists: { id: string; title: string }[];
   currentListId: string;
-  boardId: string;
+  loading?: boolean;
 }
 
-export function MoveCardModal({
+export const MoveCardModal: React.FC<MoveCardModalProps> = ({
   isOpen,
   onClose,
-  cardId,
+  onMove,
+  lists,
   currentListId,
-  boardId,
-}: MoveCardModalProps) {
+  loading = false,
+}) => {
   const { theme } = useThemeStore();
-  const { boards } = useBoardStore();
-  const { showToast } = useToast();
   const isDark = theme === "dark";
-  const currentBoard = boards.find((b) => b.id === boardId);
-  const handleMove = (targetListId: string) => {
-    if (targetListId === currentListId) return;
-    // TODO: implementar movimentação real via service
-    showToast("Card movido com sucesso! (mock)", "success");
-    onClose();
-  };
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9998]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center !mt-0">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div
-        className={`bg-white dark:bg-dark-800 rounded-lg w-full max-w-md p-6 ${
-          isDark ? "text-gray-100" : "text-gray-900"
+        className={`relative  w-full max-w-xl p-6 rounded-lg shadow-lg ${
+          isDark ? "bg-[#1e1f25] text-gray-100" : "bg-white text-gray-900"
         }`}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Mover Card</h2>
+          <h2 className="text-xl font-semibold">Mover para Lista</h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            disabled={loading}
           >
             <X size={20} />
           </button>
         </div>
-
-        <div className="space-y-2">
-          {currentBoard?.lists.map((list) => (
+        {loading && (
+          <div className="flex justify-center items-center py-4">
+            <span className="animate-spin w-8 h-8 border-4 border-[#7f00ff] border-t-transparent rounded-full"></span>
+          </div>
+        )}
+        <div className="flex flex-col space-y-2 max-h-96 overflow-y-auto mt-2">
+          {lists.map((list) => (
             <button
               key={list.id}
-              onClick={() => handleMove(list.id)}
-              disabled={list.id === currentListId}
-              className={`w-full text-left px-4 py-3 rounded-md transition-colors ${
+              onClick={() =>
+                !loading && list.id !== currentListId && onMove(list.id)
+              }
+              disabled={list.id === currentListId || loading}
+              className={`w-full text-left px-4 py-3 rounded-md transition-colors border-2 ${
                 list.id === currentListId
-                  ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-dark-400 dark:text-gray-600"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-black dark:text-white"
-              }`}
+                  ? "border-[#7f00ff] bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-dark-400 dark:text-gray-600"
+                  : "border-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-black dark:text-white"
+              } ${loading ? "opacity-60" : ""}`}
+              style={{ fontSize: 16, fontWeight: 400 }}
             >
               {list.title}
             </button>
@@ -68,4 +69,4 @@ export function MoveCardModal({
       </div>
     </div>
   );
-}
+};

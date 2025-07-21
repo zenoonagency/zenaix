@@ -21,14 +21,12 @@ export const authService = {
         throw formatApiError(responseData, "Email ou senha inválidos.");
       }
 
-      const payloadFromApi = responseData.data;
-
       return {
-        user: payloadFromApi.user,
-        token: payloadFromApi.token,
-        refreshToken: payloadFromApi.refreshToken,
-        organization: payloadFromApi.user.organization || null,
-        permissions: payloadFromApi.user.permissions || [],
+        user: responseData.data,
+        token: responseData.token,
+        refreshToken: responseData.refreshToken,
+        organization: responseData.data.organization || null,
+        permissions: responseData.data.permissions || [],
       };
     } catch (error) {
       console.error("Login Error:", error);
@@ -58,14 +56,12 @@ export const authService = {
         throw formatApiError(responseData, "Erro ao registar utilizador.");
       }
 
-      const payloadFromApi = responseData.data;
-
       return {
-        user: payloadFromApi.user,
-        token: payloadFromApi.token,
-        refreshToken: payloadFromApi.refreshToken,
-        organization: payloadFromApi.user.organization || null,
-        permissions: payloadFromApi.user.permissions || [],
+        user: responseData.data,
+        token: responseData.token,
+        refreshToken: responseData.refreshToken,
+        organization: responseData.data.organization || null,
+        permissions: responseData.data.permissions || [],
       };
     } catch (error) {
       console.error("Register Error:", error);
