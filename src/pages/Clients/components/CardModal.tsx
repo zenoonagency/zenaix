@@ -124,6 +124,15 @@ export function CardModal({
     }
   }, [initialData?.tags]);
 
+  // DATA: Preencher campo de data/hora se existir due_date
+  React.useEffect(() => {
+    if (mode === "edit" && initialData?.due_date) {
+      const d = new Date(initialData.due_date);
+      setScheduledDate(d.toISOString().slice(0, 10));
+      setScheduledTime(d.toISOString().slice(11, 16));
+    }
+  }, [mode, initialData?.due_date]);
+
   const isDark = theme === "dark";
 
   const hasChanges = () => {
@@ -1111,7 +1120,10 @@ export function CardModal({
                           isDark ? "text-gray-300" : "text-gray-700"
                         }`}
                       >
-                        {attachment.name || "Arquivo sem nome"}
+                        {attachment.name ||
+                          attachment.file_name ||
+                          attachment.url ||
+                          "Sem nome"}
                       </span>
                       {typeof attachment.size === "number" &&
                         !isNaN(attachment.size) && (
