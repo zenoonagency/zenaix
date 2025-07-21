@@ -11,6 +11,8 @@ interface ListMenuModalProps {
   onDuplicate: () => void;
   onDelete: () => void;
   canDelete?: boolean;
+  duplicating?: boolean;
+  deleting?: boolean;
 }
 
 export function ListMenuModal({
@@ -20,6 +22,8 @@ export function ListMenuModal({
   onDuplicate,
   onDelete,
   canDelete = true,
+  duplicating = false,
+  deleting = false,
 }: ListMenuModalProps) {
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -69,35 +73,43 @@ export function ListMenuModal({
                       onEdit();
                       onClose();
                     }}
-                    className="w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center transition-colors"
+                    className={`w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center transition-colors ${
+                      duplicating || deleting
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
+                    disabled={duplicating || deleting}
                   >
                     <Edit2 className="w-5 h-5 mr-3 text-purple-500" />
                     Editar
                   </button>
                   <button
-                    onClick={() => {
-                      onDuplicate();
-                      onClose();
-                    }}
-                    className="w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center transition-colors"
+                    onClick={onDuplicate}
+                    className={`w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center transition-colors ${
+                      duplicating || deleting
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
+                    disabled={duplicating || deleting}
                   >
                     <Copy className="w-5 h-5 mr-3 text-purple-500" />
-                    Duplicar
+                    {duplicating ? "Duplicando..." : "Duplicar"}
                   </button>
                   <button
-                    onClick={async () => {
-                      await onDelete();
-                      onClose();
-                    }}
-                    disabled={!canDelete}
+                    onClick={onDelete}
+                    disabled={!canDelete || duplicating || deleting}
                     className={`w-full text-left px-4 py-3 rounded-lg flex items-center transition-colors ${
                       canDelete
                         ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                         : "text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                    } ${
+                      duplicating || deleting
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
                     }`}
                   >
                     <Trash2 className="w-5 h-5 mr-3 text-red-500" />
-                    Excluir
+                    {deleting ? "Excluindo..." : "Excluir"}
                   </button>
                 </div>
               </Dialog.Panel>

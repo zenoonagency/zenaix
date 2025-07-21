@@ -193,9 +193,9 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
             case "BOARD_CREATED":
               useBoardStore.getState().addBoard(eventData.data);
               break;
-            case "BOARD_UPDATED":
-              useBoardStore.getState().updateBoard(eventData.data);
-              break;
+              case "BOARD_UPDATED":
+                useBoardStore.getState().updateBoard(eventData.data);
+                break;
             case "BOARD_DELETED":
               useBoardStore.getState().removeBoard(eventData.data.id);
               break;

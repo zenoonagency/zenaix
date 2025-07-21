@@ -184,4 +184,35 @@ export const listService = {
       throw new APIError("Ocorreu um erro inesperado ao deletar a lista.");
     }
   },
+
+  async duplicateList(
+    token: string,
+    organizationId: string,
+    boardId: string,
+    listId: string
+  ): Promise<void> {
+    try {
+      const url = `${API_CONFIG.baseUrl}${API_CONFIG.lists.duplicate(
+        organizationId,
+        boardId,
+        listId
+      )}`;
+      const response = await fetchWithAuth(url, {
+        method: "POST",
+        headers: getAuthHeaders(token),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const error = formatApiError(errorData, "Falha ao duplicar lista.");
+        (error as any).status = response.status;
+        throw error;
+      }
+      // Sucesso: 204 No Content
+      return;
+    } catch (error) {
+      console.error("Erro ao duplicar lista:", error);
+      if (error instanceof APIError) throw error;
+      throw new APIError("Ocorreu um erro inesperado ao duplicar a lista.");
+    }
+  },
 };

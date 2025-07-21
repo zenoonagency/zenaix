@@ -62,6 +62,7 @@ export function Clients() {
   const [isCreatingBoard, setIsCreatingBoard] = useState(false);
   const [isEditingBoard, setIsEditingBoard] = useState(false);
   const [isDeletingBoard, setIsDeletingBoard] = useState(false);
+  const [isDuplicatingBoard, setIsDuplicatingBoard] = useState(false);
 
   const handleAddBoard = () => {
     setShowCreateModal(true);
@@ -257,19 +258,30 @@ export function Clients() {
               Editar
             </button>
             <button
-              onClick={() => {
-                // The duplicateBoard function was removed from useBoardStore,
-                // so this button will now just show a toast.
-                showToast(
-                  "Funcionalidade de duplicar quadro não disponível no momento.",
-                  "info"
-                );
+              onClick={async () => {
+                if (!token || !organization?.id || !activeBoardId) {
+                  showToast("Sem autenticação ou quadro selecionado", "error");
+                  return;
+                }
+                setIsDuplicatingBoard(true);
+                try {
+                  await boardService.duplicateBoard(
+                    token,
+                    organization.id,
+                    activeBoardId
+                  );
+                  showToast("Quadro duplicado com sucesso!", "success");
+                } catch (err: any) {
+                  showToast(err?.message || "Erro ao duplicar quadro", "error");
+                } finally {
+                  setIsDuplicatingBoard(false);
+                }
               }}
               className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
-              disabled={!activeBoardId}
+              disabled={!activeBoardId || isDuplicatingBoard}
             >
               <Copy className="w-4 h-4 mr-1" />
-              Duplicar
+              {isDuplicatingBoard ? "Duplicando..." : "Duplicar"}
             </button>
             <button
               onClick={() => {

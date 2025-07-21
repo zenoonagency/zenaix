@@ -274,4 +274,34 @@ export const boardService = {
       );
     }
   },
+
+  async duplicateBoard(
+    token: string,
+    organizationId: string,
+    boardId: string
+  ): Promise<Board> {
+    try {
+      const url = `${API_CONFIG.baseUrl}${API_CONFIG.boards.duplicate(
+        organizationId,
+        boardId
+      )}`;
+      const response = await fetchWithAuth(url, {
+        method: "POST",
+        headers: getAuthHeaders(token),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const error = formatApiError(errorData, "Falha ao duplicar quadro.");
+        (error as any).status = response.status;
+        throw error;
+      }
+      // Mesmo que a resposta seja 204, o backend retorna os dados do novo quadro
+      const responseData: BoardResponse = await response.json();
+      return responseData.data;
+    } catch (error) {
+      console.error("Erro ao duplicar quadro:", error);
+      if (error instanceof APIError) throw error;
+      throw new APIError("Ocorreu um erro inesperado ao duplicar o quadro.");
+    }
+  },
 };

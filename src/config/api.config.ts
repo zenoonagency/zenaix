@@ -186,6 +186,8 @@ export const API_CONFIG = {
       `/organizations/${organizationId}/boards/${boardId}/top-sellers`,
     accessList: (organizationId: string, boardId: string) =>
       `/organizations/${organizationId}/boards/${boardId}/access-list`,
+    duplicate: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/duplicate`,
   },
   lists: {
     create: (organizationId: string, boardId: string) =>
@@ -198,6 +200,8 @@ export const API_CONFIG = {
       `/organizations/${organizationId}/boards/${boardId}/lists/${listId}`,
     delete: (organizationId: string, boardId: string, listId: string) =>
       `/organizations/${organizationId}/boards/${boardId}/lists/${listId}`,
+    duplicate: (organizationId: string, boardId: string, listId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/duplicate`,
   },
   cards: {
     create: (organizationId: string, boardId: string, listId: string) =>

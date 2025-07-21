@@ -6,10 +6,7 @@ import {
 } from "@dnd-kit/sortable";
 import { Card } from "./Card";
 import { BoardList, BoardCard } from "../../../types/board";
-import {
-  Plus,
-  MoreVertical,
-} from "lucide-react";
+import { Plus, MoreVertical } from "lucide-react";
 import { useThemeStore } from "../../../store/themeStore";
 import { useToast } from "../../../hooks/useToast";
 import { useCustomModal } from "../../../components/CustomModal";
@@ -23,6 +20,7 @@ import { InputCreateCardDTO } from "../../../types/card";
 import "../../../styles/scrollbar.css";
 import { ListMenuModal } from "./ListMenuModal";
 import { CardModal } from "./CardModal";
+import { ConfirmationModal } from "../../../components/ConfirmationModal";
 
 interface ListProps {
   list: BoardList;
@@ -46,6 +44,8 @@ export const List = React.memo(
     const [title, setTitle] = useState(list.name);
     const [color, setColor] = useState(list.color || "");
     const [isUpdating, setIsUpdating] = useState(false);
+    const [isDuplicatingList, setIsDuplicatingList] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isCreatingCard, setIsCreatingCard] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -136,31 +136,16 @@ export const List = React.memo(
         showToast("A lista 'Concluído' não pode ser excluída", "warning");
         return;
       }
-
-      const confirmed = await customConfirm(
-        "Excluir lista",
-        "Tem certeza que deseja excluir esta lista?"
-      );
-      if (confirmed && token && organization?.id) {
-        setIsDeleting(true);
-        try {
-          await listService.deleteList(
-            token,
-            organization.id,
-            boardId,
-            list.id
-          );
-
-          showToast("Lista excluída com sucesso!", "success");
-        } catch (err: any) {
-          console.error("Erro ao excluir lista:", err);
-          const errorMessage =
-            err?.message || err?.error || "Erro ao excluir lista";
-          showToast(errorMessage, "error");
-          throw err; // Re-throw para o modal não fechar em caso de erro
-        } finally {
-          setIsDeleting(false);
-        }
+      setIsDeleting(true);
+      try {
+        await listService.deleteList(token, organization.id, boardId, list.id);
+        showToast("Lista excluída com sucesso!", "success");
+        setShowListMenuModal(false);
+        setShowDeleteConfirm(false);
+      } catch (err: any) {
+        showToast(err?.message || "Erro ao excluir lista", "error");
+      } finally {
+        setIsDeleting(false);
       }
     };
     const cardData = useMemo(() => list.cards, [list.cards]);
@@ -319,13 +304,47 @@ export const List = React.memo(
                     isOpen={showListMenuModal}
                     onClose={() => setShowListMenuModal(false)}
                     onEdit={() => setIsEditing(true)}
-                    onDuplicate={() => {
-                      // duplicateList(boardId, list.id); // This line was removed as per the edit hint
-                      showToast("Lista duplicada com sucesso!", "success");
+                    onDuplicate={async () => {
+                      if (!token || !organization?.id) {
+                        showToast("Sem autenticação", "error");
+                        return;
+                      }
+                      setIsDuplicatingList(true);
+                      try {
+                        await listService.duplicateList(
+                          token,
+                          organization.id,
+                          boardId,
+                          list.id
+                        );
+                        showToast("Lista duplicada com sucesso!", "success");
+                      } catch (err: any) {
+                        showToast(
+                          err?.message || "Erro ao duplicar lista",
+                          "error"
+                        );
+                      } finally {
+                        setIsDuplicatingList(false);
+                        setShowListMenuModal(false);
+                      }
                     }}
-                    onDelete={handleDelete}
+                    onDelete={() => setShowDeleteConfirm(true)}
                     canDelete={!isCompletedList}
+                    duplicating={isDuplicatingList}
+                    deleting={isDeleting}
                   />
+                  {showDeleteConfirm && (
+                    <ConfirmationModal
+                      isOpen={showDeleteConfirm}
+                      onClose={() => setShowDeleteConfirm(false)}
+                      onConfirm={handleDelete}
+                      title="Excluir Lista"
+                      message="Tem certeza que deseja excluir esta lista?"
+                      confirmText="Excluir"
+                      cancelText="Cancelar"
+                      isLoading={isDeleting}
+                    />
+                  )}
                 </div>
               </div>
             )}
