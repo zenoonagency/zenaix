@@ -51,18 +51,25 @@ interface MoveCardModalProps {
 
 // Constantes movidas para fora do componente para evitar recriações
 const PRIORITY_COLORS = {
-  low: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300",
-  medium:
+  LOW: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300",
+  MEDIUM:
     "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300",
-  high: "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300",
-  urgent: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
+  HIGH: "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300",
+  URGENT: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
 };
 
 const PRIORITY_ICONS = {
-  low: <AlertTriangle className="w-4 h-4" />,
-  medium: <AlertTriangle className="w-4 h-4" />,
-  high: <AlertCircle className="w-4 h-4" />,
-  urgent: <AlertOctagon className="w-4 h-4" />,
+  LOW: <AlertTriangle className="w-4 h-4" />,
+  MEDIUM: <AlertTriangle className="w-4 h-4" />,
+  HIGH: <AlertCircle className="w-4 h-4" />,
+  URGENT: <AlertOctagon className="w-4 h-4" />,
+};
+
+const PRIORITY_LABELS = {
+  LOW: "Baixa",
+  MEDIUM: "Média",
+  HIGH: "Alta",
+  URGENT: "Urgente",
 };
 
 // Componente MoveCardModal memoizado para evitar re-renders desnecessários
@@ -315,7 +322,7 @@ const Card = React.memo(
     relative group bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700
     ${
       isDragging
-        ? "cursor-grabbing shadow-xl"
+        ? "cursor-grabbing shadow-xl scale-95 opacity-80"
         : "cursor-grab hover:border-[#7f00ff] dark:hover:border-[#7f00ff] opacity-100 hover:scale-[1.01] hover:-translate-y-1"
     }
     transition-all duration-200 ease-in-out
@@ -351,8 +358,11 @@ const Card = React.memo(
                     ]
                   }
                   <span>
-                    {cardData.priority.charAt(0).toUpperCase() +
-                      cardData.priority.slice(1)}
+                    {
+                      PRIORITY_LABELS[
+                        cardData.priority as keyof typeof PRIORITY_LABELS
+                      ]
+                    }
                   </span>
                 </span>
                 <button
