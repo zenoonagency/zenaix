@@ -34,6 +34,7 @@ interface CardProps {
   listId: string;
   isDragging?: boolean;
   className?: string;
+  isLoading?: boolean;
 }
 
 interface TeamMember {
@@ -120,7 +121,7 @@ const MoveCardModal = React.memo(
 MoveCardModal.displayName = "MoveCardModal";
 
 const Card = React.memo(
-  ({ card, boardId, listId, isDragging, className }: CardProps) => {
+  ({ card, boardId, listId, isDragging, className, isLoading }: CardProps) => {
     const { theme } = useThemeStore();
     const isDark = theme === "dark";
     const tagStore = useTagStore();
@@ -128,18 +129,15 @@ const Card = React.memo(
     const { updateCard, removeCard } = useCardStore();
     const { token, organization } = useAuthStore();
     const tags = tagStore?.tags || [];
-    const { members } = useTeamMembersStore();
-    const { showToast } = useToast();
-    const [showMenu, setShowMenu] = useState(false);
-    const [showMoveModal, setShowMoveModal] = useState(false);
+    // Estados de modais e loading
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [showDetailModal, setShowDetailModal] = useState(false);
-    const [showCardMenuModal, setShowCardMenuModal] = useState(false);
     const [isDeletingCard, setIsDeletingCard] = useState(false);
-    if (!card || !boardId || !listId) {
-      return null;
-    }
+    const [showMoveModal, setShowMoveModal] = useState(false);
+    const [showCardMenuModal, setShowCardMenuModal] = useState(false);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const { showToast } = useToast();
+    const { members } = useTeamMembersStore();
     const cardData = useMemo(
       () => ({
         ...card,
@@ -149,13 +147,16 @@ const Card = React.memo(
       }),
       [card]
     );
-    const cardTags = useMemo(
-      () =>
-        (cardData.tag_ids || [])
-          .map((tagId) => tags.find((t) => t.id === tagId))
-          .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined),
-      [cardData.tag_ids, tags]
-    );
+    // Garantir que cardTags sempre existe, mesmo se vier só tag_ids
+    const cardTags = useMemo(() => {
+      if (cardData.tags && cardData.tags.length > 0) return cardData.tags;
+      if (cardData.tag_ids && cardData.tag_ids.length > 0) {
+        return cardData.tag_ids
+          .map((id) => tags.find((t) => t.id === id))
+          .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined);
+      }
+      return [];
+    }, [cardData.tags, cardData.tag_ids, tags]);
     // Se precisar de completedList, buscar de outra store ou prop
     const availableLists = useMemo(() => {
       // Assuming boards is available globally or passed as a prop
@@ -339,9 +340,19 @@ const Card = React.memo(
           {...attributes}
           {...listeners}
           onClick={openDetailModal}
-          className={cardClassName}
+          className={cardClassName + " flex flex-col h-full"}
         >
-          <div className="p-4 space-y-3">
+          {/* Overlay de loading */}
+          {isLoading && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/60 dark:bg-dark-800/60 rounded-lg">
+              <span className="animate-spin w-8 h-8 border-4 border-[#7f00ff] border-t-transparent rounded-full"></span>
+            </div>
+          )}
+          <div
+            className={`flex-1 flex flex-col p-4 space-y-3 ${
+              isLoading ? "opacity-60 pointer-events-none" : ""
+            }`}
+          >
             {/* Priority Badge */}
             {cardData.priority && (
               <div className="flex justify-between items-start">
@@ -524,10 +535,10 @@ const Card = React.memo(
                 ) : null}
               </div>
             )}
-
-            {/* Card tags */}
+            <div className="flex-1" />
+            {/* Card tags sempre no rodapé */}
             {cardTags.length > 0 && (
-              <div className="flex flex-wrap gap-1 pt-1">
+              <div className="flex flex-wrap gap-1 pt-1 mt-auto">
                 {cardTags.map((tag) => (
                   <span
                     key={tag.id}

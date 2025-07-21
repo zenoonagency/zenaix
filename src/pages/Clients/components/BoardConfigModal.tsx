@@ -67,18 +67,22 @@ export function BoardConfigModal({
     setIsSaving(true);
     try {
       // Chamar o service para atualizar o quadro
-      const updatedBoard = await boardService.updateBoard(
+      await boardService.updateBoard(token, organization.id, boardId, {
+        access_level: config.access_level,
+        member_ids: config.member_ids,
+      });
+
+      // Buscar o board atualizado para garantir membros corretos
+      const updatedBoard = await boardService.getBoardById(
         token,
         organization.id,
-        boardId,
-        {
-          access_level: config.access_level,
-          member_ids: config.member_ids,
-        }
+        boardId
       );
-
-      // Atualizar na store
       updateBoard(updatedBoard);
+      setConfig({
+        access_level: updatedBoard.access_level,
+        member_ids: updatedBoard.membersWithAccess?.map((m) => m.id) || [],
+      });
 
       showToast("Configurações do quadro salvas com sucesso!", "success");
       onClose();
@@ -222,7 +226,7 @@ export function BoardConfigModal({
                         </div>
                         <Users
                           className={`w-5 h-5 ${
-                            config.visibility === "all"
+                            config.access_level === "TEAM_WIDE"
                               ? "text-[#7f00ff]"
                               : isDark
                               ? "text-gray-400"
@@ -282,7 +286,7 @@ export function BoardConfigModal({
                         </div>
                         <UserCheck
                           className={`w-5 h-5 ${
-                            config.visibility === "creator"
+                            config.access_level === "CREATOR_ONLY"
                               ? "text-[#7f00ff]"
                               : isDark
                               ? "text-gray-400"
@@ -342,7 +346,7 @@ export function BoardConfigModal({
                         </div>
                         <Users
                           className={`w-5 h-5 ${
-                            config.visibility === "selected"
+                            config.access_level === "SELECTED_MEMBERS"
                               ? "text-[#7f00ff]"
                               : isDark
                               ? "text-gray-400"
@@ -364,7 +368,8 @@ export function BoardConfigModal({
                       </h4>
 
                       <div className="space-y-2 mt-2">
-                        {members.length === 0 ? (
+                        {members.filter((m) => m.role !== "MASTER").length ===
+                        0 ? (
                           <p
                             className={`text-sm italic ${
                               isDark ? "text-gray-400" : "text-gray-500"
@@ -373,63 +378,67 @@ export function BoardConfigModal({
                             Nenhum membro na equipe
                           </p>
                         ) : (
-                          members.map((member) => (
-                            <label
-                              key={member.id}
-                              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer ${
-                                isDark
-                                  ? "bg-dark-900 hover:bg-dark-700"
-                                  : "bg-gray-50 hover:bg-gray-100"
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={config.member_ids.includes(member.id)}
-                                onChange={() => handleToggleUser(member.id)}
-                                className="sr-only"
-                              />
-                              <div
-                                className={`flex items-center justify-center w-5 h-5 rounded ${
-                                  config.member_ids.includes(member.id)
-                                    ? "bg-[#7f00ff] text-white"
-                                    : isDark
-                                    ? "border-2 border-gray-600"
-                                    : "border-2 border-gray-300"
+                          members
+                            .filter((member) => member.role !== "MASTER")
+                            .map((member) => (
+                              <label
+                                key={member.id}
+                                className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer ${
+                                  isDark
+                                    ? "bg-dark-900 hover:bg-dark-700"
+                                    : "bg-gray-50 hover:bg-gray-100"
                                 }`}
                               >
-                                {config.member_ids.includes(member.id) && (
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-3 w-3"
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
+                                <input
+                                  type="checkbox"
+                                  checked={config.member_ids.includes(
+                                    member.id
+                                  )}
+                                  onChange={() => handleToggleUser(member.id)}
+                                  className="sr-only"
+                                />
+                                <div
+                                  className={`flex items-center justify-center w-5 h-5 rounded mt-1 ${
+                                    config.member_ids.includes(member.id)
+                                      ? "bg-[#7f00ff] text-white"
+                                      : isDark
+                                      ? "border-2 border-gray-600"
+                                      : "border-2 border-gray-300"
+                                  }`}
+                                >
+                                  {config.member_ids.includes(member.id) && (
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      className="h-3 w-3"
+                                      viewBox="0 0 20 20"
+                                      fill="currentColor"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  )}
+                                </div>
+                                <div className="flex flex-col">
+                                  <span
+                                    className={`font-medium ${
+                                      isDark ? "text-gray-200" : "text-gray-800"
+                                    }`}
                                   >
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <span
-                                  className={`font-medium ${
-                                    isDark ? "text-gray-200" : "text-gray-800"
-                                  }`}
-                                >
-                                  {member.name}
-                                </span>
-                                <p
-                                  className={`text-xs ${
-                                    isDark ? "text-gray-400" : "text-gray-500"
-                                  }`}
-                                >
-                                  {member.email} • {member.role}
-                                </p>
-                              </div>
-                            </label>
-                          ))
+                                    {member.name}
+                                  </span>
+                                  <span
+                                    className={`text-xs ${
+                                      isDark ? "text-gray-400" : "text-gray-500"
+                                    }`}
+                                  >
+                                    {member.email} • {member.role}
+                                  </span>
+                                </div>
+                              </label>
+                            ))
                         )}
                       </div>
                     </div>

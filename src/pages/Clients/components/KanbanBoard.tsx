@@ -361,6 +361,8 @@ export function KanbanBoard() {
   const [isCreatingBoard, setIsCreatingBoard] = useState(false);
   const [isCreatingList, setIsCreatingList] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
+  // Novo: cards em loading
+  const [loadingCardIds, setLoadingCardIds] = useState<string[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -468,11 +470,13 @@ export function KanbanBoard() {
         // Encontrar o card e sua lista de origem
         let cardId = active.id as string;
         let fromListId = "";
+        let movedCard: any = null;
 
         for (const list of board?.lists || []) {
           const card = list.cards?.find((c) => c.id === cardId);
           if (card) {
             fromListId = list.id;
+            movedCard = card;
             break;
           }
         }
@@ -588,6 +592,8 @@ export function KanbanBoard() {
                 // Adicionar o card na lista de destino
                 movedCard.list_id = toListId;
                 movedCard.position = newPosition;
+                // Marcar como loading
+                setLoadingCardIds((prev) => [...prev, movedCard.id]);
                 toList.cards.push(movedCard);
 
                 // Reordenar cards por posição
@@ -615,8 +621,29 @@ export function KanbanBoard() {
               dto
             );
 
+            // Remover loading do card
+            setLoadingCardIds((prev) => prev.filter((id) => id !== cardId));
             showToast("Card movido com sucesso!", "success");
           } catch (err: any) {
+            // Reverter card para lista original
+            const updatedBoard = { ...board };
+            const toList = updatedBoard.lists?.find(
+              (l: any) => l.id === toListId
+            );
+            const fromList = updatedBoard.lists?.find(
+              (l: any) => l.id === fromListId
+            );
+            if (toList && fromList && movedCard) {
+              // Remover da lista de destino
+              toList.cards = toList.cards.filter((c: any) => c.id !== cardId);
+              // Adicionar de volta na lista de origem
+              fromList.cards.push(movedCard);
+              fromList.cards.sort(
+                (a: any, b: any) => (a.position || 0) - (b.position || 0)
+              );
+              setActiveBoard(updatedBoard);
+            }
+            setLoadingCardIds((prev) => prev.filter((id) => id !== cardId));
             showToast(err.message || "Erro ao mover card", "error");
           }
         }
@@ -929,6 +956,7 @@ export function KanbanBoard() {
             boardId={board?.id || ""}
             listId={activeListId || ""}
             isDragging
+            isLoading={loadingCardIds.includes(activeCard.id)}
             className="w-80 shadow-2xl opacity-95 z-50 bg-white dark:bg-dark-800"
           />
         </DragOverlay>
