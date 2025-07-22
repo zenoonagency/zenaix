@@ -1,10 +1,12 @@
 import { persist } from "zustand/middleware";
 import { User, AuthState, AuthSuccessPayload } from "../types/auth";
 import { userService } from "../services/user/user.service";
+import { authService } from "../services/authService";
 import { OrganizationOutput } from "../types/organization";
 import { createWithEqualityFn } from "zustand/traditional";
 import { Permission } from "../config/permissions";
 import { supabase } from "../lib/supabaseClient";
+import { cleanUserData } from "../utils/dataOwnership";
 
 export const useAuthStore = createWithEqualityFn<AuthState>()(
   persist(
@@ -30,6 +32,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           permissions: payload.permissions || [],
           organization: payload.user.organization || null,
         });
+
       },
 
       setToken: (newToken: string) => {
@@ -70,8 +73,20 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         set({ organization: organizationData });
       },
 
+      refreshToken: async (): Promise<boolean> => {
+        try {
+          const { token } = await authService.refreshToken();
+          set({ token });
+          return true;
+        } catch (error) {
+          console.error("Falha ao renovar token:", error);
+          return false;
+        }
+      },
+
       fetchAndSyncUser: async (): Promise<User | null> => {
-        const { logout, token, updateUser, isSyncingUser } = get();
+        const { logout, token, updateUser, isSyncingUser, refreshToken } =
+          get();
 
         if (!token) {
           logout();
@@ -92,7 +107,29 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             console.warn(
               "AuthStore: Sincronização cancelada pelo cliente. Operação ignorada."
             );
-            return;
+            return get().user;
+          }
+
+          // Se for erro 401 (Unauthorized), tenta renovar o token
+          if (
+            error.response?.status === 401 ||
+            error.message?.includes("401")
+          ) {
+            console.log("Token expirado. Tentando renovar...");
+
+            const refreshSuccess = await refreshToken();
+            if (refreshSuccess) {
+              try {
+                // Tenta novamente com o novo token
+                const user = await userService.getMe(get().token!);
+                updateUser(user);
+                return user;
+              } catch (retryError) {
+                console.error("Falha mesmo após renovar token:", retryError);
+                logout();
+                return null;
+              }
+            }
           }
 
           console.error(
@@ -103,6 +140,44 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           return null;
         } finally {
           set({ isSyncingUser: false });
+        }
+      },
+
+      // Função para limpar dados das outras stores
+      cleanAllStoresData: () => {
+        // Importa as stores dinamicamente para evitar dependências circulares
+        try {
+          // Board Store
+          const { useBoardStore } = require("./boardStore");
+          const boardStore = useBoardStore.getState();
+          if (boardStore.boards && boardStore.boards.length > 0) {
+            const cleanedBoards = cleanUserData(boardStore.boards);
+            boardStore.setBoards(cleanedBoards);
+          }
+
+          // Contacts Store
+          const {
+            useContactsStore,
+          } = require("../pages/Contacts/store/contactsStore");
+          const contactsStore = useContactsStore.getState();
+          contactsStore.cleanUserData();
+
+          // Transaction Store
+          const { useTransactionStore } = require("./transactionStore");
+          const transactionStore = useTransactionStore.getState();
+          if (
+            transactionStore.transactions &&
+            transactionStore.transactions.length > 0
+          ) {
+            const cleanedTransactions = cleanUserData(
+              transactionStore.transactions
+            );
+            transactionStore.setTransactions(cleanedTransactions);
+          }
+
+          console.log("Dados das stores limpos com sucesso");
+        } catch (error) {
+          console.error("Erro ao limpar dados das stores:", error);
         }
       },
     }),

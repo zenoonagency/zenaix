@@ -11,6 +11,7 @@ export const authService = {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include", // Para receber cookies do refresh token
           body: JSON.stringify(data),
         }
       );
@@ -45,6 +46,7 @@ export const authService = {
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include", // Para receber cookies do refresh token
           body: JSON.stringify(data),
         }
       );
@@ -68,13 +70,13 @@ export const authService = {
     }
   },
 
-  async refreshToken(): Promise<{ token: string;  }> {
-    const response = await fetch(`${API_CONFIG.baseUrl}/auth/refresh`, {
+  async refreshToken(): Promise<{ token: string }> {
+    const response = await fetch(`${API_CONFIG.baseUrl}/api/auth/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: "include",
+      credentials: "include", // Essencial para enviar cookies
     });
 
     if (!response.ok) {
@@ -82,6 +84,6 @@ export const authService = {
     }
 
     const data = await response.json();
-    return data;
+    return { token: data.token };
   },
 };

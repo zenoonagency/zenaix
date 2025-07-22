@@ -58,5 +58,6 @@ export interface AuthState {
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
   setOrganization: (organization: OrganizationOutput) => void;
+  refreshToken: () => Promise<boolean>;
   fetchAndSyncUser: () => Promise<User | null>;
 }

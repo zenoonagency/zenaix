@@ -35,7 +35,11 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
     headers["Content-Type"] = "application/json";
   }
 
-  let response = await fetch(url, { ...options, headers });
+  let response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: "include", // Para enviar/receber cookies
+  });
 
   if (response.status !== 401) {
     return response;
@@ -46,7 +50,11 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
       failedQueue.push({ resolve, reject });
     }).then((newToken) => {
       headers["Authorization"] = `Bearer ${newToken}`;
-      return fetch(url, { ...options, headers });
+      return fetch(url, { 
+        ...options, 
+        headers,
+        credentials: "include"
+      });
     });
   }
 
@@ -55,12 +63,16 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
   try {
     const { token } = await authService.refreshToken();
 
-    await useAuthStore.getState().setSession(token);
+    useAuthStore.getState().setToken(token);
 
     processQueue(null, token);
 
     headers["Authorization"] = `Bearer ${token}`;
-    return fetch(url, { ...options, headers });
+    return fetch(url, {
+      ...options,
+      headers,
+      credentials: "include",
+    });
   } catch (error: any) {
     processQueue(error, null);
     useAuthStore.getState().logout();

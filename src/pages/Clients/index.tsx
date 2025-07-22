@@ -144,9 +144,9 @@ export function Clients() {
   const handleCardClick = (cardId: string) => {
     if (!currentBoard?.lists) return;
 
-    const card = currentBoard.lists
-      .flatMap((list) => list.cards || [])
-      .find((c) => c.id === cardId);
+    const card = currentBoard?.lists
+      ?.flatMap((list) => list.cards || [])
+      ?.find((c) => c.id === cardId);
 
     if (card) {
       setSelectedCard(card);
@@ -177,7 +177,7 @@ export function Clients() {
   useEffect(() => {
     if (
       activeBoardId &&
-      (!activeBoard?.lists || activeBoard.lists.length === 0)
+      (!activeBoard?.lists || activeBoard?.lists?.length === 0)
     ) {
       selectAndLoadKanbanBoard(activeBoardId);
     }
@@ -193,12 +193,16 @@ export function Clients() {
           </h1>
         </div>
         <div className="flex items-center space-x-2 my-4">
-          <h2 className="text-xl font-bold bg-gradient-to-r inline-block  from-[#7f00ff] to-[#e100ff]   text-transparent bg-clip-text">
-            Quadro:
-          </h2>
-          <h2 className="text-xl font-bold inline-block text-[#000]  text-transparent bg-clip-text">
-            {currentBoardTitle}
-          </h2>
+          {activeBoard?.name && (
+            <h2 className="text-xl font-bold bg-gradient-to-r inline-block  from-[#7f00ff] to-[#e100ff]   text-transparent bg-clip-text">
+              Quadro:
+            </h2>
+          )}
+          {activeBoard?.name && (
+            <h2 className="text-xl font-bold inline-block text-[#000]  text-transparent bg-clip-text">
+              {activeBoard?.name}
+            </h2>
+          )}
         </div>
 
         <div className="flex gap-4">
