@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { RouterProvider } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { Toaster } from "react-hot-toast";
@@ -15,44 +15,42 @@ import { useTransactionStore } from "./store/transactionStore";
 import { supabase } from "./lib/supabaseClient";
 import { useTeamMembersStore } from "./store/teamMembersStore";
 import { useBoardStore } from "./store/boardStore";
+import { useCalendarStore } from "./store/calendarStore";
 
 export function App() {
-  const {
-    isAuthenticated,
-    _hasHydrated,
-    token,
-    userId,
-    organizationId,
-    fetchAndSyncUser,
-  } = useAuthStore((state) => ({
-    isAuthenticated: state.isAuthenticated,
-    _hasHydrated: state._hasHydrated,
-    token: state.token,
-    userId: state.user?.id,
-    organizationId: state.user?.organization_id,
-    fetchAndSyncUser: state.fetchAndSyncUser,
-  }));
+  const { isAuthenticated, _hasHydrated, token, userId, organizationId } =
+    useAuthStore((state) => ({
+      isAuthenticated: state.isAuthenticated,
+      _hasHydrated: state._hasHydrated,
+      token: state.token,
+      userId: state.user?.id,
+      organizationId: state.user?.organization_id,
+    }));
 
-  const fetchAllPlans = usePlanStore((state) => state.fetchAllPlans);
-  const fetchAllTransactions = useTransactionStore(
-    (state) => state.fetchAllTransactions
-  );
-  const fetchAllEmbedPages = useEmbedPagesStore(
-    (state) => state.fetchAllEmbedPages
-  );
+  // State para controlar o delay de reconexão
+  const [lastVisibilityChange, setLastVisibilityChange] = useState<number>(0);
 
-  const fetchAllTags = useTagStore((state) => state.fetchAllTags);
-  const fetchAllContracts = useContractStore(
-    (state) => state.fetchAllContracts
-  );
-  const fetchAllMembers = useTeamMembersStore((state) => state.fetchAllMembers);
-  const fetchAllBoards = useBoardStore((state) => state.fetchAllBoards);
-
-  const connectToRealtime = useRealtimeStore((state) => state.connect);
-  const disconnectFromRealtime = useRealtimeStore((state) => state.disconnect);
+  // Ref para controlar se já foi inicializado
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    if (isAuthenticated && _hasHydrated && token) {
+    if (isAuthenticated && _hasHydrated && token && !hasInitialized.current) {
+      console.log("[App] Inicializando aplicação...");
+      hasInitialized.current = true;
+
+      // Usar getState() para evitar dependências das funções
+      const { fetchAndSyncUser } = useAuthStore.getState();
+      const { fetchAllPlans } = usePlanStore.getState();
+      const { fetchAllTransactions } = useTransactionStore.getState();
+      const { fetchAllEmbedPages } = useEmbedPagesStore.getState();
+      const { fetchAllTags } = useTagStore.getState();
+      const { fetchAllContracts } = useContractStore.getState();
+      const { fetchAllMembers } = useTeamMembersStore.getState();
+      const { fetchAllBoards } = useBoardStore.getState();
+      const { fetchEvents } = useCalendarStore.getState();
+      const { connect: connectToRealtime, disconnect: disconnectFromRealtime } =
+        useRealtimeStore.getState();
+
       fetchAndSyncUser();
       fetchAllPlans(token);
 
@@ -63,6 +61,7 @@ export function App() {
         fetchAllTransactions(token, organizationId);
         fetchAllMembers(token, organizationId);
         fetchAllBoards(token, organizationId);
+        fetchEvents();
       }
 
       if (userId) {
@@ -73,17 +72,37 @@ export function App() {
         disconnectFromRealtime();
       };
     }
-  }, [isAuthenticated, _hasHydrated, token, userId, organizationId]);
+  }, [isAuthenticated, _hasHydrated, token]); // Removidas funções e IDs das dependências
+
+  // Reset do flag quando usuário desloga
+  useEffect(() => {
+    if (!isAuthenticated) {
+      hasInitialized.current = false;
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        console.log(
-          "👀 Aba tornou-se visível. A verificar a sessão e o estado do Realtime..."
-        );
+        const now = Date.now();
+        const timeSinceLastChange = now - lastVisibilityChange;
 
-        supabase.realtime.connect();
-        useAuthStore.getState().fetchAndSyncUser();
+        // Só atualizar se passaram pelo menos 30 segundos desde a última mudança
+        if (timeSinceLastChange >= 30000) {
+          console.log(
+            "👀 Aba tornou-se visível. A verificar a sessão e o estado do Realtime..."
+          );
+
+          supabase.realtime.connect();
+          useAuthStore.getState().fetchAndSyncUser();
+          setLastVisibilityChange(now);
+        } else {
+          console.log(
+            `⏳ Aguardando ${Math.ceil(
+              (30000 - timeSinceLastChange) / 1000
+            )}s antes de reconectar...`
+          );
+        }
       }
     };
 
@@ -92,7 +111,7 @@ export function App() {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [lastVisibilityChange]);
 
   return (
     <>

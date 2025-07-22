@@ -57,7 +57,12 @@ export function Financial() {
 
   useEffect(() => {
     if (token && organizationId) {
-      setIsFetching(true);
+      // Só mostrar loading se realmente não tem dados em cache
+      const hasCache = transactions.length > 0 || summary;
+      if (!hasCache) {
+        setIsFetching(true);
+      }
+
       let filters: any = {};
 
       if (viewMode === "month") {
@@ -80,7 +85,14 @@ export function Financial() {
         setIsFetching(false);
       }
     }
-  }, [token, organizationId, filterDate, viewMode]);
+  }, [
+    token,
+    organizationId,
+    filterDate,
+    viewMode,
+    transactions.length,
+    summary,
+  ]);
 
   const formatLastUpdated = (dateString: string | null) => {
     if (!dateString) return "Nunca atualizado";

@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  Suspense,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useState, useEffect, Suspense, useMemo } from "react";
 import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ptBR } from "date-fns/locale";
@@ -22,6 +16,8 @@ import {
   Bookmark,
   X,
   ChevronRight,
+  Clock,
+  Search,
 } from "lucide-react";
 import {
   format,
@@ -43,6 +39,8 @@ import { authService } from "../../services/authService";
 import { useBoardStore } from "../../store/boardStore";
 import { useInviteStore } from "../../store/inviteStore";
 import { useTransactionStore } from "../../store/transactionStore";
+import { useDashboardTransactionStore } from "../../store/dashboardTransactionStore";
+import { useTeamMembersStore } from "../../store/teamMembersStore";
 
 // Registrar locale ptBR para o DatePicker
 registerLocale("pt-BR", ptBR);
@@ -54,6 +52,32 @@ const LoadingFallback = () => (
   </div>
 );
 
+// Componente de loading para dados do board
+const BoardDataLoading = ({
+  children,
+  isLoading,
+}: {
+  children: React.ReactNode;
+  isLoading: boolean;
+}) => {
+  if (isLoading) {
+    return (
+      <div className="relative">
+        <div className="absolute inset-0 bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl">
+          <div className="flex flex-col items-center gap-2">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#7f00ff]"></div>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Carregando dados...
+            </span>
+          </div>
+        </div>
+        <div className="opacity-50">{children}</div>
+      </div>
+    );
+  }
+  return <>{children}</>;
+};
+
 // Componente de erro
 const ErrorDisplay = ({ message }: { message: string }) => (
   <div className="text-center p-4">
@@ -63,8 +87,10 @@ const ErrorDisplay = ({ message }: { message: string }) => (
 
 export function Dashboard() {
   const { logout } = useAuthStore();
-  const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
+  const [isLoadingBoardData, setIsLoadingBoardData] = useState(false);
+  const [loadingOperations, setLoadingOperations] = useState<Set<string>>(
+    new Set()
+  );
   const [exportOptions, setExportOptions] = useState({
     kanbanValues: true,
     contractStatus: true,
@@ -73,12 +99,7 @@ export function Dashboard() {
   });
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBoardSelector, setShowBoardSelector] = useState(false);
-  const [startDate, setStartDate] = useState<Date>(
-    new Date(new Date().setDate(new Date().getDate() - 30))
-  );
-  const [endDate, setEndDate] = useState<Date>(new Date());
-  const [lastPeriodValue, setLastPeriodValue] = useState(0);
-  const [currentPeriodValue, setCurrentPeriodValue] = useState(0);
+
   const [theme, setTheme] = useState("light");
   const [showAllSellersModal, setShowAllSellersModal] = useState(false);
   const [showNewEventModal, setShowNewEventModal] = useState(false);
@@ -92,11 +113,24 @@ export function Dashboard() {
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [selectedCalendarEvent, setSelectedCalendarEvent] = useState<any>(null);
 
-  const { summary, fetchSummary } = useTransactionStore();
+  const { summary: transactionSummary } = useTransactionStore();
+  const {
+    transactions: dashboardTransactions,
+    summary: dashboardSummary,
+    isLoading: isDashboardLoading,
+    fetchDashboardTransactions,
+    fetchDashboardSummary,
+  } = useDashboardTransactionStore();
   const { token, user } = useAuthStore();
-  const [filterDate, setFilterDate] = useState(() => {
+
+  // Estado para filtro de data range
+  const [startDate, setStartDate] = useState<Date>(() => {
     const now = new Date();
-    return format(now, "yyyy-MM");
+    return new Date(now.getFullYear(), now.getMonth(), 1); // Primeiro dia do mês atual
+  });
+  const [endDate, setEndDate] = useState<Date>(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + 1, 0); // Último dia do mês atual
   });
 
   // Função para controlar o scroll do body quando modais estão abertos
@@ -127,96 +161,26 @@ export function Dashboard() {
     isLoading,
   } = useBoardStore();
   const contractStore = useContractStore();
-  const { invites: members } = useInviteStore();
-  const { topSellers, fetchTopSellers } = useBoardStore();
+  const { members } = useTeamMembersStore();
+  const { topSellers } = useBoardStore();
 
-  const transactions = [];
+  const { transactions } = useTransactionStore();
   const contracts = contractStore?.contracts ?? [];
+
+  // Usar transações do dashboard em vez da store principal
+  const dashboardTransactionsData = dashboardTransactions || [];
+
+  // Debug: logar dados para entender o que está acontecendo
+  React.useEffect(() => {
+    console.log("[Dashboard] Dashboard transactions data:", {
+      count: dashboardTransactionsData.length,
+      data: dashboardTransactionsData.slice(0, 3), // Primeiras 3 para não poluir o log
+      summary: dashboardSummary,
+      isLoading: isDashboardLoading,
+    });
+  }, [dashboardTransactionsData, dashboardSummary, isDashboardLoading]);
   // Temporariamente removido até implementar com as novas stores
   const getCompletedListId = () => null;
-
-  // Melhorar a inicialização dos stores com useCallback
-  const initializeStores = useCallback(async () => {
-    try {
-      // setIsLoading(true); // Removido o estado local
-      setError(null);
-
-      const { token, organization } = useAuthStore.getState();
-      if (!token || !organization.id) {
-        throw new Error("Token ou organização não disponível");
-      }
-
-      // Garantir que os stores estão inicializados
-      if (!contractStore?.initialized) {
-        await Promise.all([contractStore?.initialize?.()]);
-      }
-
-      // Verificar se os stores estão disponíveis
-      if (!contractStore) {
-        throw new Error("Falha ao carregar dados dos stores");
-      }
-
-      // setIsLoading(false); // Removido o estado local
-    } catch (err) {
-      console.error("Erro ao inicializar stores:", err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Ocorreu um erro ao carregar os dados"
-      );
-
-      if (retryCount < 3) {
-        setTimeout(() => {
-          setRetryCount((prev) => prev + 1);
-        }, 2000);
-      }
-    }
-  }, [contractStore, retryCount]);
-
-  // Efeito separado para carregar o board ativo quando necessário
-  useEffect(() => {
-    if (
-      boardDashboardActiveId &&
-      (!boardDashboardActive?.lists || boardDashboardActive.lists.length === 0)
-    ) {
-      selectAndLoadDashboardBoard(boardDashboardActiveId);
-    }
-  }, [
-    boardDashboardActiveId,
-    boardDashboardActive?.lists,
-    selectAndLoadDashboardBoard,
-  ]);
-
-  // Usar useEffect para inicialização e cleanup
-  useEffect(() => {
-    let mounted = true;
-    let retryTimeout: NodeJS.Timeout;
-
-    const loadData = async () => {
-      if (!mounted) return;
-
-      try {
-        await initializeStores();
-      } catch (err) {
-        console.error("Erro ao carregar dados:", err);
-        if (mounted && retryCount < 3) {
-          retryTimeout = setTimeout(() => {
-            setRetryCount((prev) => prev + 1);
-          }, 2000);
-        }
-      }
-    };
-
-    loadData();
-
-    // Cleanup function
-    return () => {
-      mounted = false;
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
-    };
-  }, [initializeStores]);
 
   // Usar o boardDashboardActive que já vem com listas e cards
   const selectedKanbanBoard = boardDashboardActive;
@@ -224,7 +188,7 @@ export function Dashboard() {
   const completedListId = React.useMemo(() => {
     try {
       if (!boardDashboardActiveId || !getCompletedListId) return null;
-      return getCompletedListId(boardDashboardActiveId);
+      return getCompletedListId();
     } catch {
       console.warn("Erro ao buscar lista completada");
       return null;
@@ -236,10 +200,10 @@ export function Dashboard() {
     [selectedKanbanBoard, completedListId]
   );
 
-  // Filtrar transações com verificações de segurança
+  // Filtrar transações do dashboard com verificações de segurança
   const filteredTransactions = React.useMemo(() => {
     try {
-      return transactions.filter((t) => {
+      return dashboardTransactionsData.filter((t) => {
         if (!t?.date) return false;
         const date = new Date(t.date);
         return !isNaN(date.getTime()) && date >= startDate && date <= endDate;
@@ -247,7 +211,7 @@ export function Dashboard() {
     } catch {
       return [];
     }
-  }, [transactions, startDate, endDate]);
+  }, [dashboardTransactionsData, startDate, endDate]);
 
   // Dados de status de contrato com verificações de segurança
   const contractData = React.useMemo(
@@ -268,16 +232,45 @@ export function Dashboard() {
     [contracts]
   );
 
+  // Função helper para gerenciar loading
+  const setLoadingOperation = (operation: string, isLoading: boolean) => {
+    setLoadingOperations((prev) => {
+      const newSet = new Set(prev);
+      if (isLoading) {
+        newSet.add(operation);
+      } else {
+        newSet.delete(operation);
+      }
+      setIsLoadingBoardData(newSet.size > 0);
+      return newSet;
+    });
+  };
+
   useEffect(() => {
     if (boardDashboardActiveId) {
-      fetchTopSellers(boardDashboardActiveId);
+      console.log(
+        "[Dashboard] Iniciando fetch de top sellers para board:",
+        boardDashboardActiveId
+      );
+      setLoadingOperation("topSellers", true);
+      const { fetchTopSellers } = useBoardStore.getState();
+      fetchTopSellers(boardDashboardActiveId).finally(() => {
+        setLoadingOperation("topSellers", false);
+        console.log("[Dashboard] Fetch de top sellers finalizado");
+      });
+    } else {
+      // Limpar dados quando não há board selecionado
+      useBoardStore.getState().topSellers = { data: [] };
     }
-  }, [boardDashboardActiveId, fetchTopSellers]);
+  }, [boardDashboardActiveId]);
 
   // Dados financeiros com verificações de segurança
   const financialData = useMemo(() => {
     try {
-      if (!transactions || transactions.length === 0) {
+      if (
+        !dashboardTransactionsData ||
+        dashboardTransactionsData.length === 0
+      ) {
         return [
           {
             id: "receitas",
@@ -291,25 +284,28 @@ export function Dashboard() {
       }
 
       // Agrupar transações por data
-      const groupedTransactions = transactions.reduce((acc, transaction) => {
-        if (!transaction?.date || !transaction?.amount || !transaction?.type)
+      const groupedTransactions = dashboardTransactionsData.reduce(
+        (acc, transaction) => {
+          if (!transaction?.date || !transaction?.value || !transaction?.type)
+            return acc;
+
+          const date = format(new Date(transaction.date), "yyyy-MM-dd");
+          const value = Number(transaction.value);
+
+          if (!acc[date]) {
+            acc[date] = { income: 0, expenses: 0 };
+          }
+
+          if (transaction.type === "INCOME") {
+            acc[date].income += value;
+          } else if (transaction.type === "EXPENSE") {
+            acc[date].expenses += value;
+          }
+
           return acc;
-
-        const date = format(new Date(transaction.date), "yyyy-MM-dd");
-        const amount = Number(transaction.amount);
-
-        if (!acc[date]) {
-          acc[date] = { income: 0, expenses: 0 };
-        }
-
-        if (transaction.type === "income") {
-          acc[date].income += amount;
-        } else if (transaction.type === "expense") {
-          acc[date].expenses += amount;
-        }
-
-        return acc;
-      }, {} as Record<string, { income: number; expenses: number }>);
+        },
+        {} as Record<string, { income: number; expenses: number }>
+      );
 
       // Ordenar datas
       const dates = Object.keys(groupedTransactions).sort();
@@ -344,38 +340,7 @@ export function Dashboard() {
         },
       ];
     }
-  }, [transactions]);
-
-  // Calcula o valor do período anterior (últimos 30 dias)
-  useEffect(() => {
-    const calculateLastPeriodValue = () => {
-      if (!transactions) return;
-
-      const today = new Date();
-      const thirtyDaysAgo = new Date(
-        today.getTime() - 30 * 24 * 60 * 60 * 1000
-      );
-      const sixtyDaysAgo = new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000);
-
-      const lastPeriodTransactions = transactions.filter((transaction) => {
-        const transactionDate = new Date(transaction.date);
-        return transactionDate >= thirtyDaysAgo && transactionDate <= today;
-      });
-
-      const lastPeriodTotal = lastPeriodTransactions.reduce(
-        (total, transaction) => {
-          return (
-            total + (transaction.type === "income" ? transaction.value : 0)
-          );
-        },
-        0
-      );
-
-      setLastPeriodValue(lastPeriodTotal);
-    };
-
-    calculateLastPeriodValue();
-  }, [transactions]);
+  }, [dashboardTransactionsData]);
 
   const handleExport = () => {
     try {
@@ -401,11 +366,11 @@ export function Dashboard() {
         csvContent += "Dados Financeiros\n";
         csvContent += "Data,Tipo,Valor\n";
         filteredTransactions.forEach((transaction) => {
-          if (transaction?.date && transaction?.type && transaction?.amount) {
+          if (transaction?.date && transaction?.type && transaction?.value) {
             csvContent += `${format(
               new Date(transaction.date),
               "dd/MM/yyyy"
-            )},${transaction.type},${transaction.amount}\n`;
+            )},${transaction.type},${transaction.value}\n`;
           }
         });
       }
@@ -419,7 +384,7 @@ export function Dashboard() {
       document.body.removeChild(link);
     } catch (err) {
       console.error("Erro ao exportar dados:", err);
-      setError("Falha ao exportar o relatório. Tente novamente.");
+      // Poderia mostrar um toast aqui se necessário
     }
   };
 
@@ -505,6 +470,13 @@ export function Dashboard() {
 
   // Preparar dados para o gráfico de vendas
   const salesChartData = useMemo(() => {
+    console.log("[Dashboard] Preparando dados do gráfico com:", {
+      filteredTransactionsCount: filteredTransactions.length,
+      startDate: format(startDate, "yyyy-MM-dd"),
+      endDate: format(endDate, "yyyy-MM-dd"),
+      sampleTransactions: filteredTransactions.slice(0, 3),
+    });
+
     const dates = new Set<string>();
     const incomeMap = new Map<string, number>();
     const expenseMap = new Map<string, number>();
@@ -519,17 +491,21 @@ export function Dashboard() {
 
     // Agrupar transações por data
     filteredTransactions.forEach((transaction) => {
+      if (!transaction.date || !transaction.value || !transaction.type) return;
+
       const date = new Date(transaction.date).toISOString().split("T")[0];
-      if (transaction.type === "income") {
-        incomeMap.set(date, (incomeMap.get(date) || 0) + transaction.amount);
-      } else {
-        expenseMap.set(date, (expenseMap.get(date) || 0) + transaction.amount);
+      const value = Number(transaction.value);
+
+      if (transaction.type === "INCOME") {
+        incomeMap.set(date, (incomeMap.get(date) || 0) + value);
+      } else if (transaction.type === "EXPENSE") {
+        expenseMap.set(date, (expenseMap.get(date) || 0) + value);
       }
     });
 
     // Criar séries de dados
     const sortedDates = Array.from(dates).sort();
-    return [
+    const chartData = [
       {
         name: "Receitas",
         data: sortedDates.map((date) => ({
@@ -545,6 +521,14 @@ export function Dashboard() {
         })),
       },
     ];
+
+    console.log("[Dashboard] Dados do gráfico gerados:", {
+      chartData,
+      totalIncome: Array.from(incomeMap.values()).reduce((a, b) => a + b, 0),
+      totalExpenses: Array.from(expenseMap.values()).reduce((a, b) => a + b, 0),
+    });
+
+    return chartData;
   }, [filteredTransactions, startDate, endDate]);
 
   // Dados do gráfico de contratos
@@ -605,6 +589,14 @@ export function Dashboard() {
   // Buscar eventos do calendário
   const { events: calendarEvents } = useCalendarStore();
 
+  // Carregar eventos do calendário quando o componente montar
+  useEffect(() => {
+    if (token && user?.organization_id) {
+      const { fetchEvents } = useCalendarStore.getState();
+      fetchEvents(); // Buscar eventos do calendário
+    }
+  }, [token, user?.organization_id]); // Usando getState() para evitar dependência
+
   // Calcular os próximos eventos (mostrar os próximos 3)
   const upcomingEvents = useMemo(() => {
     const now = new Date();
@@ -612,8 +604,9 @@ export function Dashboard() {
 
     return calendarEvents
       .filter((event) => {
-        const eventStart = new Date(event.start);
-        const eventEnd = new Date(event.end);
+        // Usar start_at e end_at que vêm da API
+        const eventStart = new Date(event.start_at || event.start);
+        const eventEnd = new Date(event.end_at || event.end);
 
         // Incluir eventos que:
         // 1. Ainda não começaram (estão no futuro)
@@ -624,15 +617,19 @@ export function Dashboard() {
           (isBefore(eventStart, now) && isAfter(eventEnd, now))
         );
       })
-      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+      .sort(
+        (a, b) =>
+          new Date(a.start_at || a.start).getTime() -
+          new Date(b.start_at || b.start).getTime()
+      )
       .slice(0, 3);
   }, [calendarEvents]);
 
   // Função para calcular o status do tempo do evento
   const getEventTimeStatus = (event) => {
     const now = new Date();
-    const eventStart = new Date(event.start);
-    const eventEnd = new Date(event.end);
+    const eventStart = new Date(event.start_at || event.start);
+    const eventEnd = new Date(event.end_at || event.end);
 
     // Evento está acontecendo agora
     if (isBefore(eventStart, now) && isAfter(eventEnd, now)) {
@@ -684,7 +681,39 @@ export function Dashboard() {
 
     // Adicionar evento ao store de calendário
     const { addEvent } = useCalendarStore.getState();
-    addEvent(newEvent);
+    const calendarEvent = {
+      ...newEvent,
+      id: crypto.randomUUID(),
+      start_at: newEvent.start.toISOString(),
+      end_at: newEvent.end.toISOString(),
+      color: "#7f00ff",
+      organization_id: user?.organization_id || "",
+      creator_id: user?.id || "",
+      creator: user
+        ? {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            organization_id: user.organization_id,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
+          }
+        : {
+            id: "",
+            email: "",
+            name: "",
+            role: "",
+            organization_id: "",
+            created_at: "",
+            updated_at: "",
+          },
+      categories: [],
+      notifications: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    addEvent(calendarEvent);
 
     // Resetar formulário e fechar modal
     setNewEvent({
@@ -703,16 +732,63 @@ export function Dashboard() {
     setShowEventDetails(true);
   };
 
+  // Função para buscar dados manualmente
+  const handleSearchTransactions = React.useCallback(() => {
+    if (!token || !user?.organization_id) return;
+
+    const filters = {
+      startDate: format(startDate, "yyyy-MM-dd"),
+      endDate: format(endDate, "yyyy-MM-dd"),
+    };
+
+    console.log("[Dashboard] Busca manual iniciada com filtros:", filters);
+
+    setLoadingOperation("dashboardTransactions", true);
+
+    // Usar getState() para evitar dependências circulares
+    const { fetchDashboardTransactions, fetchDashboardSummary } =
+      useDashboardTransactionStore.getState();
+
+    // Buscar transações e summary simultaneamente
+    Promise.all([
+      fetchDashboardTransactions(token, user.organization_id, filters, true),
+      fetchDashboardSummary(token, user.organization_id, filters),
+    ]).finally(() => {
+      setLoadingOperation("dashboardTransactions", false);
+    });
+  }, [token, user?.organization_id, startDate, endDate]); // Removidas as funções das dependências
+
+  // Buscar dados iniciais apenas uma vez quando carregar o componente
   useEffect(() => {
-    if (token && user?.organization_id && boardDashboardActiveId) {
-      const [year, month] = filterDate.split("-").map(Number);
-      fetchSummary(token, user.organization_id, {
-        year,
-        month,
-        boardId: boardDashboardActiveId,
+    if (token && user?.organization_id) {
+      console.log("[Dashboard] Iniciando fetch inicial de transações");
+
+      // Busca inicial com as datas padrão
+      const initialFilters = {
+        startDate: format(startDate, "yyyy-MM-dd"),
+        endDate: format(endDate, "yyyy-MM-dd"),
+      };
+
+      setLoadingOperation("dashboardTransactions", true);
+
+      // Usar getState() para evitar dependências
+      const { fetchDashboardTransactions, fetchDashboardSummary } =
+        useDashboardTransactionStore.getState();
+
+      Promise.all([
+        fetchDashboardTransactions(
+          token,
+          user.organization_id,
+          initialFilters,
+          true
+        ),
+        fetchDashboardSummary(token, user.organization_id, initialFilters),
+      ]).finally(() => {
+        setLoadingOperation("dashboardTransactions", false);
+        console.log("[Dashboard] Fetch inicial de transações finalizado");
       });
     }
-  }, [token, user, filterDate, boardDashboardActiveId, fetchSummary]);
+  }, [token, user?.organization_id]);
 
   // Identificar listas do sistema pelo nome (ignorando acentos e espaços)
   function normalize(str) {
@@ -800,17 +876,6 @@ export function Dashboard() {
                 </svg>
               </div>
               <h1 className="text-2xl font-bold text-purple-600">Dashboards</h1>
-
-              {/* Botão de Logout Forçado */}
-              {/* <button
-    onClick={() => {
-      localStorage.clear();
-      window.location.href = '/login';
-    }}
-    className="ml-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-  >
-    Logout Forçado
-  </button> */}
             </div>
             <div className="mt-4 md:mt-0 flex items-center gap-3">
               <button
@@ -923,7 +988,19 @@ export function Dashboard() {
           </div>
 
           {/* Cards de Resumo */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+            {/* Loading apenas quando não há board selecionado */}
+            {isLoadingBoardData && !boardDashboardActive && (
+              <div className="absolute inset-0 bg-white dark:bg-dark-800 z-10 flex items-center justify-center rounded-xl">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#7f00ff]"></div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Carregando dados do board...
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
@@ -979,20 +1056,59 @@ export function Dashboard() {
           {/* Gráficos */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
             <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-start flex-col gap-4 justify-between mb-6">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                   Movimentação Financeira
                 </h3>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="month"
-                    value={filterDate}
-                    onChange={(e) => setFilterDate(e.target.value)}
-                    className="px-3 py-2 bg-gray-50 dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-sm text-gray-600 dark:text-gray-200"
-                  />
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-600 dark:text-gray-400">
+                      De:
+                    </label>
+                    <input
+                      type="date"
+                      value={format(startDate, "yyyy-MM-dd")}
+                      onChange={(e) => setStartDate(new Date(e.target.value))}
+                      className="px-3 py-2 bg-gray-50 dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-sm text-gray-600 dark:text-gray-200"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-600 dark:text-gray-400">
+                      Até:
+                    </label>
+                    <input
+                      type="date"
+                      value={format(endDate, "yyyy-MM-dd")}
+                      onChange={(e) => setEndDate(new Date(e.target.value))}
+                      className="px-3 py-2 bg-gray-50 dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-sm text-gray-600 dark:text-gray-200"
+                    />
+                  </div>
+                  <button
+                    onClick={handleSearchTransactions}
+                    disabled={isDashboardLoading}
+                    className="flex items-center justify-center p-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Buscar transações no período selecionado"
+                  >
+                    {isDashboardLoading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <Search className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
               </div>
-              <div className="h-[400px]">
+              <div className="h-[400px] relative">
+                {isDashboardLoading &&
+                  dashboardTransactionsData.length === 0 && (
+                    <div className="absolute inset-0 bg-white dark:bg-dark-800 z-10 flex items-center justify-center rounded-xl">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#7f00ff]"></div>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Carregando dados financeiros...
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 <ReactApexChart
                   options={salesChartOptions}
                   series={salesChartData}
@@ -1021,7 +1137,19 @@ export function Dashboard() {
 
           {/* Top Vendedores */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-            <div className="bg-white dark:bg-dark-800 p-4 rounded-xl shadow-sm">
+            <div className="bg-white dark:bg-dark-800 p-4 rounded-xl shadow-sm relative">
+              {/* Loading apenas quando está carregando e não há dados ainda */}
+              {isLoadingBoardData && topSellers.data.length === 0 && (
+                <div className="absolute inset-0 bg-white dark:bg-dark-800 z-10 flex items-center justify-center rounded-xl">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#7f00ff]"></div>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Carregando vendedores...
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
                   Top Vendedores
@@ -1032,11 +1160,12 @@ export function Dashboard() {
               </div>
 
               <div className="mt-4">
-                {!topSellers.data || typeof topSellers.data === "undefined" ? (
+                {isLoadingBoardData &&
+                (!topSellers.data || topSellers.data.length === 0) ? (
                   <div className="h-24 flex items-center justify-center">
                     <span className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7f00ff]" />
                   </div>
-                ) : topSellers.data.length === 0 ? (
+                ) : !isLoadingBoardData && topSellers.data.length === 0 ? (
                   <div className="h-24 flex items-center justify-center text-gray-400">
                     Nenhum vendedor encontrado
                   </div>
@@ -1124,8 +1253,7 @@ export function Dashboard() {
                                   </p>
                                   <div className="flex items-center gap-1 mt-0.5">
                                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                                      {seller.count}{" "}
-                                      {seller.count === 1 ? "venda" : "vendas"}
+                                      Vendas realizadas
                                     </span>
                                   </div>
                                 </div>
@@ -1172,7 +1300,7 @@ export function Dashboard() {
                   <>
                     {upcomingEvents.map((event) => {
                       const timeStatus = getEventTimeStatus(event);
-                      const eventDate = new Date(event.start);
+                      const eventDate = new Date(event.start_at || event.start);
 
                       // Buscar o responsável pelo evento
                       const responsible = members.find(
@@ -1221,8 +1349,15 @@ export function Dashboard() {
                             <div className="flex items-center text-[10px] text-gray-500 dark:text-gray-400 mb-1">
                               <span className="flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
-                                {format(new Date(event.start), "HH:mm")} -{" "}
-                                {format(new Date(event.end), "HH:mm")}
+                                {format(
+                                  new Date(event.start_at || event.start),
+                                  "HH:mm"
+                                )}{" "}
+                                -{" "}
+                                {format(
+                                  new Date(event.end_at || event.end),
+                                  "HH:mm"
+                                )}
                               </span>
                               {event.description && (
                                 <>
@@ -1267,7 +1402,6 @@ export function Dashboard() {
               </div>
             </div>
           </div>
-
           {/* Modal de Todos os Vendedores */}
           {showAllSellersModal && (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
@@ -1307,7 +1441,8 @@ export function Dashboard() {
                             : "text-gray-500 dark:text-gray-400";
 
                         // Buscar as iniciais do nome
-                        const initials = seller.name
+                        const sellerName = seller.user?.name || "Vendedor";
+                        const initials = sellerName
                           .split(" ")
                           .map((part: string) => part[0])
                           .join("")
@@ -1325,7 +1460,7 @@ export function Dashboard() {
 
                         return (
                           <tr
-                            key={seller.id}
+                            key={seller.user?.id || `seller-${index}`}
                             className="hover:bg-gray-50 dark:hover:bg-dark-700/50"
                           >
                             <td className="py-3">
@@ -1341,14 +1476,13 @@ export function Dashboard() {
                                   {initials}
                                 </div>
                                 <span className="font-medium text-gray-800 dark:text-gray-200">
-                                  {seller.name}
+                                  {sellerName}
                                 </span>
                               </div>
                             </td>
                             <td className="py-3 text-center">
                               <span className="text-sm text-gray-600 dark:text-gray-400">
-                                {seller.count}{" "}
-                                {seller.count === 1 ? "venda" : "vendas"}
+                                Vendas
                               </span>
                             </td>
                             <td className="py-3 text-right font-medium text-gray-800 dark:text-gray-200">
@@ -1620,20 +1754,29 @@ export function Dashboard() {
                           <div className="font-medium">Horário</div>
                           <div className="text-gray-600 dark:text-gray-400">
                             {format(
-                              new Date(selectedCalendarEvent.start),
+                              new Date(
+                                selectedCalendarEvent.start_at ||
+                                  selectedCalendarEvent.start
+                              ),
                               "dd 'de' MMMM 'de' yyyy",
                               { locale: ptBR }
                             )}
                           </div>
                           <div className="text-gray-600 dark:text-gray-400">
                             {format(
-                              new Date(selectedCalendarEvent.start),
+                              new Date(
+                                selectedCalendarEvent.start_at ||
+                                  selectedCalendarEvent.start
+                              ),
                               "HH:mm",
                               { locale: ptBR }
                             )}{" "}
                             -
                             {format(
-                              new Date(selectedCalendarEvent.end),
+                              new Date(
+                                selectedCalendarEvent.end_at ||
+                                  selectedCalendarEvent.end
+                              ),
                               "HH:mm",
                               { locale: ptBR }
                             )}

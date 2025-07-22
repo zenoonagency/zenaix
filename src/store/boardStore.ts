@@ -35,8 +35,11 @@ interface BoardState {
   // --- Dashboard ---
   boardDashboardActiveId: string | null;
   boardDashboardActive: Board | null;
+  lastUsedDashboardBoardId: string | null;
   setBoardDashboardActiveId: (boardId: string | null) => void;
   setBoardDashboardActive: (board: Board | null) => void;
+  setLastUsedDashboardBoardId: (boardId: string | null) => void;
+  selectDashboardBoard: (boards: Board[]) => void;
   fetchFullDashboardBoard: (boardId: string) => Promise<void>;
   selectAndLoadDashboardBoard: (boardId: string) => Promise<void>;
   topSellers: TopSellersResponse;
@@ -162,12 +165,49 @@ export const useBoardStore = create<BoardState>()(
       // --- Dashboard ---
       boardDashboardActiveId: null,
       boardDashboardActive: null,
+      lastUsedDashboardBoardId: null,
       setBoardDashboardActiveId: (boardId) => {
         set({ boardDashboardActiveId: boardId });
         const board = get().boards.find((b) => b.id === boardId) || null;
         set({ boardDashboardActive: board });
+        if (boardId) {
+          get().setLastUsedDashboardBoardId(boardId);
+        }
       },
       setBoardDashboardActive: (board) => set({ boardDashboardActive: board }),
+      setLastUsedDashboardBoardId: (boardId) =>
+        set({ lastUsedDashboardBoardId: boardId }),
+      selectDashboardBoard: (boards: Board[]) => {
+        const state = get();
+        if (boards.length === 0) {
+          set({ boardDashboardActiveId: null });
+          return;
+        }
+
+        // Se já tem um board ativo e ele ainda existe, manter
+        if (
+          state.boardDashboardActiveId &&
+          boards.some((b) => b.id === state.boardDashboardActiveId)
+        ) {
+          return;
+        }
+
+        // Se tem último board usado e ele ainda existe, usar ele
+        if (
+          state.lastUsedDashboardBoardId &&
+          boards.some((b) => b.id === state.lastUsedDashboardBoardId)
+        ) {
+          set({ boardDashboardActiveId: state.lastUsedDashboardBoardId });
+          const board =
+            boards.find((b) => b.id === state.lastUsedDashboardBoardId) || null;
+          set({ boardDashboardActive: board });
+          return;
+        }
+
+        // Caso contrário, usar o primeiro board
+        set({ boardDashboardActiveId: boards[0].id });
+        set({ boardDashboardActive: boards[0] });
+      },
       fetchFullDashboardBoard: async (boardId) => {
         const { token, organization } = useAuthStore.getState();
         if (!token || !organization.id) {
@@ -205,6 +245,7 @@ export const useBoardStore = create<BoardState>()(
         }
         try {
           get().setBoardDashboardActiveId(boardId);
+          get().setLastUsedDashboardBoardId(boardId);
           await get().fetchFullDashboardBoard(boardId);
           const board =
             get().boards.find((b) => b.id === boardId) ||
@@ -422,9 +463,7 @@ export const useBoardStore = create<BoardState>()(
           });
 
           get().selectActiveBoard(boards);
-          get().setBoardDashboardActiveId(
-            boards.length > 0 ? boards[0].id : null
-          );
+          get().selectDashboardBoard(boards);
 
           const activeId = get().activeBoardId;
           if (activeId) {
@@ -627,6 +666,7 @@ export const useBoardStore = create<BoardState>()(
         activeBoard: state.activeBoard,
         boardDashboardActiveId: state.boardDashboardActiveId,
         boardDashboardActive: state.boardDashboardActive,
+        lastUsedDashboardBoardId: state.lastUsedDashboardBoardId,
       }),
     }
   )

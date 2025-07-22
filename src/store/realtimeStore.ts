@@ -66,20 +66,25 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
           );
 
           const refreshSummaryForDate = (dateString: string) => {
-            const { token, organization } = useAuthStore.getState();
-            if (token && organization.id && dateString) {
-              const transactionDate = new Date(dateString);
-              const year = transactionDate.getFullYear();
-              const month = transactionDate.getMonth() + 1; // getMonth() é 0-11
+            // Comentado para evitar chamadas automáticas de summary
+            // que podem causar sobrecarga no dashboard
+            console.log(
+              `[RealtimeStore] Evento de transação detectado para data: ${dateString}`
+            );
+            // const { token, organization } = useAuthStore.getState();
+            // if (token && organization.id && dateString) {
+            //   const transactionDate = new Date(dateString);
+            //   const year = transactionDate.getFullYear();
+            //   const month = transactionDate.getMonth() + 1; // getMonth() é 0-11
 
-              console.log(
-                `[RealtimeStore] A acionar uma nova busca do resumo para`,
-                { year, month }
-              );
-              useTransactionStore
-                .getState()
-                .fetchSummary(token, organization.id, { year, month });
-            }
+            //   console.log(
+            //     `[RealtimeStore] A acionar uma nova busca do resumo para`,
+            //     { year, month }
+            //   );
+            //   useTransactionStore
+            //     .getState()
+            //     .fetchSummary(token, organization.id, { year, month });
+            // }
           };
 
           switch (eventData.event) {
@@ -193,9 +198,9 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
             case "BOARD_CREATED":
               useBoardStore.getState().addBoard(eventData.data);
               break;
-              case "BOARD_UPDATED":
-                useBoardStore.getState().updateBoard(eventData.data);
-                break;
+            case "BOARD_UPDATED":
+              useBoardStore.getState().updateBoard(eventData.data);
+              break;
             case "BOARD_DELETED":
               useBoardStore.getState().removeBoard(eventData.data.id);
               break;
