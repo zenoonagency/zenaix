@@ -36,6 +36,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { Link } from "react-router-dom";
 import ReactApexChart from "react-apexcharts";
 import { BoardSelector } from "../Clients/components/BoardSelector";
+import { ProtectedLink } from "../../components/ProtectedLink";
 import { useCalendarStore } from "../../store/calendarStore";
 import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../services/authService";
@@ -1152,7 +1153,7 @@ export function Dashboard() {
 
           {/* Quick Access Shortcuts */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Link
+            <ProtectedLink
               to="/dashboard/clients"
               className="p-4 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-xl border border-purple-500/20 hover:border-purple-500/40 transition-all group"
             >
@@ -1169,8 +1170,8 @@ export function Dashboard() {
                   </p>
                 </div>
               </div>
-            </Link>
-            <Link
+            </ProtectedLink>
+            <ProtectedLink
               to="/dashboard/financial"
               className="p-4 bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-xl border border-emerald-500/20 hover:border-emerald-500/40 transition-all group"
             >
@@ -1187,9 +1188,9 @@ export function Dashboard() {
                   </p>
                 </div>
               </div>
-            </Link>
-            <Link
-              to="/dashboards/contracts"
+            </ProtectedLink>
+            <ProtectedLink
+              to="/dashboard/contracts"
               className="p-4 bg-gradient-to-br from-amber-500/10 to-yellow-500/10 rounded-xl border border-amber-500/20 hover:border-amber-500/40 transition-all group"
             >
               <div className="flex items-center gap-3">
@@ -1205,7 +1206,7 @@ export function Dashboard() {
                   </p>
                 </div>
               </div>
-            </Link>
+            </ProtectedLink>
           </div>
 
           {/* Cards de Resumo */}

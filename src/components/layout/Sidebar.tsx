@@ -23,11 +23,14 @@ import {
   X,
   Send,
   Webhook,
+  Crown,
 } from "lucide-react";
 import { TagList } from "../tags/TagList";
 import { useThemeStore } from "../../store/themeStore";
 import { useAuthStore } from "../../store/authStore";
 import { ProfileModal } from "../../components/ProfileModal";
+import { ProtectedLink } from "../ProtectedLink";
+import { useOrganizationAccess } from "../../hooks/useOrganizationAccess";
 
 interface SidebarLinkProps {
   to: string;
@@ -36,6 +39,7 @@ interface SidebarLinkProps {
   collapsed: boolean;
   exact?: boolean;
   isNew?: boolean;
+  requiresOrganization?: boolean;
 }
 
 interface SidebarSectionProps {
@@ -74,31 +78,67 @@ const SidebarLink = ({
   collapsed,
   exact = false,
   isNew = false,
+  requiresOrganization = false,
 }: SidebarLinkProps) => {
   const location = useLocation();
+  const { checkAccess } = useOrganizationAccess();
   const isActive = exact
     ? location.pathname === to
     : location.pathname.startsWith(to);
 
+  const hasAccess = checkAccess(to);
+
+  const linkClassName = `flex items-center ${
+    collapsed ? "justify-center py-4" : ""
+  } px-4 py-3 text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-600 transition-colors duration-200 text-[18px] ${
+    isActive
+      ? "bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border-r-4 border-primary-500 shadow-sm"
+      : ""
+  } ${
+    !hasAccess && requiresOrganization ? "opacity-40 pointer-events-none" : ""
+  }`;
+
+  const linkContent = (
+    <>
+      <span className={collapsed ? "text-[22px]" : "mr-3"}>{icon}</span>
+      {!collapsed && (
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center whitespace-nowrap overflow-hidden text-ellipsis">
+            <span>{label}</span>
+            {isNew && <NewTag />}
+          </div>
+          {requiresOrganization && !hasAccess && (
+            <div className="flex items-center ml-2 flex-shrink-0">
+              <Crown className="w-4 h-4 text-amber-500" />
+              <span className="text-[10px] text-amber-500 ml-1 font-bold">
+                PRO
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+
+  if (requiresOrganization && !hasAccess) {
+    return (
+      <ProtectedLink
+        to={to}
+        className={linkClassName}
+        title={collapsed ? `${label} (Requer Plano)` : undefined}
+      >
+        {linkContent}
+      </ProtectedLink>
+    );
+  }
+
   return (
     <NavLink
       to={to}
-      className={`flex items-center ${
-        collapsed ? "justify-center py-4" : ""
-      } px-4 py-3 text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-600 transition-colors duration-200 text-[18px] ${
-        isActive
-          ? "bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border-r-4 border-primary-500 shadow-sm"
-          : ""
-      }`}
+      className={linkClassName}
       title={collapsed ? label : undefined}
     >
-      <span className={collapsed ? "text-[22px]" : "mr-3"}>{icon}</span>
-      {!collapsed && (
-        <div className="flex items-center whitespace-nowrap overflow-hidden text-ellipsis">
-          <span>{label}</span>
-          {isNew && <NewTag />}
-        </div>
-      )}
+      {linkContent}
     </NavLink>
   );
 };
@@ -880,12 +920,14 @@ h-[calc(100%-2.5rem)]
                 icon={<MessageCircle size={22} />}
                 label="Conversas"
                 collapsed={collapsed}
+                requiresOrganization={true}
               />
               <SidebarLink
                 to="/dashboard/messaging"
                 icon={<MessageSquare size={22} />}
                 label="Disparo"
                 collapsed={collapsed}
+                requiresOrganization={true}
               />
             </SidebarSection>
 
@@ -897,12 +939,14 @@ h-[calc(100%-2.5rem)]
                 label="Gestão de funil"
                 collapsed={collapsed}
                 isNew
+                requiresOrganization={true}
               />
               <SidebarLink
                 to="/dashboard/team"
                 icon={<Users size={22} />}
                 label="Equipe"
                 collapsed={collapsed}
+                requiresOrganization={true}
               />
             </SidebarSection>
 
@@ -913,12 +957,14 @@ h-[calc(100%-2.5rem)]
                 icon={<DollarSign size={22} />}
                 label="Financeiro"
                 collapsed={collapsed}
+                requiresOrganization={true}
               />
               <SidebarLink
                 to="/dashboard/contracts"
                 icon={<FileText size={22} />}
                 label="Contratos"
                 collapsed={collapsed}
+                requiresOrganization={true}
               />
             </SidebarSection>
 
@@ -930,6 +976,7 @@ h-[calc(100%-2.5rem)]
                 label="Páginas Embed"
                 collapsed={collapsed}
                 isNew
+                requiresOrganization={true}
               />
             </SidebarSection>
           </nav>

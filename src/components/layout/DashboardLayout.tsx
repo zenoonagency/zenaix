@@ -2,12 +2,6 @@ import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Notification } from "../Notification";
 import { HelpButton } from "../HelpButton";
-import { PlanModalGlobal } from "../PlanModalGlobal";
-import { createClient } from "@supabase/supabase-js";
-import { API_CONFIG } from "../../config/api.config";
-import { supabase } from "../../lib/supabaseClient";
-
-
 
 export function DashboardLayout() {
   return (
@@ -24,7 +18,6 @@ export function DashboardLayout() {
       </div>
       <HelpButton />
       <Notification />
-      <PlanModalGlobal />
     </div>
   );
 }

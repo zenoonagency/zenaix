@@ -19,6 +19,7 @@ import { Tags } from "../pages/Tags";
 import { Login } from "../pages/Login";
 import { Register } from "../pages/Register";
 import { ProtectedRoute } from "../components/ProtectedRoute";
+import { OrganizationProtectedRoute } from "../components/OrganizationProtectedRoute";
 import { PageTransition } from "../components/PageTransition";
 import { AcceptInviteLogin } from "../pages/AcceptInviteLogin";
 import { AcceptInviteRegister } from "../pages/AcceptInviteRegister";
@@ -66,73 +67,91 @@ export const router = createBrowserRouter([
               {
                 path: "conversations",
                 element: (
-                  <PageTransition>
-                    <Conversations />
-                  </PageTransition>
+                  <OrganizationProtectedRoute>
+                    <PageTransition>
+                      <Conversations />
+                    </PageTransition>
+                  </OrganizationProtectedRoute>
                 ),
               },
               {
                 path: "clients",
                 element: (
-                  <PageTransition>
-                    <Clients />
-                  </PageTransition>
+                  <OrganizationProtectedRoute>
+                    <PageTransition>
+                      <Clients />
+                    </PageTransition>
+                  </OrganizationProtectedRoute>
                 ),
               },
               {
                 path: "contacts",
                 element: (
-                  <PageTransition>
-                    <Contacts />
-                  </PageTransition>
+                  <OrganizationProtectedRoute>
+                    <PageTransition>
+                      <Contacts />
+                    </PageTransition>
+                  </OrganizationProtectedRoute>
                 ),
               },
               {
                 path: "financial",
                 element: (
-                  <PageTransition>
-                    <Financial />
-                  </PageTransition>
+                  <OrganizationProtectedRoute>
+                    <PageTransition>
+                      <Financial />
+                    </PageTransition>
+                  </OrganizationProtectedRoute>
                 ),
               },
               {
                 path: "contracts",
                 element: (
-                  <PageTransition>
-                    <Contracts />
-                  </PageTransition>
+                  <OrganizationProtectedRoute>
+                    <PageTransition>
+                      <Contracts />
+                    </PageTransition>
+                  </OrganizationProtectedRoute>
                 ),
               },
               {
                 path: "messaging",
                 element: (
-                  <PageTransition>
-                    <Messaging />
-                  </PageTransition>
+                  <OrganizationProtectedRoute>
+                    <PageTransition>
+                      <Messaging />
+                    </PageTransition>
+                  </OrganizationProtectedRoute>
                 ),
               },
               {
                 path: "team",
                 element: (
-                  <PageTransition>
-                    <Team />
-                  </PageTransition>
+                  <OrganizationProtectedRoute>
+                    <PageTransition>
+                      <Team />
+                    </PageTransition>
+                  </OrganizationProtectedRoute>
                 ),
               },
               {
                 path: "calendar",
                 element: (
-                  <PageTransition>
-                    <Calendar />
-                  </PageTransition>
+                  <OrganizationProtectedRoute>
+                    <PageTransition>
+                      <Calendar />
+                    </PageTransition>
+                  </OrganizationProtectedRoute>
                 ),
               },
               {
                 path: "embed-pages",
                 element: (
-                  <PageTransition>
-                    <EmbedPages />
-                  </PageTransition>
+                  <OrganizationProtectedRoute>
+                    <PageTransition>
+                      <EmbedPages />
+                    </PageTransition>
+                  </OrganizationProtectedRoute>
                 ),
               },
               {
@@ -162,9 +181,11 @@ export const router = createBrowserRouter([
               {
                 path: "data-tables",
                 element: (
-                  <PageTransition>
-                    <DataTables />
-                  </PageTransition>
+                  <OrganizationProtectedRoute>
+                    <PageTransition>
+                      <DataTables />
+                    </PageTransition>
+                  </OrganizationProtectedRoute>
                 ),
               },
               {
@@ -178,9 +199,11 @@ export const router = createBrowserRouter([
               {
                 path: "tags",
                 element: (
-                  <PageTransition>
-                    <Tags />
-                  </PageTransition>
+                  <OrganizationProtectedRoute>
+                    <PageTransition>
+                      <Tags />
+                    </PageTransition>
+                  </OrganizationProtectedRoute>
                 ),
               },
             ],
