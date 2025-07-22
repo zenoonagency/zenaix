@@ -24,7 +24,7 @@ export function EmbedPages() {
     hasPermission: state.hasPermission,
   }));
 
-  const { pages, fetchPages, loading } = useEmbedPagesStore();
+  const { pages, isLoading } = useEmbedPagesStore();
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export function EmbedPages() {
       };
       const newPage = await embedService.create(token, organizationId, input);
       setActivePage(newPage);
-              showToast("Página embed criada com sucesso!", "success");
+      showToast("Página embed criada com sucesso!", "success");
       setFormData({ name: "", url: "" });
       setShowCreateModal(false);
     } catch (error: any) {
@@ -63,8 +63,8 @@ export function EmbedPages() {
   const handleEditPage = async () => {
     if (!hasPermission(PERMISSIONS.EMBED_UPDATE) || !token || !activePage) {
       showToast(
-        "error",
-        "Você não tem permissão ou nenhuma página está selecionada."
+        "Você não tem permissão ou nenhuma página está selecionada.",
+        "error"
       );
       return;
     }
@@ -83,7 +83,7 @@ export function EmbedPages() {
         input
       );
       setActivePage(updatedPageData);
-      showToast("success", "Página embed atualizada com sucesso!");
+      showToast("Página embed atualizada com sucesso!", "success");
       setFormData({ name: "", url: "" });
       setShowEditModal(false);
     } catch (error: any) {
@@ -99,8 +99,8 @@ export function EmbedPages() {
   const handleDeletePage = async () => {
     if (!hasPermission(PERMISSIONS.EMBED_DELETE) || !token || !activePage) {
       showToast(
-        "error",
-        "Você não tem permissão ou nenhuma página está selecionada."
+        "Você não tem permissão ou nenhuma página está selecionada.",
+        "error"
       );
       return;
     }
@@ -113,7 +113,7 @@ export function EmbedPages() {
       const remainingPages = pages.filter((p) => p.id !== pageIdToDelete);
       setActivePage(remainingPages.length > 0 ? remainingPages[0] : null);
 
-      showToast("success", "Página embed excluída com sucesso!");
+      showToast("Página embed excluída com sucesso!", "success");
       setShowDeleteModal(false);
     } catch (error: any) {
       showToast(
@@ -150,7 +150,7 @@ export function EmbedPages() {
         </button>
       </div>
 
-      {loading && pages.length === 0 ? (
+      {isLoading && pages.length === 0 ? (
         <div className="text-center py-12">Carregando páginas...</div>
       ) : pages.length === 0 ? (
         <div className="text-center py-12">
@@ -174,7 +174,7 @@ export function EmbedPages() {
               <div
                 onClick={() => setActivePage(page)}
                 key={page.id}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors min-w-[150px] max-w-[200px] ${
+                className={`flex cursor-pointer items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors min-w-[150px] max-w-[200px] ${
                   activePage && activePage.id === page.id
                     ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
                     : "text-gray-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-600"

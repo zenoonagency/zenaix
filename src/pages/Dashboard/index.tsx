@@ -18,6 +18,9 @@ import {
   ChevronRight,
   Clock,
   Search,
+  LineChart,
+  AreaChart,
+  BarChart2,
 } from "lucide-react";
 import {
   format,
@@ -121,7 +124,7 @@ export function Dashboard() {
     fetchDashboardTransactions,
     fetchDashboardSummary,
   } = useDashboardTransactionStore();
-  const { token, user } = useAuthStore();
+  const { token, user, organization } = useAuthStore();
 
   // Estado para filtro de data range
   const [startDate, setStartDate] = useState<Date>(() => {
@@ -132,6 +135,24 @@ export function Dashboard() {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth() + 1, 0); // Último dia do mês atual
   });
+
+  // Estado para tipo de gráfico (removido 'bar' - barras horizontais)
+  const [chartType, setChartType] = useState<"area" | "line" | "column">(
+    "area"
+  );
+
+  // Converter column para bar vertical (ApexCharts não suporta column diretamente)
+  const getApexChartType = (
+    type: typeof chartType
+  ): "area" | "line" | "bar" => {
+    return type === "column" ? "bar" : type;
+  };
+
+  // Helper para criar data sem problemas de timezone
+  const createDateFromInput = (dateString: string): Date => {
+    const [year, month, day] = dateString.split("-").map(Number);
+    return new Date(year, month - 1, day); // month é 0-indexed
+  };
 
   // Função para controlar o scroll do body quando modais estão abertos
   useEffect(() => {
@@ -200,18 +221,14 @@ export function Dashboard() {
     [selectedKanbanBoard, completedListId]
   );
 
-  // Filtrar transações do dashboard com verificações de segurança
+  // Usar diretamente os dados da store (já filtrados pela busca manual)
   const filteredTransactions = React.useMemo(() => {
     try {
-      return dashboardTransactionsData.filter((t) => {
-        if (!t?.date) return false;
-        const date = new Date(t.date);
-        return !isNaN(date.getTime()) && date >= startDate && date <= endDate;
-      });
+      return dashboardTransactionsData || [];
     } catch {
       return [];
     }
-  }, [dashboardTransactionsData, startDate, endDate]);
+  }, [dashboardTransactionsData]);
 
   // Dados de status de contrato com verificações de segurança
   const contractData = React.useMemo(
@@ -342,51 +359,7 @@ export function Dashboard() {
     }
   }, [dashboardTransactionsData]);
 
-  const handleExport = () => {
-    try {
-      let csvContent = "data:text/csv;charset=utf-8,";
-      const today = format(new Date(), "dd-MM-yyyy");
-
-      if (exportOptions.kanbanValues) {
-        csvContent += "Valores do Kanban\n";
-        csvContent += `Total do Kanban,${totalKanbanValue}\n`;
-        csvContent += `Vendas Concluídas,${completedSalesValue}\n\n`;
-      }
-
-      if (exportOptions.contractStatus) {
-        csvContent += "Status dos Contratos\n";
-        csvContent += "Status,Quantidade\n";
-        contractData.forEach(({ status, value }) => {
-          csvContent += `${status},${value}\n`;
-        });
-        csvContent += "\n";
-      }
-
-      if (exportOptions.financialData) {
-        csvContent += "Dados Financeiros\n";
-        csvContent += "Data,Tipo,Valor\n";
-        filteredTransactions.forEach((transaction) => {
-          if (transaction?.date && transaction?.type && transaction?.value) {
-            csvContent += `${format(
-              new Date(transaction.date),
-              "dd/MM/yyyy"
-            )},${transaction.type},${transaction.value}\n`;
-          }
-        });
-      }
-
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `dashboard-report-${today}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      console.error("Erro ao exportar dados:", err);
-      // Poderia mostrar um toast aqui se necessário
-    }
-  };
+  // handleExport será definido depois das variáveis calculadas
 
   // Função para formatar valores monetários
   const formatCurrency = (value: number) => {
@@ -396,33 +369,110 @@ export function Dashboard() {
     }).format(value);
   };
 
+  // Mapeamento de ícones para tipos de gráfico (removido barras horizontais)
+  const chartTypeIcons = {
+    area: AreaChart,
+    line: LineChart,
+    column: BarChart2,
+  };
+
+  const chartTypeLabels = {
+    area: "Área",
+    line: "Linha",
+    column: "Colunas",
+  };
+
   // Dados do gráfico de vendas
   const salesChartOptions = useMemo(
     () => ({
       chart: {
-        type: "area" as const,
+        type: getApexChartType(chartType),
         toolbar: {
           show: false,
         },
         background: "transparent",
+        locales: [
+          {
+            name: "pt-br",
+            options: {
+              months: [
+                "Janeiro",
+                "Fevereiro",
+                "Março",
+                "Abril",
+                "Maio",
+                "Junho",
+                "Julho",
+                "Agosto",
+                "Setembro",
+                "Outubro",
+                "Novembro",
+                "Dezembro",
+              ],
+              shortMonths: [
+                "Jan",
+                "Fev",
+                "Mar",
+                "Abr",
+                "Mai",
+                "Jun",
+                "Jul",
+                "Ago",
+                "Set",
+                "Out",
+                "Nov",
+                "Dez",
+              ],
+              days: [
+                "Domingo",
+                "Segunda",
+                "Terça",
+                "Quarta",
+                "Quinta",
+                "Sexta",
+                "Sábado",
+              ],
+              shortDays: ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"],
+              toolbar: {
+                download: "Baixar SVG",
+                selection: "Seleção",
+                selectionZoom: "Zoom da Seleção",
+                zoomIn: "Zoom In",
+                zoomOut: "Zoom Out",
+                pan: "Panorâmica",
+                reset: "Resetar Zoom",
+              },
+            },
+          },
+        ],
+        defaultLocale: "pt-br",
       },
       theme: {
         mode: theme === "dark" ? ("dark" as const) : ("light" as const),
       },
       stroke: {
         curve: "smooth" as const,
-        width: 3,
+        width: chartType === "line" ? 3 : chartType === "area" ? 2 : 0,
       },
       colors: ["#7f00ff", "#00e396"],
-      fill: {
-        type: "gradient",
-        gradient: {
-          shadeIntensity: 1,
-          opacityFrom: 0.7,
-          opacityTo: 0.2,
-          stops: [0, 100],
-        },
-      },
+      fill: (() => {
+        if (chartType === "area") {
+          return {
+            type: "gradient",
+            gradient: {
+              shadeIntensity: 1,
+              opacityFrom: 0.7,
+              opacityTo: 0.2,
+              stops: [0, 100],
+            },
+            opacity: 1,
+          };
+        }
+        return {
+          type: "solid",
+          opacity: 0.9,
+        };
+      })(),
       dataLabels: {
         enabled: false,
       },
@@ -446,6 +496,12 @@ export function Dashboard() {
           style: {
             colors: theme === "dark" ? "#cbd5e1" : "#475569",
           },
+          formatter: function (value: any) {
+            return new Date(value).toLocaleDateString("pt-BR", {
+              day: "2-digit",
+              month: "short",
+            });
+          },
         },
       },
       yaxis: {
@@ -458,36 +514,55 @@ export function Dashboard() {
       },
       tooltip: {
         x: {
-          format: "dd MMM yyyy",
+          formatter: function (value: any) {
+            return new Date(value).toLocaleDateString("pt-BR", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            });
+          },
         },
         y: {
           formatter: (value: number) => formatCurrency(value),
+          title: {
+            formatter: (seriesName: string) => seriesName + ":",
+          },
+        },
+      },
+      legend: {
+        labels: {
+          colors: theme === "dark" ? "#cbd5e1" : "#475569",
+        },
+      },
+      plotOptions: {
+        bar: {
+          horizontal: false, // Sempre vertical (colunas)
+          columnWidth: "60%",
+          borderRadius: 4,
         },
       },
     }),
-    [theme]
+    [theme, chartType]
   );
 
-  // Preparar dados para o gráfico de vendas
+  // Preparar dados para o gráfico de vendas (só recalcula quando os dados mudam, não as datas do filtro)
   const salesChartData = useMemo(() => {
     console.log("[Dashboard] Preparando dados do gráfico com:", {
       filteredTransactionsCount: filteredTransactions.length,
-      startDate: format(startDate, "yyyy-MM-dd"),
-      endDate: format(endDate, "yyyy-MM-dd"),
       sampleTransactions: filteredTransactions.slice(0, 3),
     });
 
-    const dates = new Set<string>();
+    if (!filteredTransactions.length) {
+      return [
+        { name: "Receitas", data: [] },
+        { name: "Despesas", data: [] },
+      ];
+    }
+
     const incomeMap = new Map<string, number>();
     const expenseMap = new Map<string, number>();
-
-    // Adicionar todas as datas no intervalo
-    let currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-      const dateStr = currentDate.toISOString().split("T")[0];
-      dates.add(dateStr);
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
+    const allDates = new Set<string>();
 
     // Agrupar transações por data
     filteredTransactions.forEach((transaction) => {
@@ -495,6 +570,7 @@ export function Dashboard() {
 
       const date = new Date(transaction.date).toISOString().split("T")[0];
       const value = Number(transaction.value);
+      allDates.add(date);
 
       if (transaction.type === "INCOME") {
         incomeMap.set(date, (incomeMap.get(date) || 0) + value);
@@ -504,7 +580,7 @@ export function Dashboard() {
     });
 
     // Criar séries de dados
-    const sortedDates = Array.from(dates).sort();
+    const sortedDates = Array.from(allDates).sort();
     const chartData = [
       {
         name: "Receitas",
@@ -529,7 +605,7 @@ export function Dashboard() {
     });
 
     return chartData;
-  }, [filteredTransactions, startDate, endDate]);
+  }, [filteredTransactions]);
 
   // Dados do gráfico de contratos
   const contractChartOptions = useMemo(
@@ -841,6 +917,169 @@ export function Dashboard() {
     return (completedSalesValue / totalKanbanValue) * 100;
   }, [completedSalesValue, totalKanbanValue]);
 
+  // Função de exportação de relatório
+  const handleExport = () => {
+    try {
+      const today = format(new Date(), "dd-MM-yyyy");
+      const periodStart = format(startDate, "dd/MM/yyyy");
+      const periodEnd = format(endDate, "dd/MM/yyyy");
+      const boardName = boardDashboardActive?.name || "Não selecionado";
+
+      // Calcular resumo financeiro a partir das transações filtradas
+      let income = 0;
+      let expenses = 0;
+
+      filteredTransactions.forEach((transaction) => {
+        if (transaction?.value && transaction?.type) {
+          const value = Number(transaction.value);
+          if (transaction.type === "INCOME") {
+            income += value;
+          } else if (transaction.type === "EXPENSE") {
+            expenses += value;
+          }
+        }
+      });
+
+      const calculatedSummary = {
+        income,
+        expenses,
+        balance: income - expenses,
+      };
+
+      // Buscar informações dos vendedores do time
+      const getSellerInfo = (seller) => {
+        const member = members.find((m) => m.id === seller.user?.id);
+        return {
+          name: seller.user?.name || "Vendedor Desconhecido",
+          role: member?.role || "Não informado",
+          email: member?.email || "Não informado",
+        };
+      };
+
+      let csvContent = "";
+
+      // Cabeçalho do relatório
+      csvContent += `RELATÓRIO DASHBOARD - ${today}\n`;
+      csvContent += `Período: ${periodStart} a ${periodEnd}\n`;
+      csvContent += `Board: ${boardName}\n`;
+      csvContent += `Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm")}\n\n`;
+
+      // Valores do Kanban
+      if (exportOptions.kanbanValues) {
+        csvContent += "=== VALORES DO KANBAN ===\n";
+        csvContent += "Métrica,Valor\n";
+        csvContent += `Total em Negociação,${formatCurrency(
+          totalKanbanValue
+        )}\n`;
+        csvContent += `Vendas Concluídas,${formatCurrency(
+          completedSalesValue
+        )}\n`;
+        csvContent += `Taxa de Conversão,${conversionRate.toFixed(1)}%\n\n`;
+      }
+
+      // Status dos Contratos
+      if (exportOptions.contractStatus) {
+        csvContent += "=== STATUS DOS CONTRATOS ===\n";
+        csvContent += "Status,Quantidade\n";
+        contractData.forEach(({ status, value }) => {
+          csvContent += `${status},${value}\n`;
+        });
+        csvContent += `Total de Contratos,${contractData.reduce(
+          (sum, item) => sum + item.value,
+          0
+        )}\n\n`;
+      }
+
+      // Resumo Financeiro (calculado das transações)
+      if (exportOptions.financialData) {
+        csvContent += "=== RESUMO FINANCEIRO ===\n";
+        csvContent += "Tipo,Valor\n";
+        csvContent += `Total de Receitas,${formatCurrency(
+          calculatedSummary.income
+        )}\n`;
+        csvContent += `Total de Despesas,${formatCurrency(
+          calculatedSummary.expenses
+        )}\n`;
+        csvContent += `Saldo Líquido,${formatCurrency(
+          calculatedSummary.balance
+        )}\n`;
+        csvContent += `Número de Transações,${filteredTransactions.length}\n\n`;
+      }
+
+      // Transações Detalhadas
+      if (exportOptions.financialData && filteredTransactions.length > 0) {
+        csvContent += "=== TRANSAÇÕES DETALHADAS ===\n";
+        csvContent += "Data,Tipo,Descrição,Valor,Categoria\n";
+        filteredTransactions.forEach((transaction) => {
+          if (transaction?.date && transaction?.type && transaction?.value) {
+            const date = format(new Date(transaction.date), "dd/MM/yyyy");
+            const type = transaction.type === "INCOME" ? "Receita" : "Despesa";
+            const description =
+              transaction.description?.replace(/,/g, " -") || "Sem descrição";
+            const value = formatCurrency(Number(transaction.value));
+            const category =
+              transaction.category?.replace(/,/g, " -") || "Sem categoria";
+            csvContent += `${date},${type},"${description}",${value},"${category}"\n`;
+          }
+        });
+        csvContent += "\n";
+      }
+
+      // Top Vendedores
+      if (exportOptions.sellerRanking && topSellers.data.length > 0) {
+        csvContent += "=== RANKING DE VENDEDORES ===\n";
+        csvContent += "Posição,Vendedor,Valor Total,Função,E-mail\n";
+        topSellers.data.forEach((seller, index) => {
+          const position = index + 1;
+          const sellerInfo = getSellerInfo(seller);
+          const value = formatCurrency(seller.totalValue);
+          csvContent += `${position},"${sellerInfo.name}",${value},"${sellerInfo.role}","${sellerInfo.email}"\n`;
+        });
+        csvContent += "\n";
+      }
+
+      // Rodapé
+      csvContent += "=== INFORMAÇÕES ADICIONAIS ===\n";
+      csvContent += `Organização: ${
+        organization?.name || "Não identificada"
+      }\n`;
+      csvContent += `Usuário: ${user?.name || "Não identificado"}\n`;
+      csvContent += `Relatório gerado pela plataforma Zenaix\n`;
+
+      // Criar e baixar o arquivo com encoding correto
+      const BOM = "\uFEFF";
+      const blob = new Blob([BOM + csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `dashboard-report-${today}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.log("[Dashboard] Relatório exportado com sucesso:", {
+        kanbanValues: exportOptions.kanbanValues,
+        contractStatus: exportOptions.contractStatus,
+        financialData: exportOptions.financialData,
+        sellerRanking: exportOptions.sellerRanking,
+        transactionsCount: filteredTransactions.length,
+        sellersCount: topSellers.data.length,
+        contractsCount: contracts.length,
+        boardName,
+        period: `${periodStart} a ${periodEnd}`,
+        organization: organization?.name || "Não identificada",
+        calculatedSummary,
+      });
+    } catch (err) {
+      console.error("Erro ao exportar dados:", err);
+      alert("Erro ao exportar relatório. Tente novamente.");
+    }
+  };
+
   return (
     <ErrorBoundary
       FallbackComponent={({ error }) => (
@@ -967,24 +1206,6 @@ export function Dashboard() {
                 </div>
               </div>
             </Link>
-            <Link
-              to="/dashboard/settings"
-              className="p-4 bg-gradient-to-br from-sky-500/10 to-cyan-500/10 rounded-xl border border-sky-500/20 hover:border-sky-500/40 transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-sky-500/20 rounded-lg">
-                  <Sliders className="w-5 h-5 text-sky-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-800 dark:text-gray-200">
-                    Configurações
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Ajustes do sistema
-                  </p>
-                </div>
-              </div>
-            </Link>
           </div>
 
           {/* Cards de Resumo */}
@@ -1056,10 +1277,38 @@ export function Dashboard() {
           {/* Gráficos */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
             <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm">
-              <div className="flex items-start flex-col gap-4 justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                  Movimentação Financeira
-                </h3>
+              <div className="flex items-start justify-between mb-6 flex-col gap-4">
+                <div className="flex items-center gap-3 w-full justify-between">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                    Movimentação Financeira
+                  </h3>
+
+                  {/* Seletor de tipo de gráfico */}
+                  <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
+                    {(
+                      ["area", "line", "column"] as Array<
+                        "area" | "line" | "column"
+                      >
+                    ).map((type) => {
+                      const Icon = chartTypeIcons[type];
+                      return (
+                        <button
+                          key={type}
+                          onClick={() => setChartType(type)}
+                          className={`p-2 rounded-md transition-colors ${
+                            chartType === type
+                              ? "bg-[#7f00ff] text-white shadow-sm"
+                              : "text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-dark-600"
+                          }`}
+                          title={chartTypeLabels[type]}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2">
                     <label className="text-sm text-gray-600 dark:text-gray-400">
@@ -1068,7 +1317,9 @@ export function Dashboard() {
                     <input
                       type="date"
                       value={format(startDate, "yyyy-MM-dd")}
-                      onChange={(e) => setStartDate(new Date(e.target.value))}
+                      onChange={(e) =>
+                        setStartDate(createDateFromInput(e.target.value))
+                      }
                       className="px-3 py-2 bg-gray-50 dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-sm text-gray-600 dark:text-gray-200"
                     />
                   </div>
@@ -1079,7 +1330,9 @@ export function Dashboard() {
                     <input
                       type="date"
                       value={format(endDate, "yyyy-MM-dd")}
-                      onChange={(e) => setEndDate(new Date(e.target.value))}
+                      onChange={(e) =>
+                        setEndDate(createDateFromInput(e.target.value))
+                      }
                       className="px-3 py-2 bg-gray-50 dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-sm text-gray-600 dark:text-gray-200"
                     />
                   </div>
@@ -1110,9 +1363,10 @@ export function Dashboard() {
                     </div>
                   )}
                 <ReactApexChart
+                  key={`chart-${chartType}`} // Force re-render quando muda o tipo
                   options={salesChartOptions}
                   series={salesChartData}
-                  type="area"
+                  type={getApexChartType(chartType)}
                   height="100%"
                 />
               </div>
@@ -1568,6 +1822,22 @@ export function Dashboard() {
                     />
                     <span className="text-gray-700 dark:text-gray-300">
                       Dados Financeiros
+                    </span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={exportOptions.sellerRanking}
+                      onChange={(e) =>
+                        setExportOptions((prev) => ({
+                          ...prev,
+                          sellerRanking: e.target.checked,
+                        }))
+                      }
+                      className="rounded border-gray-300 text-[#7f00ff] focus:ring-[#7f00ff]"
+                    />
+                    <span className="text-gray-700 dark:text-gray-300">
+                      Ranking de Vendedores
                     </span>
                   </label>
                 </div>
