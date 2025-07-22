@@ -1,14 +1,17 @@
 // src/store/contactsStore.ts
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { Contact } from '../types';
-import { generateId } from '../../../utils/generateId';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { Contact } from "../types";
+import { generateId } from "../../../utils/generateId";
+import { cleanUserData } from "../../../utils/dataOwnership";
 
 interface ContactsState {
   contacts: Contact[];
   selectedContacts: string[];
   selectedTags: string[];
-  addContact: (contact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  addContact: (
+    contact: Omit<Contact, "id" | "createdAt" | "updatedAt">
+  ) => void;
   updateContact: (id: string, updates: Partial<Contact>) => void;
   deleteContact: (id: string) => void;
   deleteAllContacts: () => void;
@@ -16,6 +19,7 @@ interface ContactsState {
   selectAllContacts: (contactIds: string[]) => void;
   clearSelection: () => void;
   setSelectedTags: (tagIds: string[]) => void;
+  cleanUserData: () => void;
 }
 
 export const useContactsStore = create<ContactsState>()(
@@ -84,9 +88,17 @@ export const useContactsStore = create<ContactsState>()(
       setSelectedTags: (tagIds) => {
         set({ selectedTags: tagIds });
       },
+
+      cleanUserData: () => {
+        set({
+          contacts: [],
+          selectedContacts: [],
+          selectedTags: [],
+        });
+      },
     }),
     {
-      name: 'contacts-store',
+      name: "contacts-store",
     }
   )
 );

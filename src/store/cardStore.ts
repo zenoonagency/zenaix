@@ -9,6 +9,7 @@ import {
 import { useAuthStore } from "./authStore";
 import { useToastStore } from "../components/Notification";
 import { APIError } from "../services/errors/api.errors";
+import { cleanUserData } from "../utils/dataOwnership";
 
 interface CardState {
   cards: OutputCardDTO[];
@@ -28,6 +29,7 @@ interface CardState {
     listId: string,
     title?: string
   ) => Promise<void>;
+  cleanUserData: () => void;
 }
 
 export const useCardStore = create<CardState>()(
@@ -94,6 +96,15 @@ export const useCardStore = create<CardState>()(
           set({ error: errorMessage, isLoading: false });
           useToastStore.getState().addToast(errorMessage, "error");
         }
+      },
+      cleanUserData: () => {
+        set({
+          cards: [],
+          selectedCard: null,
+          lastFetched: null,
+          error: null,
+          isLoading: false,
+        });
       },
     }),
     {

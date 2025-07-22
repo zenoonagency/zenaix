@@ -5,6 +5,7 @@ import {
   OutputTransactionDTO,
   FinancialSummaryDTO,
 } from "../types/transaction";
+import { cleanUserData } from "../utils/dataOwnership";
 
 interface IDateFilters {
   year?: number;
@@ -40,6 +41,8 @@ export interface TransactionState {
     organizationId: string,
     filters?: IDateFilters
   ) => Promise<void>;
+  // Novo método para limpar dados do usuário
+  cleanUserData: () => void;
 }
 
 export const useTransactionStore = create<TransactionState>()(
@@ -147,6 +150,15 @@ export const useTransactionStore = create<TransactionState>()(
         } catch (err: any) {
           console.error("[TransactionStore] Erro ao buscar resumo:", err);
         }
+      },
+
+      cleanUserData: () => {
+        set({
+          transactions: [],
+          lastFetched: null,
+          lastFilters: null,
+          summary: null,
+        });
       },
     }),
     {

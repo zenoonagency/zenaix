@@ -7,6 +7,11 @@ import { createWithEqualityFn } from "zustand/traditional";
 import { Permission } from "../config/permissions";
 import { supabase } from "../lib/supabaseClient";
 import { cleanUserData } from "../utils/dataOwnership";
+import { useBoardStore } from "./boardStore";
+import { useTransactionStore } from "./transactionStore";
+import { useCalendarStore } from "./calendarStore";
+import { useCardStore } from "./cardStore";
+import { useContactsStore } from "../pages/Contacts/store/contactsStore";
 
 export const useAuthStore = createWithEqualityFn<AuthState>()(
   persist(
@@ -32,7 +37,12 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           permissions: payload.permissions || [],
           organization: payload.user.organization || null,
         });
-
+        // Limpa dados das principais stores
+        useBoardStore.getState().cleanUserData();
+        useTransactionStore.getState().cleanUserData();
+        useCalendarStore.getState().cleanUserData();
+        useCardStore.getState().cleanUserData();
+        useContactsStore.getState().cleanUserData();
       },
 
       setToken: (newToken: string) => {
@@ -52,6 +62,12 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           organization: null,
           permissions: [],
         });
+        // Limpa dados das principais stores
+        useBoardStore.getState().cleanUserData();
+        useTransactionStore.getState().cleanUserData();
+        useCalendarStore.getState().cleanUserData();
+        useCardStore.getState().cleanUserData();
+        useContactsStore.getState().cleanUserData();
       },
 
       updateUser: (userData: Partial<User>) => {

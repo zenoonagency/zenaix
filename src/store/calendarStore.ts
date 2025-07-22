@@ -5,6 +5,7 @@ import { CalendarEvent, CalendarFilters } from "../types/calendar";
 import { useAuthStore } from "./authStore";
 import { useToastStore } from "../components/Notification";
 import { APIError } from "../services/errors/api.errors";
+import { cleanUserData } from "../utils/dataOwnership";
 
 interface CalendarState {
   events: CalendarEvent[];
@@ -28,6 +29,8 @@ interface CalendarState {
     filters?: CalendarFilters,
     forceRefresh?: boolean
   ) => Promise<void>;
+  // Novo método para limpar dados do usuário
+  cleanUserData: () => void;
 }
 
 export const useCalendarStore = create<CalendarState>()(
@@ -129,6 +132,13 @@ export const useCalendarStore = create<CalendarState>()(
           set({ error: errorMessage, isLoading: false });
           useToastStore.getState().addToast(errorMessage, "error");
         }
+      },
+      cleanUserData: () => {
+        set({
+          events: [],
+          lastFetched: null,
+          selectedEvent: null,
+        });
       },
     }),
     {

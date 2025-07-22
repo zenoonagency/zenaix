@@ -1,19 +1,13 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { boardService } from "../services/board.service";
-import {
-  Board,
-  InputCreateBoardDTO,
-  InputUpdateBoardDTO,
-  TopSellersResponse,
-} from "../types/board";
+import { Board, TopSellersResponse } from "../types/board";
 import { useAuthStore } from "./authStore";
 import { useToastStore } from "../components/Notification";
-import { useListStore } from "./listStore";
 import { APIError } from "../services/errors/api.errors";
 import { OutputListDTO } from "../types/list";
 import { AttachmentDTO, OutputCardDTO, SubtaskDTO } from "../types/card";
-import { subscribeWithSelector } from "zustand/middleware";
+import { cleanUserData } from "../utils/dataOwnership";
 
 interface BoardState {
   boards: Board[];
@@ -21,7 +15,7 @@ interface BoardState {
   error: string | null;
   selectedBoard: Board | null;
   lastFetched: number | null;
-  // --- Kanban (Quadro principal) ---
+
   activeBoardId: string | null;
   lastUsedBoardId: string | null;
   activeBoard: Board | null;
@@ -32,7 +26,6 @@ interface BoardState {
   fetchFullBoard: (boardId: string) => Promise<void>;
   selectAndLoadKanbanBoard: (boardId: string) => Promise<void>;
 
-  // --- Dashboard ---
   boardDashboardActiveId: string | null;
   boardDashboardActive: Board | null;
   lastUsedDashboardBoardId: string | null;
@@ -48,6 +41,7 @@ interface BoardState {
   addBoard: (board: Board) => void;
   updateBoard: (board: Board) => void;
   removeBoard: (boardId: string) => void;
+  cleanUserData: () => void;
 
   setSelectedBoard: (board: Board | null) => void;
   addListToActiveBoard: (list: OutputListDTO) => void;
@@ -654,6 +648,11 @@ export const useBoardStore = create<BoardState>()(
             },
           };
         });
+      },
+      cleanUserData: () => {
+        const { boards } = get();
+        const filtered = cleanUserData(boards);
+        set({ boards: filtered });
       },
     }),
     {
