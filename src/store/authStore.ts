@@ -44,12 +44,9 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         const currentUser = get().user;
         const newUser = payload.user;
 
-        const isDifferentUser = !currentUser || currentUser.id !== newUser.id;
+        const isDifferentUser = currentUser && currentUser.id !== newUser.id;
 
         if (isDifferentUser) {
-          console.log(
-            "[AuthStore] 🧹 Usuário diferente detectado, limpando dados das stores"
-          );
           useBoardStore.getState().cleanUserData();
           useTransactionStore.getState().cleanUserData();
           useCalendarStore.getState().cleanUserData();
@@ -66,10 +63,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           usePermissionsStore.getState().cleanUserData();
           useSystemPermissionsStore.getState().cleanUserData();
           useDashboardStore.getState().cleanUserData();
-        } else {
-          console.log(
-            "[AuthStore] ✅ Mesmo usuário, mantendo dados das stores"
-          );
         }
 
         set({

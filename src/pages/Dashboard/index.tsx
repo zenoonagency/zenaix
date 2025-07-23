@@ -354,6 +354,7 @@ export function Dashboard() {
             onShowExportModal={() => setShowExportModal(true)}
             showBoardSelector={showBoardSelector}
             onCloseBoardSelector={() => setShowBoardSelector(false)}
+            isLoadingBoard={isDashboardLoadingBoard}
           />
 
           <QuickAccessShortcuts />

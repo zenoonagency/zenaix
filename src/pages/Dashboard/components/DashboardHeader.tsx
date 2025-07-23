@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronDown, Download } from "lucide-react";
+import { ChevronDown, Download, Loader2 } from "lucide-react";
 import { BoardSelector } from "../../Clients/components/BoardSelector";
 
 interface DashboardHeaderProps {
@@ -11,6 +11,7 @@ interface DashboardHeaderProps {
   onShowExportModal: () => void;
   showBoardSelector: boolean;
   onCloseBoardSelector: () => void;
+  isLoadingBoard?: boolean;
 }
 
 export function DashboardHeader({
@@ -22,6 +23,7 @@ export function DashboardHeader({
   onShowExportModal,
   showBoardSelector,
   onCloseBoardSelector,
+  isLoadingBoard = false,
 }: DashboardHeaderProps) {
   return (
     <>
@@ -48,16 +50,26 @@ export function DashboardHeader({
         <div className="mt-4 md:mt-0 flex items-center gap-3">
           <button
             onClick={onShowBoardSelector}
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+            disabled={isLoadingBoard}
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span className="text-sm font-medium">
-              {dashboardActiveBoard ? (
-                dashboardActiveBoard.name
-              ) : (
-                <span className="inline-block w-32 h-5 bg-gray-200 rounded animate-pulse" />
-              )}
-            </span>
-            <ChevronDown className="w-4 h-4" />
+            {isLoadingBoard ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm font-medium">Carregando...</span>
+              </>
+            ) : (
+              <>
+                <span className="text-sm font-medium">
+                  {dashboardActiveBoard ? (
+                    dashboardActiveBoard.name
+                  ) : (
+                    <span className="inline-block w-32 h-5 bg-gray-200 rounded animate-pulse" />
+                  )}
+                </span>
+                <ChevronDown className="w-4 h-4" />
+              </>
+            )}
           </button>
 
           <button
