@@ -7,12 +7,14 @@ import {
   OutputInvitation,
 } from "../types/invites.types";
 import { inviteService } from "../services/invite/invite.service";
+import { cleanUserData } from "../utils/dataOwnership";
 
 interface TeamInviteState {
   invites: OutputInvitation[];
   isLoadingInvites: boolean;
   inviteError: string | null;
   lastFetchedInvites: number | null;
+  cleanUserData: () => void;
 
   setInvites: (invites: OutputInvitation[]) => void;
   addInvite: (invite: OutputInvitation) => void;
@@ -114,6 +116,14 @@ export const useInviteStore = create<TeamInviteState>()(
           set({ inviteError: err.message || "Erro ao aceitar convite." });
           throw err;
         }
+      },
+      cleanUserData: () => {
+        set({
+          invites: [],
+          isLoadingInvites: false,
+          inviteError: null,
+          lastFetchedInvites: null,
+        });
       },
     }),
     {

@@ -9,17 +9,21 @@ import {
 import { useAuthStore } from "./authStore";
 import { useToastStore } from "../components/Notification";
 import { APIError } from "../services/errors/api.errors";
+import { cleanUserData } from "../utils/dataOwnership";
 
 interface ListState {
   lists: OutputListDTO[];
   isLoading: boolean;
   error: string | null;
   lastFetched: number | null;
+  selectedList: OutputListDTO | null;
 
   setLists: (lists: OutputListDTO[]) => void;
   addList: (list: OutputListDTO) => void;
   updateList: (list: OutputListDTO) => void;
   removeList: (listId: string) => void;
+  selectList: (list: OutputListDTO) => void;
+  cleanUserData: () => void;
 
   fetchLists: (boardId: string) => Promise<void>;
 }
@@ -31,6 +35,7 @@ export const useListStore = create<ListState>()(
       isLoading: false,
       error: null,
       lastFetched: null,
+      selectedList: null,
 
       setLists: (lists) => set({ lists }),
       addList: (list) => {
@@ -49,6 +54,18 @@ export const useListStore = create<ListState>()(
         set((state) => ({
           lists: state.lists.filter((l) => l.id !== listId),
         }));
+      },
+      selectList: (list) => {
+        set({ selectedList: list });
+      },
+      cleanUserData: () => {
+        set({
+          lists: [],
+          isLoading: false,
+          error: null,
+          selectedList: null,
+          lastFetched: null,
+        });
       },
 
       fetchLists: async (boardId) => {

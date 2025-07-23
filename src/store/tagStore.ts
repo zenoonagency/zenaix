@@ -1,10 +1,20 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { APIError } from "../services/errors/api.errors";
-import { TagState } from "../types/tag";
 import { tagService } from "../services/tag/tag.service";
 
-const CACHE_DURATION = 60 * 60 * 1000;
+interface TagState {
+  tags: any[];
+  isLoading: boolean;
+  error: string | null;
+  lastFetched: number | null;
+  setTags: (tags: any[]) => void;
+  addTag: (tag: any) => void;
+  updateTag: (tag: any) => void;
+  deleteTag: (tagId: string) => void;
+  fetchAllTags: (token: string, organizationId: string) => Promise<void>;
+  cleanUserData: () => void;
+}
 
 export const useTagStore = create<TagState>()(
   persist(
@@ -62,6 +72,15 @@ export const useTagStore = create<TagState>()(
               : "Não foi possível carregar as tags.";
           set({ error: errorMessage, isLoading: false });
         }
+      },
+
+      cleanUserData: () => {
+        set({
+          tags: [],
+          isLoading: false,
+          error: null,
+          lastFetched: null,
+        });
       },
     }),
     {

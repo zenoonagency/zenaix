@@ -257,7 +257,6 @@ export const useBoardStore = create<BoardState>()(
       setBoards: (boards) => {
         set({ boards });
         get().selectActiveBoard(boards);
-        // Atualizar boardDashboardActive se boardDashboardActiveId existir
         const boardId = get().boardDashboardActiveId;
         if (boardId) {
           const board = boards.find((b) => b.id === boardId) || null;
@@ -449,8 +448,8 @@ export const useBoardStore = create<BoardState>()(
         try {
           const boards = await boardService.getBoards(token, organizationId);
 
+          get().setBoards(boards)
           set({
-            boards,
             isLoading: false,
             error: null,
             lastFetched: Date.now(),

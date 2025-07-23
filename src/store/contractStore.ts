@@ -5,8 +5,6 @@ import { contractService } from "../services/contract/contract.service";
 import { APIError } from "../services/errors/api.errors";
 
 export interface ContractState {
-  initialized: any;
-  initialize(): any;
   contracts: ContractOutput[];
   isLoading: boolean;
   error: string | null;
@@ -17,6 +15,7 @@ export interface ContractState {
   updateContract: (contract: ContractOutput) => void;
   deleteContract: (contractId: string) => void;
   fetchAllContracts: (token: string, organizationId: string) => Promise<void>;
+  cleanUserData: () => void;
 }
 
 const CACHE_DURATION = 60 * 60 * 1000;
@@ -74,6 +73,14 @@ export const useContractStore = create<ContractState>()(
             err instanceof APIError ? err.message : "Failed to load contracts.";
           set({ error: errorMessage, isLoading: false });
         }
+      },
+      cleanUserData: () => {
+        set({
+          contracts: [],
+          isLoading: false,
+          error: null,
+          lastFetched: null,
+        });
       },
     }),
     {

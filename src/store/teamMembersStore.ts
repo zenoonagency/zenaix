@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { APIError } from "../services/errors/api.errors";
 import { teamService } from "../services/team/team.service";
 import { TeamMember, InputUpdateTeamMemberRoleDTO } from "../types/team.types";
+import { cleanUserData } from "../utils/dataOwnership";
 
 interface TeamMembersState {
   members: TeamMember[];
@@ -28,6 +29,7 @@ interface TeamMembersState {
     organizationId: string,
     memberId: string
   ) => Promise<void>;
+  cleanUserData: () => void;
 }
 
 export const useTeamMembersStore = create<TeamMembersState>()(
@@ -96,6 +98,14 @@ export const useTeamMembersStore = create<TeamMembersState>()(
           set({ error: err.message || "Erro ao remover membro." });
           throw err;
         }
+      },
+      cleanUserData: () => {
+        set({
+          members: [],
+          isLoading: false,
+          error: null,
+          lastFetched: null,
+        });
       },
     }),
     {

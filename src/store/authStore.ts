@@ -12,6 +12,13 @@ import { useTransactionStore } from "./transactionStore";
 import { useCalendarStore } from "./calendarStore";
 import { useCardStore } from "./cardStore";
 import { useContactsStore } from "../pages/Contacts/store/contactsStore";
+import { useListStore } from "./listStore";
+import { useContractStore } from "./contractStore";
+import { useTeamMembersStore } from "./teamMembersStore";
+import { useTagStore } from "./tagStore";
+import { useEmbedPagesStore } from "./embedPagesStore";
+import { useInviteStore } from "./inviteStore";
+import { useDataTablesStore } from "./dataTablesStore";
 
 export const useAuthStore = createWithEqualityFn<AuthState>()(
   persist(
@@ -43,6 +50,13 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         useCalendarStore.getState().cleanUserData();
         useCardStore.getState().cleanUserData();
         useContactsStore.getState().cleanUserData();
+        useListStore.getState().cleanUserData();
+        useContractStore.getState().cleanUserData();
+        useTeamMembersStore.getState().cleanUserData();
+        useTagStore.getState().cleanUserData();
+        useEmbedPagesStore.getState().cleanUserData();
+        useInviteStore.getState().cleanUserData();
+        useDataTablesStore.getState().cleanUserData();
       },
 
       setToken: (newToken: string) => {
@@ -68,6 +82,13 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         useCalendarStore.getState().cleanUserData();
         useCardStore.getState().cleanUserData();
         useContactsStore.getState().cleanUserData();
+        useListStore.getState().cleanUserData();
+        useContractStore.getState().cleanUserData();
+        useTeamMembersStore.getState().cleanUserData();
+        useTagStore.getState().cleanUserData();
+        useEmbedPagesStore.getState().cleanUserData();
+        useInviteStore.getState().cleanUserData();
+        useDataTablesStore.getState().cleanUserData();
       },
 
       updateUser: (userData: Partial<User>) => {

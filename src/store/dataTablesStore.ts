@@ -1,13 +1,14 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { DataTable, DataTablesState } from '../types/dataTables';
-import { generateId } from '../utils/generateId';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { DataTable, DataTablesState } from "../types/dataTables";
+import { generateId } from "../utils/generateId";
+import { cleanUserData } from "../utils/dataOwnership";
 
 // Custom storage with size limits and data compression
 const createCustomStorage = () => {
   const MAX_ITEMS = 100; // Maximum number of tables
   const MAX_ROWS = 1000; // Maximum rows per table
-  
+
   return {
     getItem: (name: string) => {
       const str = localStorage.getItem(name);
@@ -31,7 +32,7 @@ const createCustomStorage = () => {
         }
         localStorage.setItem(name, JSON.stringify(value));
       } catch (err) {
-        console.error('Storage error:', err);
+        console.error("Storage error:", err);
       }
     },
     removeItem: (name: string) => localStorage.removeItem(name),
@@ -47,7 +48,7 @@ export const useDataTablesStore = create<DataTablesState>()(
       addTable: (tableData) => {
         const tables = get().tables;
         if (tables.length >= 100) {
-          throw new Error('Limite máximo de tabelas atingido (100)');
+          throw new Error("Limite máximo de tabelas atingido (100)");
         }
 
         const newTable: DataTable = {
@@ -81,7 +82,8 @@ export const useDataTablesStore = create<DataTablesState>()(
       deleteTable: (id) =>
         set((state) => ({
           tables: state.tables.filter((table) => table.id !== id),
-          activeTableId: state.activeTableId === id ? null : state.activeTableId,
+          activeTableId:
+            state.activeTableId === id ? null : state.activeTableId,
         })),
 
       setActiveTable: (id) =>
@@ -101,9 +103,18 @@ export const useDataTablesStore = create<DataTablesState>()(
               : table
           ),
         })),
+
+      cleanUserData: () => {
+        set({
+          tables: [],
+          isLoading: false,
+          error: null,
+          lastFetched: null,
+        });
+      },
     }),
     {
-      name: 'data-tables-store',
+      name: "data-tables-store",
       storage: createJSONStorage(() => createCustomStorage()),
       version: 1,
     }

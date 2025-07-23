@@ -3,12 +3,14 @@ import { persist } from "zustand/middleware";
 import { EmbedOutput } from "../types/embed";
 import { embedService } from "../services/embed/embed.service";
 import { APIError } from "../services/errors/api.errors";
+import { cleanUserData } from "../utils/dataOwnership";
 
 export interface EmbedPagesState {
   pages: EmbedOutput[];
   isLoading: boolean;
   error: string | null;
   lastFetched: number | null;
+  cleanUserData: () => void;
 
   setPages: (pages: EmbedOutput[]) => void;
   addPage: (page: EmbedOutput) => void;
@@ -74,6 +76,14 @@ export const useEmbedPagesStore = create<EmbedPagesState>()(
               : "Não foi possível carregar as páginas embed.";
           set({ error: errorMessage, isLoading: false });
         }
+      },
+      cleanUserData: () => {
+        set({
+          pages: [],
+          isLoading: false,
+          error: null,
+          lastFetched: null,
+        });
       },
     }),
 
