@@ -12,6 +12,7 @@ import { cleanUserData } from "../utils/dataOwnership";
 interface BoardState {
   boards: Board[];
   isLoading: boolean;
+  isDashboardLoading: boolean; // Loading específico para dashboard
   error: string | null;
   selectedBoard: Board | null;
   lastFetched: number | null;
@@ -69,6 +70,7 @@ export const useBoardStore = create<BoardState>()(
     (set, get) => ({
       boards: [],
       isLoading: false,
+      isDashboardLoading: false,
       error: null,
       selectedBoard: null,
       lastFetched: null,
@@ -208,26 +210,45 @@ export const useBoardStore = create<BoardState>()(
           console.error("Token ou organização não encontrados");
           return;
         }
-        set({ isLoading: true });
+
+        console.log(
+          "[BoardStore] Iniciando fetch completo do board para dashboard:",
+          boardId
+        );
+        set({ isDashboardLoading: true, error: null });
+
         try {
-          const board = await boardService.getBoardById(
+          // O getBoardById já retorna o board completo com listas e cards
+          const fullBoard = await boardService.getBoardById(
             token,
             organization.id,
             boardId
           );
-          get().updateBoard(board);
+
+          console.log("[BoardStore] Board completo carregado para dashboard:", {
+            boardName: fullBoard.name,
+            listsCount: fullBoard.lists?.length || 0,
+            totalCards:
+              fullBoard.lists?.reduce(
+                (total, list) => total + (list.cards?.length || 0),
+                0
+              ) || 0,
+          });
+
+          // Atualizar stores
+          get().updateBoard(fullBoard);
           set({
-            boardDashboardActive: board,
-            isLoading: false,
+            boardDashboardActive: fullBoard,
+            isDashboardLoading: false,
             error: null,
           });
         } catch (error: any) {
-          console.error("Erro ao buscar quadro (Dashboard):", error);
+          console.error("Erro ao buscar quadro completo (Dashboard):", error);
           const errorMessage =
             error instanceof APIError
               ? error.message
               : error?.message || error?.error || "Erro ao buscar quadro";
-          set({ error: errorMessage, isLoading: false });
+          set({ error: errorMessage, isDashboardLoading: false });
           useToastStore.getState().addToast(errorMessage, "error");
         }
       },
@@ -237,19 +258,31 @@ export const useBoardStore = create<BoardState>()(
           console.error("Token ou organização não encontrados");
           return;
         }
+
+        console.log(
+          "[BoardStore] Selecionando e carregando board para dashboard:",
+          boardId
+        );
+
         try {
+          // Definir o board ativo imediatamente
           get().setBoardDashboardActiveId(boardId);
           get().setLastUsedDashboardBoardId(boardId);
+
+          // Buscar board completo com listas e cards
           await get().fetchFullDashboardBoard(boardId);
-          const board =
-            get().boards.find((b) => b.id === boardId) ||
-            get().boardDashboardActive;
-          set({ boardDashboardActiveId: boardId, boardDashboardActive: board });
+
+          console.log(
+            "[BoardStore] Board selecionado e carregado com sucesso para dashboard"
+          );
         } catch (error: any) {
-          console.error("Erro ao carregar board (Dashboard):", error);
+          console.error("Erro ao carregar board completo (Dashboard):", error);
           const errorMessage =
             error?.message || error?.error || "Erro ao carregar quadro";
           useToastStore.getState().addToast(errorMessage, "error");
+
+          // Em caso de erro, limpar o loading
+          set({ isDashboardLoading: false });
         }
       },
       topSellers: { data: [] },
@@ -448,7 +481,7 @@ export const useBoardStore = create<BoardState>()(
         try {
           const boards = await boardService.getBoards(token, organizationId);
 
-          get().setBoards(boards)
+          get().setBoards(boards);
           set({
             isLoading: false,
             error: null,
@@ -458,11 +491,8 @@ export const useBoardStore = create<BoardState>()(
           get().selectActiveBoard(boards);
           get().selectDashboardBoard(boards);
 
-          const activeId = get().activeBoardId;
-          if (activeId) {
-            console.log(`[BoardStore] A revalidar o quadro ativo: ${activeId}`);
-            get().fetchFullBoard(activeId);
-          }
+          // Removido revalidação automática para evitar loops infinitos
+          // A revalidação será feita apenas quando necessário via useEffect
         } catch (error: any) {
           console.error("Erro ao buscar quadros:", error);
           const errorMessage =

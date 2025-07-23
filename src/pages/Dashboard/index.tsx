@@ -60,9 +60,11 @@ const LoadingFallback = () => (
 const BoardDataLoading = ({
   children,
   isLoading,
+  loadingMessage = "Carregando dados...",
 }: {
   children: React.ReactNode;
   isLoading: boolean;
+  loadingMessage?: string;
 }) => {
   if (isLoading) {
     return (
@@ -71,7 +73,7 @@ const BoardDataLoading = ({
           <div className="flex flex-col items-center gap-2">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#7f00ff]"></div>
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              Carregando dados...
+              {loadingMessage}
             </span>
           </div>
         </div>
@@ -91,7 +93,6 @@ const ErrorDisplay = ({ message }: { message: string }) => (
 
 export function Dashboard() {
   const { logout } = useAuthStore();
-  const [isLoadingBoardData, setIsLoadingBoardData] = useState(false);
   const [loadingOperations, setLoadingOperations] = useState<Set<string>>(
     new Set()
   );
@@ -181,6 +182,7 @@ export function Dashboard() {
     fetchAllBoards,
     selectAndLoadDashboardBoard,
     isLoading,
+    isDashboardLoading: isBoardDashboardLoading,
   } = useBoardStore();
   const contractStore = useContractStore();
   const { members } = useTeamMembersStore();
@@ -259,28 +261,56 @@ export function Dashboard() {
       } else {
         newSet.delete(operation);
       }
-      setIsLoadingBoardData(newSet.size > 0);
       return newSet;
     });
   };
 
+  // Loading combinado para board (dashboard loading + outras operações)
+  const isLoadingBoardData =
+    isBoardDashboardLoading || loadingOperations.size > 0;
+
+  // useEffect para carregar dados do board quando o ID muda
   useEffect(() => {
     if (boardDashboardActiveId) {
-      console.log(
-        "[Dashboard] Iniciando fetch de top sellers para board:",
-        boardDashboardActiveId
-      );
-      setLoadingOperation("topSellers", true);
-      const { fetchTopSellers } = useBoardStore.getState();
-      fetchTopSellers(boardDashboardActiveId).finally(() => {
-        setLoadingOperation("topSellers", false);
-        console.log("[Dashboard] Fetch de top sellers finalizado");
-      });
+      // Verificar se precisamos carregar o board completo
+      const needsFullLoad =
+        !boardDashboardActive ||
+        boardDashboardActive.id !== boardDashboardActiveId ||
+        !boardDashboardActive.lists ||
+        boardDashboardActive.lists.length === 0;
+
+      if (needsFullLoad && !isBoardDashboardLoading) {
+        console.log(
+          "[Dashboard] Carregando board completo:",
+          boardDashboardActiveId
+        );
+        selectAndLoadDashboardBoard(boardDashboardActiveId);
+        return; // Sair para evitar múltiplas operações
+      }
+
+      // Se board já está carregado, buscar apenas top sellers
+      if (
+        boardDashboardActive?.id === boardDashboardActiveId &&
+        !loadingOperations.has("topSellers")
+      ) {
+        console.log(
+          "[Dashboard] Board já carregado, buscando top sellers:",
+          boardDashboardActiveId
+        );
+        setLoadingOperation("topSellers", true);
+        const { fetchTopSellers } = useBoardStore.getState();
+        fetchTopSellers(boardDashboardActiveId).finally(() => {
+          setLoadingOperation("topSellers", false);
+        });
+      }
     } else {
       // Limpar dados quando não há board selecionado
-      useBoardStore.getState().topSellers = { data: [] };
+      const store = useBoardStore.getState();
+      if (store.topSellers.data.length > 0) {
+        store.topSellers = { data: [] };
+      }
     }
-  }, [boardDashboardActiveId]);
+  }, [boardDashboardActiveId, boardDashboardActive?.id]); // Controle mais específico
 
   // Dados financeiros com verificações de segurança
   const financialData = useMemo(() => {
@@ -835,9 +865,33 @@ export function Dashboard() {
     });
   }, [token, user?.organization_id, startDate, endDate]); // Removidas as funções das dependências
 
+  // Carregar boards inicialmente apenas uma vez
+  useEffect(() => {
+    if (token && user?.organization_id && boards.length === 0 && !isLoading) {
+      console.log("[Dashboard] Carregando boards iniciais...");
+      fetchAllBoards(token, user.organization_id);
+    }
+  }, [token, user?.organization_id]); // Removido boards.length e isLoading para evitar loops
+
+  // Estado para controlar se a busca inicial já foi feita
+  const [initialTransactionsFetched, setInitialTransactionsFetched] =
+    useState(false);
+
   // Buscar dados iniciais apenas uma vez quando carregar o componente
   useEffect(() => {
-    if (token && user?.organization_id) {
+    if (token && user?.organization_id && !initialTransactionsFetched) {
+      // Verificar se já tem dados na store
+      const currentStore = useDashboardTransactionStore.getState();
+      const hasExistingData = currentStore.transactions.length > 0;
+
+      if (hasExistingData) {
+        console.log(
+          "[Dashboard] Dados de transações já existem na store, pulando busca inicial"
+        );
+        setInitialTransactionsFetched(true);
+        return;
+      }
+
       console.log("[Dashboard] Iniciando fetch inicial de transações");
 
       // Busca inicial com as datas padrão
@@ -857,15 +911,22 @@ export function Dashboard() {
           token,
           user.organization_id,
           initialFilters,
-          true
+          false // Não forçar refresh na busca inicial
         ),
         fetchDashboardSummary(token, user.organization_id, initialFilters),
       ]).finally(() => {
         setLoadingOperation("dashboardTransactions", false);
+        setInitialTransactionsFetched(true);
         console.log("[Dashboard] Fetch inicial de transações finalizado");
       });
     }
-  }, [token, user?.organization_id]);
+  }, [
+    token,
+    user?.organization_id,
+    initialTransactionsFetched,
+    startDate,
+    endDate,
+  ]); // startDate e endDate só para busca inicial
 
   // Identificar listas do sistema pelo nome (ignorando acentos e espaços)
   function normalize(str) {
@@ -898,24 +959,51 @@ export function Dashboard() {
     const sumList = (list) =>
       list?.cards?.reduce((sum, card) => sum + (Number(card.value) || 0), 0) ||
       0;
-    return sumList(andamento) + sumList(pendente);
-  }, [systemLists]);
+    const andamentoValue = sumList(andamento);
+    const pendenteValue = sumList(pendente);
+    const total = andamentoValue + pendenteValue;
+
+    console.log("[Dashboard] Valores calculados:", {
+      boardName: boardDashboardActive?.name || "Nenhum",
+      andamentoCards: andamento?.cards?.length || 0,
+      andamentoValue,
+      pendenteCards: pendente?.cards?.length || 0,
+      pendenteValue,
+      totalKanbanValue: total,
+    });
+
+    return total;
+  }, [systemLists, boardDashboardActive?.name]);
 
   // Vendas concluídas = concluído
   const completedSalesValue = React.useMemo(() => {
     const { concluido } = systemLists;
-    return (
+    const value =
       concluido?.cards?.reduce(
         (sum, card) => sum + (Number(card.value) || 0),
         0
-      ) || 0
-    );
+      ) || 0;
+
+    console.log("[Dashboard] Vendas concluídas:", {
+      concluidoCards: concluido?.cards?.length || 0,
+      completedSalesValue: value,
+    });
+
+    return value;
   }, [systemLists]);
 
   // Taxa de conversão = concluído / (andamento + pendente)
   const conversionRate = React.useMemo(() => {
     if (totalKanbanValue === 0) return 0;
-    return (completedSalesValue / totalKanbanValue) * 100;
+    const rate = (completedSalesValue / totalKanbanValue) * 100;
+
+    console.log("[Dashboard] Taxa de conversão:", {
+      completedSalesValue,
+      totalKanbanValue,
+      conversionRate: rate,
+    });
+
+    return rate;
   }, [completedSalesValue, totalKanbanValue]);
 
   // Função de exportação de relatório
@@ -1210,70 +1298,63 @@ export function Dashboard() {
           </div>
 
           {/* Cards de Resumo */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-            {/* Loading apenas quando não há board selecionado */}
-            {isLoadingBoardData && !boardDashboardActive && (
-              <div className="absolute inset-0 bg-white dark:bg-dark-800 z-10 flex items-center justify-center rounded-xl">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#7f00ff]"></div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Carregando dados do board...
-                  </span>
+          <BoardDataLoading
+            isLoading={isBoardDashboardLoading}
+            loadingMessage="Carregando dados do board..."
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                    Valor Total em Negociação
+                  </h3>
+                  <div className="p-2 bg-[#7f00ff]/10 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-[#7f00ff]" />
+                  </div>
                 </div>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                  {formatCurrency(totalKanbanValue)}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  No quadro selecionado
+                </p>
               </div>
-            )}
 
-            <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                  Valor Total em Negociação
-                </h3>
-                <div className="p-2 bg-[#7f00ff]/10 rounded-lg">
-                  <DollarSign className="w-5 h-5 text-[#7f00ff]" />
+              <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                    Vendas Concluídas
+                  </h3>
+                  <div className="p-2 bg-green-500/10 rounded-lg">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                  </div>
                 </div>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                  {formatCurrency(completedSalesValue)}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  No período selecionado
+                </p>
               </div>
-              <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                {formatCurrency(totalKanbanValue)}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                No quadro selecionado
-              </p>
-            </div>
 
-            <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                  Vendas Concluídas
-                </h3>
-                <div className="p-2 bg-green-500/10 rounded-lg">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
+              <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                    Taxa de Conversão
+                  </h3>
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <Target className="w-5 h-5 text-blue-500" />
+                  </div>
                 </div>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                  {`${conversionRate.toFixed(1)}%`}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  Vendas concluídas / Total em negociação
+                </p>
               </div>
-              <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                {formatCurrency(completedSalesValue)}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                No período selecionado
-              </p>
             </div>
-
-            <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                  Taxa de Conversão
-                </h3>
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <Target className="w-5 h-5 text-blue-500" />
-                </div>
-              </div>
-              <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                {`${conversionRate.toFixed(1)}%`}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Vendas concluídas / Total em negociação
-              </p>
-            </div>
-          </div>
+          </BoardDataLoading>
 
           {/* Gráficos */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
@@ -1392,152 +1473,143 @@ export function Dashboard() {
 
           {/* Top Vendedores */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-            <div className="bg-white dark:bg-dark-800 p-4 rounded-xl shadow-sm relative">
-              {/* Loading apenas quando está carregando e não há dados ainda */}
-              {isLoadingBoardData && topSellers.data.length === 0 && (
-                <div className="absolute inset-0 bg-white dark:bg-dark-800 z-10 flex items-center justify-center rounded-xl">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#7f00ff]"></div>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      Carregando vendedores...
-                    </span>
+            <BoardDataLoading
+              isLoading={
+                loadingOperations.has("topSellers") &&
+                topSellers.data.length === 0
+              }
+              loadingMessage="Carregando vendedores..."
+            >
+              <div className="bg-white dark:bg-dark-800 p-4 rounded-xl shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                    Top Vendedores
+                  </h3>
+                  <div className="p-1.5 bg-purple-500/10 rounded-lg">
+                    <Users className="w-4 h-4 text-purple-500" />
                   </div>
                 </div>
-              )}
 
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
-                  Top Vendedores
-                </h3>
-                <div className="p-1.5 bg-purple-500/10 rounded-lg">
-                  <Users className="w-4 h-4 text-purple-500" />
-                </div>
-              </div>
-
-              <div className="mt-4">
-                {isLoadingBoardData &&
-                (!topSellers.data || topSellers.data.length === 0) ? (
-                  <div className="h-24 flex items-center justify-center">
-                    <span className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7f00ff]" />
-                  </div>
-                ) : !isLoadingBoardData && topSellers.data.length === 0 ? (
-                  <div className="h-24 flex items-center justify-center text-gray-400">
-                    Nenhum vendedor encontrado
-                  </div>
-                ) : (
-                  <>
-                    <div className="mb-2 px-1">
-                      <div className="flex justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
-                        <span>Vendedor</span>
-                        <span>Desempenho</span>
-                      </div>
+                <div className="mt-4">
+                  {topSellers.data.length === 0 ? (
+                    <div className="h-24 flex items-center justify-center text-gray-400">
+                      Nenhum vendedor encontrado
                     </div>
-                    <div className="space-y-3">
-                      {topSellers.data.slice(0, 3).map((seller, index) => {
-                        // Definir cores diferentes para cada posição
-                        const positionColor =
-                          index === 0
-                            ? "bg-yellow-500"
-                            : index === 1
-                            ? "bg-gray-400"
-                            : index === 2
-                            ? "bg-amber-700"
-                            : "bg-purple-500";
+                  ) : (
+                    <>
+                      <div className="mb-2 px-1">
+                        <div className="flex justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
+                          <span>Vendedor</span>
+                          <span>Desempenho</span>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        {topSellers.data.slice(0, 3).map((seller, index) => {
+                          // Definir cores diferentes para cada posição
+                          const positionColor =
+                            index === 0
+                              ? "bg-yellow-500"
+                              : index === 1
+                              ? "bg-gray-400"
+                              : index === 2
+                              ? "bg-amber-700"
+                              : "bg-purple-500";
 
-                        const cardBgClass =
-                          index === 0
-                            ? "bg-yellow-50 dark:bg-yellow-900/10 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
-                            : index === 1
-                            ? "bg-gray-50 dark:bg-gray-700/30 hover:bg-gray-100 dark:hover:bg-gray-700/40"
-                            : index === 2
-                            ? "bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100 dark:hover:bg-amber-900/20"
-                            : "bg-purple-50 dark:bg-purple-900/10 hover:bg-purple-100 dark:hover:bg-purple-900/20";
+                          const cardBgClass =
+                            index === 0
+                              ? "bg-yellow-50 dark:bg-yellow-900/10 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
+                              : index === 1
+                              ? "bg-gray-50 dark:bg-gray-700/30 hover:bg-gray-100 dark:hover:bg-gray-700/40"
+                              : index === 2
+                              ? "bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100 dark:hover:bg-amber-900/20"
+                              : "bg-purple-50 dark:bg-purple-900/10 hover:bg-purple-100 dark:hover:bg-purple-900/20";
 
-                        const avatarBgClass =
-                          index === 0
-                            ? "from-yellow-400 to-amber-500"
-                            : index === 1
-                            ? "from-gray-400 to-gray-500"
-                            : index === 2
-                            ? "from-amber-700 to-amber-800"
-                            : "from-purple-500 to-indigo-600";
+                          const avatarBgClass =
+                            index === 0
+                              ? "from-yellow-400 to-amber-500"
+                              : index === 1
+                              ? "from-gray-400 to-gray-500"
+                              : index === 2
+                              ? "from-amber-700 to-amber-800"
+                              : "from-purple-500 to-indigo-600";
 
-                        const user = seller.user;
-                        const sellerName =
-                          user?.name || "Responsável Desconhecido";
-                        const initials = sellerName
-                          .split(" ")
-                          .map((part) => part[0])
-                          .join("")
-                          .substring(0, 2)
-                          .toUpperCase();
+                          const user = seller.user;
+                          const sellerName =
+                            user?.name || "Responsável Desconhecido";
+                          const initials = sellerName
+                            .split(" ")
+                            .map((part) => part[0])
+                            .join("")
+                            .substring(0, 2)
+                            .toUpperCase();
 
-                        // Posição
-                        const position = index + 1;
+                          // Posição
+                          const position = index + 1;
 
-                        return (
-                          <div
-                            key={user?.id || index}
-                            className={`relative p-3 rounded-lg transition-all ${cardBgClass} group`}
-                          >
-                            {/* Badge de posição */}
+                          return (
                             <div
-                              className={`absolute -top-2 -left-2 w-6 h-6 ${positionColor} rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm`}
+                              key={user?.id || index}
+                              className={`relative p-3 rounded-lg transition-all ${cardBgClass} group`}
                             >
-                              {position}
-                            </div>
+                              {/* Badge de posição */}
+                              <div
+                                className={`absolute -top-2 -left-2 w-6 h-6 ${positionColor} rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm`}
+                              >
+                                {position}
+                              </div>
 
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3 pl-2">
-                                {user?.avatar_url ? (
-                                  <img
-                                    src={user.avatar_url}
-                                    alt={sellerName}
-                                    className="w-10 h-10 rounded-full object-cover"
-                                  />
-                                ) : (
-                                  <div
-                                    className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarBgClass} flex items-center justify-center text-white text-sm font-medium shadow-sm`}
-                                  >
-                                    {initials}
-                                  </div>
-                                )}
-                                <div>
-                                  <p className="font-medium text-gray-800 dark:text-gray-200">
-                                    {sellerName}
-                                  </p>
-                                  <div className="flex items-center gap-1 mt-0.5">
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                      Vendas realizadas
-                                    </span>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3 pl-2">
+                                  {user?.avatar_url ? (
+                                    <img
+                                      src={user.avatar_url}
+                                      alt={sellerName}
+                                      className="w-10 h-10 rounded-full object-cover"
+                                    />
+                                  ) : (
+                                    <div
+                                      className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarBgClass} flex items-center justify-center text-white text-sm font-medium shadow-sm`}
+                                    >
+                                      {initials}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className="font-medium text-gray-800 dark:text-gray-200">
+                                      {sellerName}
+                                    </p>
+                                    <div className="flex items-center gap-1 mt-0.5">
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        Vendas realizadas
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-medium text-sm text-gray-800 dark:text-gray-200">
-                                  {formatCurrency(seller.totalValue)}
-                                </p>
+                                <div className="text-right">
+                                  <p className="font-medium text-sm text-gray-800 dark:text-gray-200">
+                                    {formatCurrency(seller.totalValue)}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {topSellers.data.length > 3 && (
-                      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-dark-700">
-                        <button
-                          onClick={() => setShowAllSellersModal(true)}
-                          className="w-full py-2 px-3 bg-purple-50 dark:bg-purple-900/10 text-purple-700 dark:text-purple-400 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors text-xs font-medium flex items-center justify-center gap-1"
-                        >
-                          Ver todos os vendedores ({topSellers.data.length})
-                          <ChevronDown className="w-3 h-3 transform rotate-[-90deg]" />
-                        </button>
+                          );
+                        })}
                       </div>
-                    )}
-                  </>
-                )}
+                      {topSellers.data.length > 3 && (
+                        <div className="mt-4 pt-3 border-t border-gray-100 dark:border-dark-700">
+                          <button
+                            onClick={() => setShowAllSellersModal(true)}
+                            className="w-full py-2 px-3 bg-purple-50 dark:bg-purple-900/10 text-purple-700 dark:text-purple-400 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors text-xs font-medium flex items-center justify-center gap-1"
+                          >
+                            Ver todos os vendedores ({topSellers.data.length})
+                            <ChevronDown className="w-3 h-3 transform rotate-[-90deg]" />
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            </BoardDataLoading>
 
             {/* Próximos Eventos */}
             <div className="bg-white dark:bg-dark-800 p-4 rounded-xl shadow-sm">
@@ -1575,7 +1647,7 @@ export function Dashboard() {
                       return (
                         <div
                           key={event.id}
-                          className="flex items-start gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-dark-700/50 rounded transition-colors"
+                          className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-dark-700/50 rounded transition-colors"
                           onClick={() => handleEventClick(event)}
                         >
                           <div className="min-w-[50px] text-center">
