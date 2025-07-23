@@ -193,15 +193,18 @@ export function Clients() {
           </h1>
         </div>
         <div className="flex items-center space-x-2 my-4">
-          {activeBoard?.name && (
-            <h2 className="text-xl font-bold bg-gradient-to-r inline-block  from-[#7f00ff] to-[#e100ff]   text-transparent bg-clip-text">
-              Quadro:
-            </h2>
-          )}
-          {activeBoard?.name && (
-            <h2 className="text-xl font-bold inline-block text-[#000]  text-transparent bg-clip-text">
-              {activeBoard?.name}
-            </h2>
+          {boardStoreLoading || !activeBoard ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#7f00ff]"></div>
+          ) : (
+            <div>
+              <h2 className="text-xl font-bold bg-gradient-to-r inline-block  from-[#7f00ff] to-[#e100ff]   text-transparent bg-clip-text">
+                Quadro: 
+              </h2>
+              {" "}
+              <h2 className="text-xl font-bold inline-block text-[#000] bg-clip-text">
+                 {activeBoard?.name}
+              </h2>
+            </div>
           )}
         </div>
 

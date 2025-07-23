@@ -792,7 +792,7 @@ export function KanbanBoard() {
                 </button>
               )}
             </div>
-            <div className="flex-1 overflow-x-auto kanban-horizontal-scroll px-4 pb-4 kanban-scroll-container">
+            <div className="flex-1 overflow-x-auto kanban-horizontal-scroll px-4 py-6 kanban-scroll-container">
               <div className="flex gap-4 min-w-max">
                 {board?.lists
                   ?.sort((a, b) => (a.position || 0) - (b.position || 0))
