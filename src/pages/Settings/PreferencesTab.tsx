@@ -89,7 +89,7 @@ export function PreferencesTab() {
                 name="language"
                 value={formData.language}
                 onChange={handleChange}
-                className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition duration-200"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-dark-700 dark:text-white"
               >
                 {LANGUAGE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -108,7 +108,7 @@ export function PreferencesTab() {
                 name="timezone"
                 value={formData.timezone}
                 onChange={handleChange}
-                className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition duration-200"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-dark-700 dark:text-white"
               >
                 {TIMEZONE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -154,58 +154,42 @@ export function PreferencesTab() {
 
         <div className="p-6 space-y-4">
           {/* Tema */}
-          <div className="relative">
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg blur-[0.5px] opacity-75">
-              <div className="flex items-center space-x-3">
-                <Settings className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white">
-                    Tema da Interface
-                  </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Escolha entre tema claro ou escuro
-                  </p>
-                </div>
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Settings className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-white">
+                  Tema da Interface
+                </h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Escolha entre tema claro ou escuro
+                </p>
               </div>
-              <select className="text-sm border border-gray-300 dark:border-dark-600 rounded px-2 py-1 bg-white dark:bg-dark-700 dark:text-white">
-                <option value="auto">Automático</option>
-                <option value="light">Claro</option>
-                <option value="dark">Escuro</option>
-              </select>
             </div>
-            {/* Overlay "Em breve" */}
-            <div className="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-dark-800/60 rounded-lg">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-dark-700 px-3 py-1 rounded-full border border-gray-200 dark:border-dark-600 shadow-sm">
-                Em breve
-              </span>
-            </div>
+            <select className="text-sm border border-gray-300 dark:border-dark-600 rounded px-2 py-1 bg-white dark:bg-dark-700 dark:text-white">
+              <option value="auto">Automático</option>
+              <option value="light">Claro</option>
+              <option value="dark">Escuro</option>
+            </select>
           </div>
 
           {/* Densidade */}
-          <div className="relative">
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg blur-[0.5px] opacity-75">
-              <div className="flex items-center space-x-3">
-                <Settings className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white">
-                    Densidade da Interface
-                  </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Ajuste o espaçamento dos elementos
-                  </p>
-                </div>
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Settings className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-white">
+                  Densidade da Interface
+                </h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Ajuste o espaçamento dos elementos
+                </p>
               </div>
-              <select className="text-sm border border-gray-300 dark:border-dark-600 rounded px-2 py-1 bg-white dark:bg-dark-700 dark:text-white">
-                <option value="comfortable">Confortável</option>
-                <option value="compact">Compacto</option>
-              </select>
             </div>
-            {/* Overlay "Em breve" */}
-            <div className="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-dark-800/60 rounded-lg">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-dark-700 px-3 py-1 rounded-full border border-gray-200 dark:border-dark-600 shadow-sm">
-                Em breve
-              </span>
-            </div>
+            <select className="text-sm border border-gray-300 dark:border-dark-600 rounded px-2 py-1 bg-white dark:bg-dark-700 dark:text-white">
+              <option value="comfortable">Confortável</option>
+              <option value="compact">Compacto</option>
+            </select>
           </div>
         </div>
       </motion.div>
@@ -235,61 +219,41 @@ export function PreferencesTab() {
 
         <div className="p-6 space-y-4">
           {/* Email */}
-          <div className="relative">
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg blur-[0.5px] opacity-75">
-              <div className="flex items-center space-x-3">
-                <Bell className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white">
-                    Notificações por Email
-                  </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Receba atualizações importantes por email
-                  </p>
-                </div>
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Bell className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-white">
+                  Notificações por Email
+                </h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Receba atualizações importantes por email
+                </p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  defaultChecked
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
-              </label>
             </div>
-            {/* Overlay "Em breve" */}
-            <div className="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-dark-800/60 rounded-lg">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-dark-700 px-3 py-1 rounded-full border border-gray-200 dark:border-dark-600 shadow-sm">
-                Em breve
-              </span>
-            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" className="sr-only peer" defaultChecked />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
+            </label>
           </div>
 
           {/* Push */}
-          <div className="relative">
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg blur-[0.5px] opacity-75">
-              <div className="flex items-center space-x-3">
-                <Bell className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white">
-                    Notificações Push
-                  </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Receba notificações em tempo real
-                  </p>
-                </div>
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Bell className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-white">
+                  Notificações Push
+                </h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Receba notificações em tempo real
+                </p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
-              </label>
             </div>
-            {/* Overlay "Em breve" */}
-            <div className="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-dark-800/60 rounded-lg">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-dark-700 px-3 py-1 rounded-full border border-gray-200 dark:border-dark-600 shadow-sm">
-                Em breve
-              </span>
-            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" className="sr-only peer" />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
+            </label>
           </div>
         </div>
       </motion.div>

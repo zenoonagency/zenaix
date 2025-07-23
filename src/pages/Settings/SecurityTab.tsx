@@ -197,55 +197,39 @@ export function SecurityTab() {
 
         <div className="p-6 space-y-4">
           {/* Autenticação de Dois Fatores */}
-          <div className="relative">
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg blur-[0.5px] opacity-75">
-              <div className="flex items-center space-x-3">
-                <Lock className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white">
-                    Autenticação de Dois Fatores
-                  </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Adicione uma camada extra de segurança
-                  </p>
-                </div>
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Lock className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-white">
+                  Autenticação de Dois Fatores
+                </h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Adicione uma camada extra de segurança
+                </p>
               </div>
-              <button className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium">
-                Configurar
-              </button>
             </div>
-            {/* Overlay "Em breve" */}
-            <div className="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-dark-800/60 rounded-lg">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-dark-700 px-3 py-1 rounded-full border border-gray-200 dark:border-dark-600 shadow-sm">
-                Em breve
-              </span>
-            </div>
+            <button className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium">
+              Configurar
+            </button>
           </div>
 
           {/* Sessões Ativas */}
-          <div className="relative">
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg blur-[0.5px] opacity-75">
-              <div className="flex items-center space-x-3">
-                <AlertTriangle className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white">
-                    Sessões Ativas
-                  </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Gerencie dispositivos conectados
-                  </p>
-                </div>
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <AlertTriangle className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-white">
+                  Sessões Ativas
+                </h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Gerencie dispositivos conectados
+                </p>
               </div>
-              <button className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium">
-                Ver Sessões
-              </button>
             </div>
-            {/* Overlay "Em breve" */}
-            <div className="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-dark-800/60 rounded-lg">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-dark-700 px-3 py-1 rounded-full border border-gray-200 dark:border-dark-600 shadow-sm">
-                Em breve
-              </span>
-            </div>
+            <button className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium">
+              Ver Sessões
+            </button>
           </div>
         </div>
       </motion.div>
