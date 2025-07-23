@@ -25,6 +25,7 @@ import { OrganizationProtectedRoute } from "../components/OrganizationProtectedR
 import { PageTransition } from "../components/PageTransition";
 import { AcceptInviteLogin } from "../pages/AcceptInviteLogin";
 import { AcceptInviteRegister } from "../pages/AcceptInviteRegister";
+import { OAuthCallback } from "../pages/OAuthCallback";
 
 export const router = createBrowserRouter([
   {
@@ -50,6 +51,10 @@ export const router = createBrowserRouter([
   {
     path: "/accept-invite-register",
     element: <AcceptInviteRegister />,
+  },
+  {
+    path: "/oauth/callback",
+    element: <OAuthCallback />,
   },
   {
     path: "/",

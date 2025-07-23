@@ -82,20 +82,12 @@ export const authService = {
       }
     );
 
-    console.log("AuthService: Status da resposta:", response.status);
-    console.log(
-      "AuthService: Headers da resposta:",
-      Object.fromEntries(response.headers.entries())
-    );
-
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.log("AuthService: Erro na resposta:", errorData);
       throw new Error("Sessão expirada. Por favor, faça login novamente.");
     }
 
     const data = await response.json();
-    console.log("AuthService: Token renovado com sucesso");
     return { token: data.token };
   },
 
@@ -162,7 +154,9 @@ export const authService = {
     window.location.href = `${API_CONFIG.baseUrl}/auth/oauth/${provider}`;
   },
 
-  async handleOAuthCallback(urlParams: URLSearchParams): Promise<AuthSuccessPayload | null> {
+  async handleOAuthCallback(
+    urlParams: URLSearchParams
+  ): Promise<AuthSuccessPayload | null> {
     const token = urlParams.get("token");
     const oauthSuccess = urlParams.get("oauth_success");
     const isNewUser = urlParams.get("new_user") === "true";

@@ -35,7 +35,6 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       newUserChannel
         .on("broadcast", { event: "message" }, (message) => {
           const eventData = message.payload as RealtimeEventPayload;
-          console.log("📢 Mensagem de Broadcast PESSOAL recebida!", eventData);
 
           switch (eventData.event) {
             case "USER_UPDATED_IN_ORGANIZATION":
@@ -47,9 +46,7 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
         })
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
-            console.log(
-              `[RealtimeStore] ✅ Inscrito com sucesso no canal PESSOAL.`
-            );
+            // Canal pessoal inscrito com sucesso
           }
         });
       set({ userChannel: newUserChannel });
@@ -60,27 +57,15 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       newOrgChannel
         .on("broadcast", { event: "message" }, (message) => {
           const eventData = message.payload as RealtimeEventPayload;
-          console.log(
-            "📢 Mensagem de Broadcast da ORGANIZAÇÃO recebida!",
-            eventData
-          );
 
           const refreshSummaryForDate = (dateString: string) => {
             // Comentado para evitar chamadas automáticas de summary
             // que podem causar sobrecarga no dashboard
-            console.log(
-              `[RealtimeStore] Evento de transação detectado para data: ${dateString}`
-            );
             // const { token, organization } = useAuthStore.getState();
             // if (token && organization.id && dateString) {
             //   const transactionDate = new Date(dateString);
             //   const year = transactionDate.getFullYear();
             //   const month = transactionDate.getMonth() + 1; // getMonth() é 0-11
-
-            //   console.log(
-            //     `[RealtimeStore] A acionar uma nova busca do resumo para`,
-            //     { year, month }
-            //   );
             //   useTransactionStore
             //     .getState()
             //     .fetchSummary(token, organization.id, { year, month });
@@ -122,7 +107,6 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
               break;
             case "TRANSACTION_CREATED":
               useTransactionStore.getState().addTransaction(eventData.data);
-              console.log(eventData.data);
               refreshSummaryForDate(eventData.data.date);
               break;
             case "TRANSACTION_UPDATED":
@@ -251,9 +235,7 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
         })
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
-            console.log(
-              `[RealtimeStore] ✅ Inscrito com sucesso no canal da ORGANIZAÇÃO.`
-            );
+            // Canal da organização inscrito com sucesso
           }
         });
       set({ orgChannel: newOrgChannel });

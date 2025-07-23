@@ -166,9 +166,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             error.name === "AbortError" ||
             (error instanceof TypeError && error.message === "Failed to fetch")
           ) {
-            console.warn(
-              "AuthStore: Sincronização cancelada pelo cliente. Operação ignorada."
-            );
             return get().user;
           }
 
@@ -177,8 +174,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             error.response?.status === 401 ||
             error.message?.includes("401")
           ) {
-            console.log("Token expirado. Tentando renovar...");
-
             const refreshSuccess = await refreshToken();
             if (refreshSuccess) {
               try {

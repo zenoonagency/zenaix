@@ -333,8 +333,7 @@ export function Messaging() {
         const responseData = await response.json();
 
         if (responseData && responseData.resposta === "sucesso") {
-          // Caso de sucesso
-          sentCount = selectedContacts.length; // Todos foram enviados com sucesso
+          sentCount = selectedContacts.length;
           console.log(
             `Mensagens enviadas com sucesso para ${selectedContacts.length} contato(s)`
           );
@@ -346,13 +345,11 @@ export function Messaging() {
           responseData &&
           responseData.resposta === "whatsapp não conectado corretamente"
         ) {
-          // Caso de WhatsApp não conectado
-          failedCount = selectedContacts.length; // Todos falharam
+          failedCount = selectedContacts.length;
           console.error(
             `Falha ao enviar mensagens: WhatsApp não conectado corretamente`
           );
 
-          // Exibir notificação sobre o problema de conexão do WhatsApp
           showToast(
             "WhatsApp não está conectado corretamente. Verifique sua conexão do WhatsApp.",
             "error"
@@ -362,11 +359,9 @@ export function Messaging() {
           responseData &&
           responseData.message === "There was a problem executing the workflow"
         ) {
-          // Problema na execução do workflow do N8N
           failedCount = selectedContacts.length;
           console.error(`Falha ao executar workflow no N8N:`, responseData);
 
-          // Feedback mais específico para o usuário
           showToast(
             "Erro no processamento do disparo: problema na execução do fluxo de trabalho. Verifique os tipos de mídia e tente novamente.",
             "error"
@@ -377,7 +372,6 @@ export function Messaging() {
             responseData.message?.includes("tamanho excedido") ||
             responseData.message?.includes("size limit"))
         ) {
-          // Erro específico de tamanho de arquivo
           failedCount = selectedContacts.length;
           console.error(`Erro de tamanho de arquivo no webhook:`, responseData);
 
@@ -389,7 +383,6 @@ export function Messaging() {
           responseData &&
           responseData.message?.includes("Invalid media")
         ) {
-          // Erro de formato de mídia inválido
           failedCount = selectedContacts.length;
           console.error(`Erro de formato de mídia no webhook:`, responseData);
 
@@ -398,7 +391,6 @@ export function Messaging() {
             "error"
           );
         } else {
-          // Outros tipos de erro na resposta
           failedCount = selectedContacts.length;
           console.error(
             `Falha ao enviar mensagens:`,
@@ -406,17 +398,14 @@ export function Messaging() {
             responseData
           );
 
-          // Mensagem amigável para o usuário
           showToast(
             "Falha no envio das mensagens. Verifique os tipos de arquivo e tente novamente.",
             "error"
           );
         }
       } catch (parseError) {
-        // Erro ao processar a resposta JSON ou resposta não é JSON válido
         console.error("Erro ao processar resposta JSON:", parseError);
 
-        // Usar o status HTTP para determinar sucesso/falha como fallback
         if (response.ok) {
           sentCount = selectedContacts.length;
           console.log(

@@ -1,9 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { transactionService } from "../services/transaction/transaction.service";
-import {
-  TransactionState,
-} from "../types/transaction";
+import { TransactionState } from "../types/transaction";
 import { cleanUserData } from "../utils/dataOwnership";
 
 interface IDateFilters {
@@ -70,12 +68,9 @@ export const useTransactionStore = create<TransactionState>()(
           lastFetched &&
           now - lastFetched < fiveMinutes
         ) {
-          console.log("[TransactionStore] Usando dados do cache");
-
           // Fazer refresh em background após 10 minutos sem mostrar loading
           const tenMinutes = 10 * 60 * 1000;
           if (now - lastFetched > tenMinutes) {
-            console.log("[TransactionStore] Fazendo refresh em background");
             setTimeout(() => {
               get().fetchAllTransactions(token, organizationId, filters, true);
             }, 100);

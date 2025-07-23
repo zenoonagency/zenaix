@@ -73,6 +73,11 @@ export function Login({ onLoginSuccess }: LoginProps) {
       // Limpar URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+
+    // Debug - mostrar todos os parâmetros da URL
+    if (urlParams.toString()) {
+      console.log("Parâmetros da URL detectados:", urlParams.toString());
+    }
   }, [login, onLoginSuccess, showToast]);
 
   if (!_hasHydrated) {

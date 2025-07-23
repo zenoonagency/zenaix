@@ -25,7 +25,6 @@ export const usePlanStore = create<PlanState>()(
           now - lastFetched < CACHE_DURATION &&
           plans.length > 0
         ) {
-          console.log("A usar planos do cache.");
           return;
         }
 

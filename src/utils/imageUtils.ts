@@ -9,36 +9,38 @@
  */
 export function isBase64(str: string): boolean {
   if (!str) return false;
-  
+
   // Verificar se é uma data URI (já tem o prefixo)
-  if (str.startsWith('data:')) {
+  if (str.startsWith("data:")) {
     return true;
   }
-  
+
   // Limpar a string antes de verificar
   const sanitized = str.trim();
-  
+
   // Verificar características básicas de uma string base64
   if (sanitized.length % 4 !== 0) {
     return false;
   }
-  
+
   // Verificar se contém apenas caracteres válidos de base64
   const regex = /^[A-Za-z0-9+/=]+$/;
   if (!regex.test(sanitized)) {
     return false;
   }
-  
+
   // Verificar a densidade de caracteres não-alfanuméricos
   // Base64 válido geralmente tem uma certa densidade de caracteres especiais
   const specialChars = sanitized.match(/[+/=]/g);
-  const specialCharDensity = specialChars ? specialChars.length / sanitized.length : 0;
-  
+  const specialCharDensity = specialChars
+    ? specialChars.length / sanitized.length
+    : 0;
+
   // Se a string for muito longa (> 100 caracteres) e tiver uma densidade razoável de caracteres especiais
   if (sanitized.length > 100 && specialCharDensity > 0.01) {
     return true;
   }
-  
+
   // Para strings curtas, verificação mais rigorosa
   try {
     return btoa(atob(sanitized)) === sanitized;
@@ -52,80 +54,83 @@ export function isBase64(str: string): boolean {
  * @param base64String String base64 para analisar
  * @returns Objeto com o tipo de arquivo e MIME type
  */
-export function detectContentType(base64String: string): { fileType: string, mimeType: string } {
+export function detectContentType(base64String: string): {
+  fileType: string;
+  mimeType: string;
+} {
   // Verificar se já é uma data URI
-  if (base64String.startsWith('data:')) {
+  if (base64String.startsWith("data:")) {
     const mimeMatch = base64String.match(/data:([^;]+);/);
-    
+
     if (mimeMatch && mimeMatch[1]) {
       const mime = mimeMatch[1].toLowerCase();
-      
-      if (mime.startsWith('image/')) {
-        return { fileType: 'image', mimeType: mime };
-      } else if (mime.startsWith('audio/')) {
-        return { fileType: 'audio', mimeType: mime };
-      } else if (mime.startsWith('video/')) {
-        return { fileType: 'video', mimeType: mime };
+
+      if (mime.startsWith("image/")) {
+        return { fileType: "image", mimeType: mime };
+      } else if (mime.startsWith("audio/")) {
+        return { fileType: "audio", mimeType: mime };
+      } else if (mime.startsWith("video/")) {
+        return { fileType: "video", mimeType: mime };
       } else {
-        return { fileType: 'document', mimeType: mime };
+        return { fileType: "document", mimeType: mime };
       }
     }
   }
-  
+
   // Verificar os primeiros caracteres do base64 decodificado para identificar o tipo
   let prefix: string;
-  
+
   try {
     // Tratar caso a string já tenha sido processada e perdido parte do início
     if (base64String.length > 100) {
       // Tentamos identificar pelo padrão de bytes
       const raw = atob(base64String.slice(0, 100));
       prefix = Array.from(raw)
-        .map(char => char.charCodeAt(0).toString(16).padStart(2, '0'))
-        .join('');
+        .map((char) => char.charCodeAt(0).toString(16).padStart(2, "0"))
+        .join("");
     } else {
-      prefix = '';
+      prefix = "";
     }
   } catch (e) {
     // Se não conseguir decodificar, assumir documento
-    return { fileType: 'document', mimeType: 'application/octet-stream' };
+    return { fileType: "document", mimeType: "application/octet-stream" };
   }
-  
+
   // Identificar pelo magic number
-  if (prefix.startsWith('ffd8ff')) {
-    return { fileType: 'image', mimeType: 'image/jpeg' };
-  } else if (prefix.startsWith('89504e47')) {
-    return { fileType: 'image', mimeType: 'image/png' };
-  } else if (prefix.startsWith('47494638')) {
-    return { fileType: 'image', mimeType: 'image/gif' };
-  } else if (prefix.startsWith('52494646') && prefix.includes('57454250')) {
-    return { fileType: 'image', mimeType: 'image/webp' };
-  } else if (prefix.startsWith('424d')) {
-    return { fileType: 'image', mimeType: 'image/bmp' };
-  } else if (prefix.startsWith('49443')) {
-    return { fileType: 'audio', mimeType: 'audio/mpeg' };
-  } else if (prefix.startsWith('fff')) {
-    return { fileType: 'audio', mimeType: 'audio/mpeg' };
-  } else if (prefix.startsWith('494433')) {
-    return { fileType: 'audio', mimeType: 'audio/mpeg' };
-  } else if (prefix.startsWith('1a45dfa3')) {
-    return { fileType: 'video', mimeType: 'video/webm' };
-  } else if (prefix.startsWith('000001') || prefix.startsWith('000000')) {
-    return { fileType: 'video', mimeType: 'video/mp4' };
-  } else if (prefix.startsWith('25504446')) {
-    return { fileType: 'document', mimeType: 'application/pdf' };
-  } else if (prefix.startsWith('504b0304')) {
-    return { fileType: 'document', mimeType: 'application/zip' };
+  if (prefix.startsWith("ffd8ff")) {
+    return { fileType: "image", mimeType: "image/jpeg" };
+  } else if (prefix.startsWith("89504e47")) {
+    return { fileType: "image", mimeType: "image/png" };
+  } else if (prefix.startsWith("47494638")) {
+    return { fileType: "image", mimeType: "image/gif" };
+  } else if (prefix.startsWith("52494646") && prefix.includes("57454250")) {
+    return { fileType: "image", mimeType: "image/webp" };
+  } else if (prefix.startsWith("424d")) {
+    return { fileType: "image", mimeType: "image/bmp" };
+  } else if (prefix.startsWith("49443")) {
+    return { fileType: "audio", mimeType: "audio/mpeg" };
+  } else if (prefix.startsWith("fff")) {
+    return { fileType: "audio", mimeType: "audio/mpeg" };
+  } else if (prefix.startsWith("494433")) {
+    return { fileType: "audio", mimeType: "audio/mpeg" };
+  } else if (prefix.startsWith("1a45dfa3")) {
+    return { fileType: "video", mimeType: "video/webm" };
+  } else if (prefix.startsWith("000001") || prefix.startsWith("000000")) {
+    return { fileType: "video", mimeType: "video/mp4" };
+  } else if (prefix.startsWith("25504446")) {
+    return { fileType: "document", mimeType: "application/pdf" };
+  } else if (prefix.startsWith("504b0304")) {
+    return { fileType: "document", mimeType: "application/zip" };
   }
-  
+
   // Se não for possível identificar pelo conteúdo, verificar pelo comprimento
   if (base64String.length > 1000) {
     // Strings base64 longas geralmente são imagens
-    return { fileType: 'image', mimeType: 'image/jpeg' };
+    return { fileType: "image", mimeType: "image/jpeg" };
   }
-  
+
   // Fallback para documento
-  return { fileType: 'document', mimeType: 'application/octet-stream' };
+  return { fileType: "document", mimeType: "application/octet-stream" };
 }
 
 /**
@@ -135,17 +140,17 @@ export function detectContentType(base64String: string): { fileType: string, mim
  */
 export function isValidUrl(str: string): boolean {
   if (!str) return false;
-  
+
   // Aceitar URLs sem protocolo (começando com //)
-  if (str.startsWith('//')) {
-    str = 'https:' + str;
+  if (str.startsWith("//")) {
+    str = "https:" + str;
   }
-  
+
   // Aceitar URLs relativas que começam com /
-  if (str.startsWith('/') && !str.startsWith('//')) {
+  if (str.startsWith("/") && !str.startsWith("//")) {
     return true;
   }
-  
+
   try {
     new URL(str);
     return true;
@@ -160,15 +165,18 @@ export function isValidUrl(str: string): boolean {
  * @param mimeType Tipo MIME para a data URI (padrão: image/jpeg)
  * @returns Data URI
  */
-export function base64ToDataUri(base64: string, mimeType: string = 'image/jpeg'): string {
+export function base64ToDataUri(
+  base64: string,
+  mimeType: string = "image/jpeg"
+): string {
   // Se já for uma data URI, retornar como está
-  if (base64.startsWith('data:')) {
+  if (base64.startsWith("data:")) {
     return base64;
   }
-  
+
   // Limpar a string base64
   const sanitized = sanitizeBase64(base64);
-  
+
   // Retornar a data URI
   return `data:${mimeType};base64,${sanitized}`;
 }
@@ -180,12 +188,12 @@ export function base64ToDataUri(base64: string, mimeType: string = 'image/jpeg')
  */
 export function sanitizeBase64(base64: string): string {
   // Verificar se é uma data URI e extrair apenas a parte base64
-  if (base64.includes(';base64,')) {
-    base64 = base64.split(';base64,')[1];
+  if (base64.includes(";base64,")) {
+    base64 = base64.split(";base64,")[1];
   }
-  
+
   // Remover qualquer caractere não permitido em base64
-  return base64.replace(/[^A-Za-z0-9+/=]/g, '');
+  return base64.replace(/[^A-Za-z0-9+/=]/g, "");
 }
 
 /**
@@ -195,13 +203,15 @@ export function sanitizeBase64(base64: string): string {
  */
 export function createProxyImageUrl(imageUrl: string): string {
   // Normalizar URL
-  if (imageUrl.startsWith('//')) {
-    imageUrl = 'https:' + imageUrl;
+  if (imageUrl.startsWith("//")) {
+    imageUrl = "https:" + imageUrl;
   }
-  
+
   // Usar Cloudinary como proxy de imagem
   // Formato: https://res.cloudinary.com/demo/image/fetch/[URL]
-  return `https://res.cloudinary.com/demo/image/fetch/${encodeURIComponent(imageUrl)}`;
+  return `https://res.cloudinary.com/demo/image/fetch/${encodeURIComponent(
+    imageUrl
+  )}`;
 }
 
 /**
@@ -211,111 +221,93 @@ export function createProxyImageUrl(imageUrl: string): string {
  */
 export function processImageUrl(src: string): string {
   if (!src) {
-    console.error('URL de imagem vazia recebida');
-    return '';
+    console.error("URL de imagem vazia recebida");
+    return "";
   }
-  
-  // Log para diagnóstico - evitando mostrar a string completa
-  console.log('processImageUrl - Processando conteúdo:', 
-    src.substring(0, 40) + 
-    (src.length > 40 ? '... [' + src.length + ' caracteres]' : '')
-  );
-  
+
   // Se já for uma data URI para qualquer tipo de imagem, retornar como está
-  if (src.startsWith('data:image/')) {
-    console.log('processImageUrl - Detectada data URI de imagem válida');
+  if (src.startsWith("data:image/")) {
     return src;
   }
-  
+
   // Se já for uma data URI, mas não for de imagem, tentar extrair o conteúdo e converter
-  if (src.startsWith('data:') && src.includes(';base64,')) {
+  if (src.startsWith("data:") && src.includes(";base64,")) {
     try {
-      console.log('processImageUrl - Detectada data URI que não é de imagem, tentando converter');
       // Extrair apenas o conteúdo base64
-      const base64Content = src.split(';base64,')[1];
+      const base64Content = src.split(";base64,")[1];
       // Detectar o tipo de conteúdo
       const { fileType, mimeType } = detectContentType(base64Content);
-      
-      if (fileType === 'image') {
-        console.log('processImageUrl - Data URI convertida para tipo de imagem:', mimeType);
+
+      if (fileType === "image") {
         return `data:${mimeType};base64,${base64Content}`;
       }
     } catch (error) {
-      console.error('processImageUrl - Erro ao processar data URI:', error);
+      console.error("processImageUrl - Erro ao processar data URI:", error);
     }
   }
-  
+
   // Se for um base64 sem o prefixo data:, adicionar o prefixo
   if (isBase64(src)) {
-    console.log('processImageUrl - Detectado conteúdo base64 puro, convertendo para data URI');
     try {
       // Tentar detectar o tipo de conteúdo para usar o MIME type correto
       const { fileType, mimeType } = detectContentType(src);
-      if (fileType === 'image') {
-        console.log('processImageUrl - Base64 detectado como imagem do tipo:', mimeType);
+      if (fileType === "image") {
         return base64ToDataUri(src, mimeType);
       } else {
         // Se não for reconhecido como imagem, usar jpeg como fallback
-        console.log('processImageUrl - Base64 não reconhecido como imagem, usando jpeg como fallback');
-        return base64ToDataUri(src, 'image/jpeg');
+        return base64ToDataUri(src, "image/jpeg");
       }
     } catch (error) {
-      console.error('processImageUrl - Erro ao processar base64:', error);
+      console.error("processImageUrl - Erro ao processar base64:", error);
       // Fallback para jpeg se houver erro na detecção
-      return base64ToDataUri(src, 'image/jpeg');
+      return base64ToDataUri(src, "image/jpeg");
     }
   }
-  
+
   // Corrigir URLs sem protocolo
-  if (src.startsWith('//')) {
-    console.log('processImageUrl - Corrigindo URL sem protocolo');
-    src = 'https:' + src;
+  if (src.startsWith("//")) {
+    src = "https:" + src;
   }
-  
+
   // Verificar se é uma URL relativa
-  if (src.startsWith('/') && !src.startsWith('//')) {
-    console.log('processImageUrl - Convertendo URL relativa para absoluta');
+  if (src.startsWith("/") && !src.startsWith("//")) {
     // Converter para URL absoluta usando a origem atual
     src = window.location.origin + src;
   }
-  
+
   // Se for uma URL normal, verificar se precisa de proxy
   if (isValidUrl(src)) {
     // Verificar se é uma URL externa (diferente da origem atual)
     const isSameOrigin = src.startsWith(window.location.origin);
-    
+
     // Se for uma URL externa, usar proxy para evitar problemas de CORS
-    if (!isSameOrigin && src.startsWith('http')) {
-      console.log('processImageUrl - Usando proxy para URL externa');
+    if (!isSameOrigin && src.startsWith("http")) {
       return createProxyImageUrl(src);
     }
-    
-    console.log('processImageUrl - Usando URL direta');
+
     return src;
   }
-  
+
   // Verificar se parece ser base64 (algumas mensagens podem ter o início corrompido)
   if (src.length > 1000 && /^[A-Za-z0-9+/=]+$/.test(src.substring(0, 100))) {
-    console.log('processImageUrl - Conteúdo parece ser base64 mas não passou na validação, tentando corrigir');
     try {
       // Limpar possíveis caracteres inválidos
-      const cleaned = src.replace(/[^A-Za-z0-9+/=]/g, '');
-      
+      const cleaned = src.replace(/[^A-Za-z0-9+/=]/g, "");
+
       // Garantir que o comprimento seja múltiplo de 4 (requisito do base64)
       let padded = cleaned;
       const remainder = padded.length % 4;
       if (remainder > 0) {
-        padded += '='.repeat(4 - remainder);
+        padded += "=".repeat(4 - remainder);
       }
-      
-      console.log('processImageUrl - Base64 recuperado, convertendo para data URI');
-      return base64ToDataUri(padded, 'image/jpeg');
+
+      return base64ToDataUri(padded, "image/jpeg");
     } catch (error) {
-      console.error('processImageUrl - Falha ao corrigir base64:', error);
+      console.error("processImageUrl - Falha ao corrigir base64:", error);
     }
   }
-  
+
   // Se chegar aqui, o formato não é reconhecido, retornar vazio
-  console.error('processImageUrl - Formato de imagem não reconhecido');
-  return '';
-} 
+  console.error("processImageUrl - Formato de imagem não reconhecido");
+  return "";
+}

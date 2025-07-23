@@ -29,19 +29,7 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
         filters,
         forceRefresh = false
       ) => {
-        console.log(
-          "[DashboardTransactionStore] fetchDashboardTransactions iniciado",
-          {
-            filters,
-            forceRefresh,
-            hasTransactions: get().transactions.length > 0,
-          }
-        );
-
         if (get().isLoading && !forceRefresh) {
-          console.log(
-            "[DashboardTransactionStore] Já está carregando, ignorando..."
-          );
           return;
         }
 
@@ -67,34 +55,7 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
           lastFetched &&
           now - lastFetched < fifteenMinutes
         ) {
-          console.log(
-            "[DashboardTransactionStore] ✅ Usando dados do cache (15min) - evitando requisição desnecessária",
-            {
-              transactionsCount: get().transactions.length,
-              cacheAge: Math.round((now - lastFetched) / 1000 / 60) + "min",
-            }
-          );
           return;
-        }
-
-        // Log detalhado do motivo da busca
-        if (forceRefresh) {
-          console.log(
-            "[DashboardTransactionStore] 🔄 Busca forçada pelo usuário"
-          );
-        } else if (filtersChanged) {
-          console.log(
-            "[DashboardTransactionStore] 📅 Filtros mudaram, nova busca necessária",
-            { lastFilters, currentFilters }
-          );
-        } else if (get().transactions.length === 0) {
-          console.log(
-            "[DashboardTransactionStore] 📊 Primeira busca - sem dados em cache"
-          );
-        } else {
-          console.log(
-            "[DashboardTransactionStore] ⏰ Cache expirado, renovando dados"
-          );
         }
 
         set({ isLoading: true, error: null });
@@ -106,11 +67,6 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
             // Determinar todos os meses que precisamos buscar
             const startDate = new Date(filters.startDate);
             const endDate = new Date(filters.endDate);
-
-            console.log(
-              "[DashboardTransactionStore] Buscando transações para range:",
-              { startDate, endDate }
-            );
 
             // Gerar lista de anos/meses para buscar
             const monthsToFetch = [];
@@ -132,11 +88,6 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
               });
               currentDate.setMonth(currentDate.getMonth() + 1);
             }
-
-            console.log(
-              "[DashboardTransactionStore] Meses para buscar:",
-              monthsToFetch
-            );
 
             // Buscar transações para cada mês sequencialmente para evitar sobrecarga
             for (const { year, month } of monthsToFetch) {
@@ -195,11 +146,6 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
             );
           }
 
-          console.log(
-            "[DashboardTransactionStore] Transações encontradas:",
-            allTransactions.length
-          );
-
           set({
             transactions: allTransactions,
             isLoading: false,
@@ -220,11 +166,6 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
       },
 
       fetchDashboardSummary: async (token, organizationId, filters) => {
-        console.log(
-          "[DashboardTransactionStore] fetchDashboardSummary iniciado",
-          { filters }
-        );
-
         try {
           // Para o summary, vamos usar apenas o mês da startDate por simplicidade
           // ou o mês atual se não há filtros
@@ -244,20 +185,10 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
             };
           }
 
-          console.log(
-            "[DashboardTransactionStore] Buscando summary com filtros:",
-            apiFilters
-          );
-
           const fetchedSummary = await transactionService.getSummary(
             token,
             organizationId,
             apiFilters
-          );
-
-          console.log(
-            "[DashboardTransactionStore] Summary recebido:",
-            fetchedSummary
           );
 
           set({ summary: fetchedSummary });
@@ -271,7 +202,6 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
       },
 
       cleanUserData: () => {
-        console.log("[DashboardTransactionStore] 🧹 Limpando dados do usuário");
         set({
           transactions: [],
           summary: null,
@@ -284,7 +214,6 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
 
       // Função para limpar cache forçadamente (útil para debug)
       clearCache: () => {
-        console.log("[DashboardTransactionStore] 🗑️ Cache limpo forçadamente");
         set({
           transactions: [],
           summary: null,

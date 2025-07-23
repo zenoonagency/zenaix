@@ -29,10 +29,6 @@ export const useDashboardStore = create<DashboardStore>()(
       },
 
       setActiveBoard: (board) => {
-        console.log(
-          "[DashboardStore] Definindo board ativo:",
-          board?.name || "null"
-        );
         set({ activeBoard: board });
       },
 
@@ -49,7 +45,6 @@ export const useDashboardStore = create<DashboardStore>()(
           return;
         }
 
-        console.log("[DashboardStore] 🔄 Iniciando fetch do board:", boardId);
         set({ isLoadingBoard: true, error: null });
 
         try {
@@ -59,16 +54,6 @@ export const useDashboardStore = create<DashboardStore>()(
             organization.id,
             boardId
           );
-
-          console.log("[DashboardStore] ✅ Board carregado com sucesso:", {
-            boardName: fullBoard.name,
-            listsCount: fullBoard.lists?.length || 0,
-            totalCards:
-              fullBoard.lists?.reduce(
-                (total, list) => total + (list.cards?.length || 0),
-                0
-              ) || 0,
-          });
 
           set({
             activeBoard: fullBoard,
@@ -95,16 +80,9 @@ export const useDashboardStore = create<DashboardStore>()(
       fetchTopSellers: async (boardId) => {
         const { token, organization } = useAuthStore.getState();
         if (!token || !organization?.id || !boardId) {
-          console.warn(
-            "[DashboardStore] Parâmetros insuficientes para buscar top sellers"
-          );
           return;
         }
 
-        console.log(
-          "[DashboardStore] 🔄 Buscando top sellers para board:",
-          boardId
-        );
         set({ isLoadingTopSellers: true });
 
         try {
@@ -114,10 +92,6 @@ export const useDashboardStore = create<DashboardStore>()(
             boardId
           );
 
-          console.log(
-            "[DashboardStore] ✅ Top sellers carregados:",
-            sellers.data.length
-          );
           set({
             topSellers: sellers,
             isLoadingTopSellers: false,
@@ -152,7 +126,6 @@ export const useDashboardStore = create<DashboardStore>()(
 
       // Utils
       cleanUserData: () => {
-        console.log("[DashboardStore] 🧹 Limpando dados do usuário");
         set({
           activeBoardId: null,
           activeBoard: null,
@@ -171,7 +144,6 @@ export const useDashboardStore = create<DashboardStore>()(
 
       selectInitialBoard: (boards: Board[]) => {
         if (boards.length === 0) {
-          console.log("[DashboardStore] Nenhum board disponível");
           set({ activeBoardId: null, activeBoard: null });
           return;
         }
@@ -183,17 +155,12 @@ export const useDashboardStore = create<DashboardStore>()(
           state.activeBoardId &&
           boards.some((b) => b.id === state.activeBoardId)
         ) {
-          console.log(
-            "[DashboardStore] Mantendo board ativo existente:",
-            state.activeBoardId
-          );
           // Atualizar os dados do board se necessário
           const currentBoard = boards.find((b) => b.id === state.activeBoardId);
           if (
             currentBoard &&
             (!state.activeBoard || !state.activeBoard.lists)
           ) {
-            console.log("[DashboardStore] Atualizando dados do board ativo");
             set({ activeBoard: currentBoard });
           }
           return;
@@ -204,10 +171,6 @@ export const useDashboardStore = create<DashboardStore>()(
           state.lastUsedBoardId &&
           boards.some((b) => b.id === state.lastUsedBoardId)
         ) {
-          console.log(
-            "[DashboardStore] Selecionando último board usado:",
-            state.lastUsedBoardId
-          );
           const board =
             boards.find((b) => b.id === state.lastUsedBoardId) || null;
           set({
@@ -218,10 +181,6 @@ export const useDashboardStore = create<DashboardStore>()(
         }
 
         // Caso contrário, usar o primeiro board
-        console.log(
-          "[DashboardStore] Selecionando primeiro board:",
-          boards[0].name
-        );
         set({
           activeBoardId: boards[0].id,
           activeBoard: boards[0],
