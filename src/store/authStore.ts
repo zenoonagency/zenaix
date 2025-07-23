@@ -63,6 +63,10 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         useDashboardTransactionStore.getState().cleanUserData();
         usePermissionsStore.getState().cleanUserData();
         useSystemPermissionsStore.getState().cleanUserData();
+
+        // Nova store do dashboard
+        const { useDashboardStore } = await import("./dashboardStore");
+        useDashboardStore.getState().cleanUserData();
       },
 
       setToken: (newToken: string) => {

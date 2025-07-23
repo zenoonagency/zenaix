@@ -43,6 +43,7 @@ export interface DashboardTransactionState {
   ) => Promise<void>;
 
   clearError: () => void;
+  clearCache: () => void;
 }
 
 export const useDashboardTransactionStore = create<DashboardTransactionState>()(
@@ -68,7 +69,11 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
       ) => {
         console.log(
           "[DashboardTransactionStore] fetchDashboardTransactions iniciado",
-          { filters, forceRefresh }
+          {
+            filters,
+            forceRefresh,
+            hasTransactions: get().transactions.length > 0,
+          }
         );
 
         if (get().isLoading && !forceRefresh) {
@@ -88,22 +93,46 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
           !lastFilters ||
           JSON.stringify(currentFilters) !== JSON.stringify(lastFilters);
 
-        // Aumentar tempo de cache para 5 minutos para evitar calls repetidas
+        // Cache mais longo para evitar calls repetidas (15 minutos)
         const now = Date.now();
         const lastFetched = get().lastFetched;
-        const fiveMinutes = 5 * 60 * 1000;
+        const fifteenMinutes = 15 * 60 * 1000;
 
         if (
           !forceRefresh &&
           !filtersChanged &&
           get().transactions.length > 0 &&
           lastFetched &&
-          now - lastFetched < fiveMinutes
+          now - lastFetched < fifteenMinutes
         ) {
           console.log(
-            "[DashboardTransactionStore] Usando dados do cache (cache estendido para 5min)"
+            "[DashboardTransactionStore] ✅ Usando dados do cache (15min) - evitando requisição desnecessária",
+            {
+              transactionsCount: get().transactions.length,
+              cacheAge: Math.round((now - lastFetched) / 1000 / 60) + "min",
+            }
           );
           return;
+        }
+
+        // Log detalhado do motivo da busca
+        if (forceRefresh) {
+          console.log(
+            "[DashboardTransactionStore] 🔄 Busca forçada pelo usuário"
+          );
+        } else if (filtersChanged) {
+          console.log(
+            "[DashboardTransactionStore] 📅 Filtros mudaram, nova busca necessária",
+            { lastFilters, currentFilters }
+          );
+        } else if (get().transactions.length === 0) {
+          console.log(
+            "[DashboardTransactionStore] 📊 Primeira busca - sem dados em cache"
+          );
+        } else {
+          console.log(
+            "[DashboardTransactionStore] ⏰ Cache expirado, renovando dados"
+          );
         }
 
         set({ isLoading: true, error: null });
@@ -280,12 +309,26 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
       },
 
       cleanUserData: () => {
+        console.log("[DashboardTransactionStore] 🧹 Limpando dados do usuário");
         set({
           transactions: [],
           summary: null,
           isLoading: false,
           error: null,
           lastFetched: null,
+          lastFilters: null,
+        });
+      },
+
+      // Função para limpar cache forçadamente (útil para debug)
+      clearCache: () => {
+        console.log("[DashboardTransactionStore] 🗑️ Cache limpo forçadamente");
+        set({
+          transactions: [],
+          summary: null,
+          lastFetched: null,
+          lastFilters: null,
+          error: null,
         });
       },
     }),

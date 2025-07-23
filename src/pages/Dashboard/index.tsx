@@ -41,6 +41,7 @@ import { useCalendarStore } from "../../store/calendarStore";
 import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../services/authService";
 import { useBoardStore } from "../../store/boardStore";
+import { useDashboardStore } from "../../store/dashboardStore";
 import { useInviteStore } from "../../store/inviteStore";
 import { useTransactionStore } from "../../store/transactionStore";
 import { useDashboardTransactionStore } from "../../store/dashboardTransactionStore";
@@ -175,18 +176,25 @@ export function Dashboard() {
     };
   }, [showAllSellersModal, showExportModal, showBoardSelector]);
 
+  // Board store apenas para lista de boards
   const {
     boards,
-    boardDashboardActiveId,
-    boardDashboardActive,
     fetchAllBoards,
-    selectAndLoadDashboardBoard,
-    isLoading,
-    isDashboardLoading: isBoardDashboardLoading,
+    isLoading: isBoardsLoading,
   } = useBoardStore();
+
+  // Dashboard store para dados específicos do dashboard
+  const {
+    activeBoardId: dashboardActiveBoardId,
+    activeBoard: dashboardActiveBoard,
+    topSellers: dashboardTopSellers,
+    isLoadingBoard: isDashboardLoadingBoard,
+    isLoadingTopSellers: isDashboardLoadingTopSellers,
+    selectAndLoadBoard: dashboardSelectAndLoadBoard,
+    selectInitialBoard: dashboardSelectInitialBoard,
+  } = useDashboardStore();
   const contractStore = useContractStore();
   const { members } = useTeamMembersStore();
-  const { topSellers } = useBoardStore();
 
   const { transactions } = useTransactionStore();
   const contracts = contractStore?.contracts ?? [];
@@ -206,18 +214,18 @@ export function Dashboard() {
   // Temporariamente removido até implementar com as novas stores
   const getCompletedListId = () => null;
 
-  // Usar o boardDashboardActive que já vem com listas e cards
-  const selectedKanbanBoard = boardDashboardActive;
+  // Usar o dashboardActiveBoard que já vem com listas e cards
+  const selectedKanbanBoard = dashboardActiveBoard;
 
   const completedListId = React.useMemo(() => {
     try {
-      if (!boardDashboardActiveId || !getCompletedListId) return null;
+      if (!dashboardActiveBoardId || !getCompletedListId) return null;
       return getCompletedListId();
     } catch {
       console.warn("Erro ao buscar lista completada");
       return null;
     }
-  }, [boardDashboardActiveId, getCompletedListId]);
+  }, [dashboardActiveBoardId, getCompletedListId]);
 
   const completedList = React.useMemo(
     () => selectedKanbanBoard?.lists?.find((l) => l?.id === completedListId),
@@ -267,50 +275,47 @@ export function Dashboard() {
 
   // Loading combinado para board (dashboard loading + outras operações)
   const isLoadingBoardData =
-    isBoardDashboardLoading || loadingOperations.size > 0;
+    isDashboardLoadingBoard || loadingOperations.size > 0;
 
   // useEffect para carregar dados do board quando o ID muda
   useEffect(() => {
-    if (boardDashboardActiveId) {
+    if (dashboardActiveBoardId) {
       // Verificar se precisamos carregar o board completo
       const needsFullLoad =
-        !boardDashboardActive ||
-        boardDashboardActive.id !== boardDashboardActiveId ||
-        !boardDashboardActive.lists ||
-        boardDashboardActive.lists.length === 0;
+        !dashboardActiveBoard ||
+        dashboardActiveBoard.id !== dashboardActiveBoardId ||
+        !dashboardActiveBoard.lists ||
+        dashboardActiveBoard.lists.length === 0;
 
-      if (needsFullLoad && !isBoardDashboardLoading) {
+      if (needsFullLoad && !isDashboardLoadingBoard) {
         console.log(
           "[Dashboard] Carregando board completo:",
-          boardDashboardActiveId
+          dashboardActiveBoardId
         );
-        selectAndLoadDashboardBoard(boardDashboardActiveId);
+        dashboardSelectAndLoadBoard(dashboardActiveBoardId);
         return; // Sair para evitar múltiplas operações
       }
 
       // Se board já está carregado, buscar apenas top sellers
       if (
-        boardDashboardActive?.id === boardDashboardActiveId &&
-        !loadingOperations.has("topSellers")
+        dashboardActiveBoard?.id === dashboardActiveBoardId &&
+        !isDashboardLoadingTopSellers
       ) {
         console.log(
           "[Dashboard] Board já carregado, buscando top sellers:",
-          boardDashboardActiveId
+          dashboardActiveBoardId
         );
-        setLoadingOperation("topSellers", true);
-        const { fetchTopSellers } = useBoardStore.getState();
-        fetchTopSellers(boardDashboardActiveId).finally(() => {
-          setLoadingOperation("topSellers", false);
-        });
+        const { fetchTopSellers } = useDashboardStore.getState();
+        fetchTopSellers(dashboardActiveBoardId);
       }
     } else {
       // Limpar dados quando não há board selecionado
-      const store = useBoardStore.getState();
+      const store = useDashboardStore.getState();
       if (store.topSellers.data.length > 0) {
         store.topSellers = { data: [] };
       }
     }
-  }, [boardDashboardActiveId, boardDashboardActive?.id]); // Controle mais específico
+  }, [dashboardActiveBoardId, dashboardActiveBoard?.id]); // Controle mais específico
 
   // Dados financeiros com verificações de segurança
   const financialData = useMemo(() => {
@@ -839,16 +844,24 @@ export function Dashboard() {
     setShowEventDetails(true);
   };
 
-  // Função para buscar dados manualmente
+  // Função para buscar dados manualmente (apenas quando usuário clica no botão)
   const handleSearchTransactions = React.useCallback(() => {
-    if (!token || !user?.organization_id) return;
+    // Obter valores atuais das stores para evitar dependências
+    const { token: currentToken, user: currentUser } = useAuthStore.getState();
+
+    if (!currentToken || !currentUser?.organization_id) {
+      console.warn(
+        "[Dashboard] Token ou organization_id não disponível para busca manual"
+      );
+      return;
+    }
 
     const filters = {
       startDate: format(startDate, "yyyy-MM-dd"),
       endDate: format(endDate, "yyyy-MM-dd"),
     };
 
-    console.log("[Dashboard] Busca manual iniciada com filtros:", filters);
+    console.log("[Dashboard] Busca MANUAL iniciada com filtros:", filters);
 
     setLoadingOperation("dashboardTransactions", true);
 
@@ -856,22 +869,41 @@ export function Dashboard() {
     const { fetchDashboardTransactions, fetchDashboardSummary } =
       useDashboardTransactionStore.getState();
 
-    // Buscar transações e summary simultaneamente
+    // Buscar transações e summary simultaneamente (forçar refresh porque é busca manual)
     Promise.all([
-      fetchDashboardTransactions(token, user.organization_id, filters, true),
-      fetchDashboardSummary(token, user.organization_id, filters),
+      fetchDashboardTransactions(
+        currentToken,
+        currentUser.organization_id,
+        filters,
+        true
+      ), // true = forçar refresh
+      fetchDashboardSummary(currentToken, currentUser.organization_id, filters),
     ]).finally(() => {
       setLoadingOperation("dashboardTransactions", false);
+      console.log("[Dashboard] Busca MANUAL finalizada");
     });
-  }, [token, user?.organization_id, startDate, endDate]); // Removidas as funções das dependências
+  }, [startDate, endDate]); // Apenas startDate e endDate como dependências
 
   // Carregar boards inicialmente apenas uma vez
   useEffect(() => {
-    if (token && user?.organization_id && boards.length === 0 && !isLoading) {
+    if (
+      token &&
+      user?.organization_id &&
+      boards.length === 0 &&
+      !isBoardsLoading
+    ) {
       console.log("[Dashboard] Carregando boards iniciais...");
       fetchAllBoards(token, user.organization_id);
     }
   }, [token, user?.organization_id]); // Removido boards.length e isLoading para evitar loops
+
+  // Selecionar board inicial quando boards forem carregados
+  useEffect(() => {
+    if (boards.length > 0) {
+      console.log("[Dashboard] Boards carregados, selecionando board inicial");
+      dashboardSelectInitialBoard(boards);
+    }
+  }, [boards, dashboardSelectInitialBoard]);
 
   // Estado para controlar se a busca inicial já foi feita
   const [initialTransactionsFetched, setInitialTransactionsFetched] =
@@ -939,19 +971,19 @@ export function Dashboard() {
       : "";
   }
   const systemLists = React.useMemo(() => {
-    if (!boardDashboardActive?.lists)
+    if (!dashboardActiveBoard?.lists)
       return { andamento: null, pendente: null, concluido: null };
-    const andamento = boardDashboardActive.lists.find((l) =>
+    const andamento = dashboardActiveBoard.lists.find((l) =>
       normalize(l.name).includes("emandamento")
     );
-    const pendente = boardDashboardActive.lists.find((l) =>
+    const pendente = dashboardActiveBoard.lists.find((l) =>
       normalize(l.name).includes("pendente")
     );
-    const concluido = boardDashboardActive.lists.find((l) =>
+    const concluido = dashboardActiveBoard.lists.find((l) =>
       normalize(l.name).includes("concluido")
     );
     return { andamento, pendente, concluido };
-  }, [boardDashboardActive]);
+  }, [dashboardActiveBoard]);
 
   // Valor total em negociação = andamento + pendente
   const totalKanbanValue = React.useMemo(() => {
@@ -964,7 +996,7 @@ export function Dashboard() {
     const total = andamentoValue + pendenteValue;
 
     console.log("[Dashboard] Valores calculados:", {
-      boardName: boardDashboardActive?.name || "Nenhum",
+      boardName: dashboardActiveBoard?.name || "Nenhum",
       andamentoCards: andamento?.cards?.length || 0,
       andamentoValue,
       pendenteCards: pendente?.cards?.length || 0,
@@ -973,7 +1005,7 @@ export function Dashboard() {
     });
 
     return total;
-  }, [systemLists, boardDashboardActive?.name]);
+  }, [systemLists, dashboardActiveBoard?.name]);
 
   // Vendas concluídas = concluído
   const completedSalesValue = React.useMemo(() => {
@@ -1012,7 +1044,7 @@ export function Dashboard() {
       const today = format(new Date(), "dd-MM-yyyy");
       const periodStart = format(startDate, "dd/MM/yyyy");
       const periodEnd = format(endDate, "dd/MM/yyyy");
-      const boardName = boardDashboardActive?.name || "Não selecionado";
+      const boardName = dashboardActiveBoard?.name || "Não selecionado";
 
       // Calcular resumo financeiro a partir das transações filtradas
       let income = 0;
@@ -1115,10 +1147,10 @@ export function Dashboard() {
       }
 
       // Top Vendedores
-      if (exportOptions.sellerRanking && topSellers.data.length > 0) {
+      if (exportOptions.sellerRanking && dashboardTopSellers.data.length > 0) {
         csvContent += "=== RANKING DE VENDEDORES ===\n";
         csvContent += "Posição,Vendedor,Valor Total,Função,E-mail\n";
-        topSellers.data.forEach((seller, index) => {
+        dashboardTopSellers.data.forEach((seller, index) => {
           const position = index + 1;
           const sellerInfo = getSellerInfo(seller);
           const value = formatCurrency(seller.totalValue);
@@ -1156,7 +1188,7 @@ export function Dashboard() {
         financialData: exportOptions.financialData,
         sellerRanking: exportOptions.sellerRanking,
         transactionsCount: filteredTransactions.length,
-        sellersCount: topSellers.data.length,
+        sellersCount: dashboardTopSellers.data.length,
         contractsCount: contracts.length,
         boardName,
         period: `${periodStart} a ${periodEnd}`,
@@ -1211,8 +1243,8 @@ export function Dashboard() {
                 className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
               >
                 <span className="text-sm font-medium">
-                  {boardDashboardActive ? (
-                    boardDashboardActive.name
+                  {dashboardActiveBoard ? (
+                    dashboardActiveBoard.name
                   ) : (
                     <span className="inline-block w-32 h-5 bg-gray-200 rounded animate-pulse" />
                   )}
@@ -1233,8 +1265,8 @@ export function Dashboard() {
           {/* Board Selector Modal */}
           <BoardSelector
             boards={boards}
-            activeBoardId={boardDashboardActiveId}
-            onSelectBoard={selectAndLoadDashboardBoard}
+            activeBoardId={dashboardActiveBoardId}
+            onSelectBoard={dashboardSelectAndLoadBoard}
             isOpen={showBoardSelector}
             onClose={() => setShowBoardSelector(false)}
           />
@@ -1299,7 +1331,7 @@ export function Dashboard() {
 
           {/* Cards de Resumo */}
           <BoardDataLoading
-            isLoading={isBoardDashboardLoading}
+            isLoading={isDashboardLoadingBoard}
             loadingMessage="Carregando dados do board..."
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1475,8 +1507,8 @@ export function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
             <BoardDataLoading
               isLoading={
-                loadingOperations.has("topSellers") &&
-                topSellers.data.length === 0
+                isDashboardLoadingTopSellers &&
+                dashboardTopSellers.data.length === 0
               }
               loadingMessage="Carregando vendedores..."
             >
@@ -1491,7 +1523,7 @@ export function Dashboard() {
                 </div>
 
                 <div className="mt-4">
-                  {topSellers.data.length === 0 ? (
+                  {dashboardTopSellers.data.length === 0 ? (
                     <div className="h-24 flex items-center justify-center text-gray-400">
                       Nenhum vendedor encontrado
                     </div>
@@ -1504,103 +1536,106 @@ export function Dashboard() {
                         </div>
                       </div>
                       <div className="space-y-3">
-                        {topSellers.data.slice(0, 3).map((seller, index) => {
-                          // Definir cores diferentes para cada posição
-                          const positionColor =
-                            index === 0
-                              ? "bg-yellow-500"
-                              : index === 1
-                              ? "bg-gray-400"
-                              : index === 2
-                              ? "bg-amber-700"
-                              : "bg-purple-500";
+                        {dashboardTopSellers.data
+                          .slice(0, 3)
+                          .map((seller, index) => {
+                            // Definir cores diferentes para cada posição
+                            const positionColor =
+                              index === 0
+                                ? "bg-yellow-500"
+                                : index === 1
+                                ? "bg-gray-400"
+                                : index === 2
+                                ? "bg-amber-700"
+                                : "bg-purple-500";
 
-                          const cardBgClass =
-                            index === 0
-                              ? "bg-yellow-50 dark:bg-yellow-900/10 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
-                              : index === 1
-                              ? "bg-gray-50 dark:bg-gray-700/30 hover:bg-gray-100 dark:hover:bg-gray-700/40"
-                              : index === 2
-                              ? "bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100 dark:hover:bg-amber-900/20"
-                              : "bg-purple-50 dark:bg-purple-900/10 hover:bg-purple-100 dark:hover:bg-purple-900/20";
+                            const cardBgClass =
+                              index === 0
+                                ? "bg-yellow-50 dark:bg-yellow-900/10 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
+                                : index === 1
+                                ? "bg-gray-50 dark:bg-gray-700/30 hover:bg-gray-100 dark:hover:bg-gray-700/40"
+                                : index === 2
+                                ? "bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100 dark:hover:bg-amber-900/20"
+                                : "bg-purple-50 dark:bg-purple-900/10 hover:bg-purple-100 dark:hover:bg-purple-900/20";
 
-                          const avatarBgClass =
-                            index === 0
-                              ? "from-yellow-400 to-amber-500"
-                              : index === 1
-                              ? "from-gray-400 to-gray-500"
-                              : index === 2
-                              ? "from-amber-700 to-amber-800"
-                              : "from-purple-500 to-indigo-600";
+                            const avatarBgClass =
+                              index === 0
+                                ? "from-yellow-400 to-amber-500"
+                                : index === 1
+                                ? "from-gray-400 to-gray-500"
+                                : index === 2
+                                ? "from-amber-700 to-amber-800"
+                                : "from-purple-500 to-indigo-600";
 
-                          const user = seller.user;
-                          const sellerName =
-                            user?.name || "Responsável Desconhecido";
-                          const initials = sellerName
-                            .split(" ")
-                            .map((part) => part[0])
-                            .join("")
-                            .substring(0, 2)
-                            .toUpperCase();
+                            const user = seller.user;
+                            const sellerName =
+                              user?.name || "Responsável Desconhecido";
+                            const initials = sellerName
+                              .split(" ")
+                              .map((part) => part[0])
+                              .join("")
+                              .substring(0, 2)
+                              .toUpperCase();
 
-                          // Posição
-                          const position = index + 1;
+                            // Posição
+                            const position = index + 1;
 
-                          return (
-                            <div
-                              key={user?.id || index}
-                              className={`relative p-3 rounded-lg transition-all ${cardBgClass} group`}
-                            >
-                              {/* Badge de posição */}
+                            return (
                               <div
-                                className={`absolute -top-2 -left-2 w-6 h-6 ${positionColor} rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm`}
+                                key={user?.id || index}
+                                className={`relative p-3 rounded-lg transition-all ${cardBgClass} group`}
                               >
-                                {position}
-                              </div>
+                                {/* Badge de posição */}
+                                <div
+                                  className={`absolute -top-2 -left-2 w-6 h-6 ${positionColor} rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm`}
+                                >
+                                  {position}
+                                </div>
 
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3 pl-2">
-                                  {user?.avatar_url ? (
-                                    <img
-                                      src={user.avatar_url}
-                                      alt={sellerName}
-                                      className="w-10 h-10 rounded-full object-cover"
-                                    />
-                                  ) : (
-                                    <div
-                                      className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarBgClass} flex items-center justify-center text-white text-sm font-medium shadow-sm`}
-                                    >
-                                      {initials}
-                                    </div>
-                                  )}
-                                  <div>
-                                    <p className="font-medium text-gray-800 dark:text-gray-200">
-                                      {sellerName}
-                                    </p>
-                                    <div className="flex items-center gap-1 mt-0.5">
-                                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                                        Vendas realizadas
-                                      </span>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3 pl-2">
+                                    {user?.avatar_url ? (
+                                      <img
+                                        src={user.avatar_url}
+                                        alt={sellerName}
+                                        className="w-10 h-10 rounded-full object-cover"
+                                      />
+                                    ) : (
+                                      <div
+                                        className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarBgClass} flex items-center justify-center text-white text-sm font-medium shadow-sm`}
+                                      >
+                                        {initials}
+                                      </div>
+                                    )}
+                                    <div>
+                                      <p className="font-medium text-gray-800 dark:text-gray-200">
+                                        {sellerName}
+                                      </p>
+                                      <div className="flex items-center gap-1 mt-0.5">
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                          Vendas realizadas
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="font-medium text-sm text-gray-800 dark:text-gray-200">
-                                    {formatCurrency(seller.totalValue)}
-                                  </p>
+                                  <div className="text-right">
+                                    <p className="font-medium text-sm text-gray-800 dark:text-gray-200">
+                                      {formatCurrency(seller.totalValue)}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
                       </div>
-                      {topSellers.data.length > 3 && (
+                      {dashboardTopSellers.data.length > 3 && (
                         <div className="mt-4 pt-3 border-t border-gray-100 dark:border-dark-700">
                           <button
                             onClick={() => setShowAllSellersModal(true)}
                             className="w-full py-2 px-3 bg-purple-50 dark:bg-purple-900/10 text-purple-700 dark:text-purple-400 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors text-xs font-medium flex items-center justify-center gap-1"
                           >
-                            Ver todos os vendedores ({topSellers.data.length})
+                            Ver todos os vendedores (
+                            {dashboardTopSellers.data.length})
                             <ChevronDown className="w-3 h-3 transform rotate-[-90deg]" />
                           </button>
                         </div>
@@ -1756,7 +1791,7 @@ export function Dashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                      {topSellers.data.map((seller, index) => {
+                      {dashboardTopSellers.data.map((seller, index) => {
                         // Definir cores para posição
                         const positionColor =
                           index === 0
