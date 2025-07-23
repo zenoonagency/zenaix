@@ -14,7 +14,8 @@ export function TopSellers({
   formatCurrency,
   onShowAllSellersModal,
 }: TopSellersProps) {
-  if (isDashboardLoadingTopSellers && dashboardTopSellers.data.length === 0) {
+  // Mostra loading quando está carregando e não há dados, ou quando está recarregando
+  if (isDashboardLoadingTopSellers) {
     return (
       <div className="bg-white dark:bg-dark-800 p-4 rounded-xl shadow-sm">
         <div className="flex items-center justify-between mb-3">

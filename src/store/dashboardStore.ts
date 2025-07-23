@@ -109,19 +109,12 @@ export const useDashboardStore = create<DashboardStore>()(
       },
 
       selectAndLoadBoard: async (boardId: string) => {
-        console.log(
-          "[DashboardStore] 🎯 Selecionando e carregando board:",
-          boardId
-        );
-
-        // Definir o ID imediatamente para evitar estado inconsistente
         get().setActiveBoardId(boardId);
 
-        // Buscar board completo
-        await get().fetchDashboardBoard(boardId);
-
-        // Buscar top sellers em paralelo (não bloquear)
-        get().fetchTopSellers(boardId);
+        await Promise.all([
+          get().fetchDashboardBoard(boardId),
+          get().fetchTopSellers(boardId),
+        ]);
       },
 
       // Utils
@@ -190,11 +183,9 @@ export const useDashboardStore = create<DashboardStore>()(
     {
       name: "dashboard-store",
       partialize: (state) => ({
-        activeBoardId: state.activeBoardId,
-        activeBoard: state.activeBoard,
         lastUsedBoardId: state.lastUsedBoardId,
         lastFetched: state.lastFetched,
-        // Não persistir topSellers, loading states e errors
+        // Não persistir activeBoardId, activeBoard, topSellers, loading states e errors
       }),
     }
   )
