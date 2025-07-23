@@ -3,11 +3,14 @@ import { persist } from "zustand/middleware";
 import { APIError } from "../services/errors/api.errors";
 import { permissionsService } from "../services/permission/permissions.service";
 import { OutputPermissionDTO } from "../types/team.types";
+import { cleanUserData } from "../utils/dataOwnership";
 
 interface SystemPermissionsState {
-  systemPermissions: OutputPermissionDTO[];
+  systemPermissions: any[];
   isLoading: boolean;
   error: string | null;
+  lastFetched: number | null;
+  cleanUserData: () => void;
   fetchAllSystemPermissions: (token: string) => Promise<void>;
 }
 
@@ -17,6 +20,7 @@ export const useSystemPermissionsStore = create<SystemPermissionsState>()(
       systemPermissions: [],
       isLoading: false,
       error: null,
+      lastFetched: null,
 
       fetchAllSystemPermissions: async (token: string) => {
         if (get().isLoading) return;
@@ -41,6 +45,14 @@ export const useSystemPermissionsStore = create<SystemPermissionsState>()(
               : "Não foi possível carregar as permissões do sistema.";
           set({ error: errorMessage, isLoading: false });
         }
+      },
+      cleanUserData: () => {
+        set({
+          systemPermissions: [],
+          isLoading: false,
+          error: null,
+          lastFetched: null,
+        });
       },
     }),
     {

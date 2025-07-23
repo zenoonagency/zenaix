@@ -7,12 +7,14 @@ import {
   GrantPermissionsDTO,
   RevokePermissionsDTO,
 } from "../types/team.types";
+import { cleanUserData } from '../utils/dataOwnership';
 
 interface PermissionsState {
   permissions: OutputPermissionDTO[];
   isLoading: boolean;
   error: string | null;
   lastFetched: number | null;
+  cleanUserData: () => void;
 
   setPermissions: (permissions: OutputPermissionDTO[]) => void;
   fetchPermissions: (
@@ -87,6 +89,15 @@ export const usePermissionsStore = create<PermissionsState>()(
           set({ error: err.message || "Erro ao revogar permissões." });
           throw err;
         }
+      },
+
+      cleanUserData: () => {
+        set({
+          permissions: [],
+          isLoading: false,
+          error: null,
+          lastFetched: null,
+        });
       },
     }),
     {

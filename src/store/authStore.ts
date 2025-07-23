@@ -19,6 +19,9 @@ import { useTagStore } from "./tagStore";
 import { useEmbedPagesStore } from "./embedPagesStore";
 import { useInviteStore } from "./inviteStore";
 import { useDataTablesStore } from "./dataTablesStore";
+import { useDashboardTransactionStore } from "./dashboardTransactionStore";
+import { usePermissionsStore } from "./permissionsStore";
+import { useSystemPermissionsStore } from "./systemPermissionsStore";
 
 export const useAuthStore = createWithEqualityFn<AuthState>()(
   persist(
@@ -57,6 +60,9 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         useEmbedPagesStore.getState().cleanUserData();
         useInviteStore.getState().cleanUserData();
         useDataTablesStore.getState().cleanUserData();
+        useDashboardTransactionStore.getState().cleanUserData();
+        usePermissionsStore.getState().cleanUserData();
+        useSystemPermissionsStore.getState().cleanUserData();
       },
 
       setToken: (newToken: string) => {
@@ -89,6 +95,9 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         useEmbedPagesStore.getState().cleanUserData();
         useInviteStore.getState().cleanUserData();
         useDataTablesStore.getState().cleanUserData();
+        useDashboardTransactionStore.getState().cleanUserData();
+        usePermissionsStore.getState().cleanUserData();
+        useSystemPermissionsStore.getState().cleanUserData();
       },
 
       updateUser: (userData: Partial<User>) => {

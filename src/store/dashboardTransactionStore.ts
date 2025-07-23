@@ -5,6 +5,7 @@ import {
   OutputTransactionDTO,
   FinancialSummaryDTO,
 } from "../types/transaction";
+import { cleanUserData } from "../utils/dataOwnership";
 
 interface IDateRangeFilters {
   startDate?: string; // formato YYYY-MM-DD
@@ -22,6 +23,7 @@ export interface DashboardTransactionState {
   error: string | null;
   lastFetched: number | null;
   lastFilters: CachedDashboardFilters | null;
+  cleanUserData: () => void;
 
   setTransactions: (transactions: OutputTransactionDTO[]) => void;
   setSummary: (summary: FinancialSummaryDTO | null) => void;
@@ -275,6 +277,16 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
           );
           // Não definir erro para o summary, apenas logar
         }
+      },
+
+      cleanUserData: () => {
+        set({
+          transactions: [],
+          summary: null,
+          isLoading: false,
+          error: null,
+          lastFetched: null,
+        });
       },
     }),
     {
