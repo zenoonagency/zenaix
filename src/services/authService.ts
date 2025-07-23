@@ -149,6 +149,38 @@ export const authService = {
     }
   },
 
+  async changePassword(
+    token: string,
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ message: string }> {
+    try {
+      const response = await fetch(
+        `${API_CONFIG.baseUrl}/auth/change-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ currentPassword, newPassword }),
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw formatApiError(responseData, "Erro ao alterar senha.");
+      }
+
+      return { message: responseData.message };
+    } catch (error) {
+      console.error("ChangePassword Error:", error);
+      if (error instanceof APIError) throw error;
+      throw new APIError("Ocorreu um erro inesperado ao alterar senha.");
+    }
+  },
+
   async loginWithOAuth(provider: string): Promise<void> {
     // Redireciona para o backend que iniciará o OAuth
     window.location.href = `${API_CONFIG.baseUrl}/auth/oauth/${provider}`;
