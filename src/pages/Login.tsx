@@ -8,6 +8,7 @@ import { useThemeStore } from "../store/themeStore";
 import { ParticlesEffect } from "../components/effects/ParticlesEffect";
 import { authService } from "../services/authService";
 import { useToast } from "../hooks/useToast";
+import { OAuthButtons } from "../components/auth/OAuthButtons";
 
 interface LoginProps {
   onLoginSuccess?: () => void;
@@ -32,6 +33,47 @@ export function Login({ onLoginSuccess }: LoginProps) {
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate]);
+
+  // Detectar callback OAuth
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const handleOAuthCallback = async () => {
+      try {
+        const authData = await authService.handleOAuthCallback(urlParams);
+        if (authData) {
+          login(authData);
+          showToast("Login realizado com sucesso!", "success");
+          if (onLoginSuccess) {
+            onLoginSuccess();
+          }
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Erro no login social";
+        setError(message);
+        showToast(message, "error");
+        // Limpar URL parameters
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+      }
+    };
+
+    if (urlParams.get("oauth_success")) {
+      handleOAuthCallback();
+    }
+
+    // Detectar erro OAuth
+    if (urlParams.get("oauth_error")) {
+      const errorMessage = urlParams.get("message") || "Erro no login social";
+      setError(errorMessage);
+      showToast(errorMessage, "error");
+      // Limpar URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [login, onLoginSuccess, showToast]);
 
   if (!_hasHydrated) {
     return (
@@ -182,11 +224,20 @@ export function Login({ onLoginSuccess }: LoginProps) {
             </button>
           </motion.div>
         </form>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6, duration: 0.3 }}
+        >
+          <OAuthButtons className="mt-6" />
+        </motion.div>
+
         <motion.div
           className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.3 }}
+          transition={{ delay: 0.7, duration: 0.3 }}
         >
           Não tem uma conta?{" "}
           <Link
@@ -201,14 +252,14 @@ export function Login({ onLoginSuccess }: LoginProps) {
           className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.7, duration: 0.3 }}
+          transition={{ delay: 0.8, duration: 0.3 }}
         >
-          <a
-            href="#"
+          <Link
+            to="/forgot-password"
             className="text-[#7f00ff] hover:text-[#7f00ff]/80 transition-colors"
           >
             Esqueceu sua senha?
-          </a>
+          </Link>
         </motion.div>
       </motion.div>
     </div>

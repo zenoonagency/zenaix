@@ -22,6 +22,7 @@ import { LANGUAGE_OPTIONS } from "../contexts/LocalizationContext";
 import { TIMEZONE_OPTIONS } from "../utils/dateUtils";
 import { userService } from "../services/user/user.service";
 import { compressImage } from "../utils/imageCompression";
+import { OAuthButtonsInvite } from "../components/auth/OAuthButtonsInvite";
 
 export function AcceptInviteRegister() {
   const [searchParams] = useSearchParams();
@@ -46,6 +47,74 @@ export function AcceptInviteRegister() {
   const { showToast } = useToast();
   const { theme } = useThemeStore();
   const navigate = useNavigate();
+
+  // Detectar callback OAuth para convites no registro
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const handleOAuthCallback = async () => {
+      try {
+        const authData = await authService.handleOAuthCallback(urlParams);
+        if (authData) {
+          login(authData);
+
+          // Tentar recuperar dados do convite do sessionStorage
+          const storedOrg = sessionStorage.getItem("invite_org");
+          const storedToken = sessionStorage.getItem("invite_token");
+          const currentInviteToken = inviteToken || storedToken;
+
+          if (currentInviteToken) {
+            try {
+              await inviteService.acceptInvite(authData.token, {
+                token: currentInviteToken,
+              });
+              showToast(
+                "Conta criada e convite aceito com sucesso!",
+                "success"
+              );
+
+              // Limpar sessionStorage
+              sessionStorage.removeItem("invite_org");
+              sessionStorage.removeItem("invite_token");
+            } catch (inviteError) {
+              showToast(
+                "Conta criada, mas erro ao aceitar convite. Tente novamente.",
+                "warning"
+              );
+            }
+          } else {
+            showToast("Conta criada com sucesso!", "success");
+          }
+
+          navigate("/dashboard");
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Erro no registro social";
+        setError(message);
+        showToast(message, "error");
+        // Limpar URL parameters
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+      }
+    };
+
+    if (urlParams.get("oauth_success")) {
+      handleOAuthCallback();
+    }
+
+    // Detectar erro OAuth
+    if (urlParams.get("oauth_error")) {
+      const errorMessage =
+        urlParams.get("message") || "Erro no registro social";
+      setError(errorMessage);
+      showToast(errorMessage, "error");
+      // Limpar URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [login, inviteToken, navigate, showToast]);
 
   const logoUrl =
     theme === "dark"
@@ -420,6 +489,13 @@ export function AcceptInviteRegister() {
             )}
           </AnimatePresence>
         </form>
+
+        <OAuthButtonsInvite 
+          className="mt-6" 
+          org={org} 
+          inviteToken={inviteToken} 
+        />
+
         <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           Já tem uma conta?{" "}
           <Link

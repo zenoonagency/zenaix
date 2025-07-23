@@ -29,12 +29,16 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path,
+        cookieDomainRewrite: {
+          "app-backend-zenaix.mgmxhs.easypanel.host": "localhost",
+        },
         configure: (proxy, _options) => {
           proxy.on("error", (err, _req, _res) => {
             console.log("proxy error", err);
           });
           proxy.on("proxyReq", (proxyReq, req, _res) => {
             console.log("Sending Request to the Target:", req.method, req.url);
+            console.log("Cookies sendo enviados:", req.headers.cookie);
           });
           proxy.on("proxyRes", (proxyRes, req, _res) => {
             console.log(
@@ -42,6 +46,7 @@ export default defineConfig({
               proxyRes.statusCode,
               req.url
             );
+            console.log("Cookies recebidos:", proxyRes.headers["set-cookie"]);
           });
         },
       },

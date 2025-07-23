@@ -9,6 +9,7 @@ import { ParticlesEffect } from "../components/effects/ParticlesEffect";
 import { authService } from "../services/authService";
 import { useToast } from "../hooks/useToast";
 import { inviteService } from "../services/invite/invite.service";
+import { OAuthButtonsInvite } from "../components/auth/OAuthButtonsInvite";
 
 export function AcceptInviteLogin() {
   const [searchParams] = useSearchParams();
@@ -23,6 +24,60 @@ export function AcceptInviteLogin() {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
   const { showToast } = useToast();
+
+  // Detectar callback OAuth para convites
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const handleOAuthCallback = async () => {
+      try {
+        const authData = await authService.handleOAuthCallback(urlParams);
+        if (authData) {
+          login(authData);
+          
+          // Tentar recuperar dados do convite do sessionStorage
+          const storedOrg = sessionStorage.getItem('invite_org');
+          const storedToken = sessionStorage.getItem('invite_token');
+          const currentInviteToken = inviteToken || storedToken;
+          
+          if (currentInviteToken) {
+            try {
+              await inviteService.acceptInvite(authData.token, { token: currentInviteToken });
+              showToast("Login realizado e convite aceito com sucesso!", "success");
+              
+              // Limpar sessionStorage
+              sessionStorage.removeItem('invite_org');
+              sessionStorage.removeItem('invite_token');
+            } catch (inviteError) {
+              showToast("Login realizado, mas erro ao aceitar convite. Tente novamente.", "warning");
+            }
+          } else {
+            showToast("Login realizado com sucesso!", "success");
+          }
+          
+          navigate("/dashboard");
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Erro no login social";
+        setError(message);
+        showToast(message, "error");
+        // Limpar URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+
+    if (urlParams.get("oauth_success")) {
+      handleOAuthCallback();
+    }
+
+    // Detectar erro OAuth
+    if (urlParams.get("oauth_error")) {
+      const errorMessage = urlParams.get("message") || "Erro no login social";
+      setError(errorMessage);
+      showToast(errorMessage, "error");
+      // Limpar URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [login, inviteToken, navigate, showToast]);
 
   const logoUrl =
     theme === "dark"
@@ -135,6 +190,13 @@ export function AcceptInviteLogin() {
             )}
           </button>
         </form>
+
+        <OAuthButtonsInvite
+          className="mt-6"
+          org={org}
+          inviteToken={inviteToken}
+        />
+
         <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           Não tem uma conta?{" "}
           <Link

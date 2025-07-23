@@ -18,6 +18,8 @@ import { Help } from "../pages/Help";
 import { Tags } from "../pages/Tags";
 import { Login } from "../pages/Login";
 import { Register } from "../pages/Register";
+import { ForgotPassword } from "../pages/ForgotPassword";
+import { ResetPassword } from "../pages/ResetPassword";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { OrganizationProtectedRoute } from "../components/OrganizationProtectedRoute";
 import { PageTransition } from "../components/PageTransition";
@@ -32,6 +34,14 @@ export const router = createBrowserRouter([
   {
     path: "/register",
     element: <Register />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
   },
   {
     path: "/accept-invite",
