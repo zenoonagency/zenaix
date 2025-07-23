@@ -18,12 +18,6 @@ export interface PlanOutput extends PlanInput {
   updated_at: string;
 }
 
-export interface ApiResponse<T> {
-  message: string;
-  data: T;
-  status: number;
-}
-
 export interface PlanState {
   plans: PlanOutput[];
   basePlans: PlanOutput[];

@@ -36,3 +36,17 @@ export interface InputUpdateContractDTO {
   value?: number;
   expiration_date?: string;
 }
+
+export interface ContractState {
+  contracts: ContractOutput[];
+  isLoading: boolean;
+  error: string | null;
+  lastFetched: number | null;
+
+  setContracts: (contracts: ContractOutput[]) => void;
+  addContract: (contract: ContractOutput) => void;
+  updateContract: (contract: ContractOutput) => void;
+  deleteContract: (contractId: string) => void;
+  fetchAllContracts: (token: string, organizationId: string) => Promise<void>;
+  cleanUserData: () => void;
+}

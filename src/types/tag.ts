@@ -20,11 +20,10 @@ export interface TagState {
   isLoading: boolean;
   error: string | null;
   lastFetched: number | null;
-
   setTags: (tags: OutputTagDTO[]) => void;
   addTag: (tag: OutputTagDTO) => void;
   updateTag: (tag: OutputTagDTO) => void;
   deleteTag: (tagId: string) => void;
-
   fetchAllTags: (token: string, organizationId: string) => Promise<void>;
+  cleanUserData: () => void;
 }

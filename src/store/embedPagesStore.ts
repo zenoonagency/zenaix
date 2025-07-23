@@ -1,25 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { EmbedOutput } from "../types/embed";
+import { EmbedOutput, EmbedPagesState } from "../types/embed";
 import { embedService } from "../services/embed/embed.service";
 import { APIError } from "../services/errors/api.errors";
 import { cleanUserData } from "../utils/dataOwnership";
-
-export interface EmbedPagesState {
-  pages: EmbedOutput[];
-  isLoading: boolean;
-  error: string | null;
-  lastFetched: number | null;
-  cleanUserData: () => void;
-
-  setPages: (pages: EmbedOutput[]) => void;
-  addPage: (page: EmbedOutput) => void;
-  updatePage: (page: EmbedOutput) => void;
-  deletePage: (pageId: string) => void;
-  fetchAllEmbedPages: (token: string, organizationId: string) => Promise<void>;
-}
-
-const CACHE_DURATION = 60 * 60 * 1000;
 
 export const useEmbedPagesStore = create<EmbedPagesState>()(
   persist(

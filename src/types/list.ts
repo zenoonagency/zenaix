@@ -30,3 +30,20 @@ export interface ListListResponse {
   data: OutputListDTO[];
   status: number;
 }
+
+export interface ListState {
+  lists: OutputListDTO[];
+  isLoading: boolean;
+  error: string | null;
+  lastFetched: number | null;
+  selectedList: OutputListDTO | null;
+
+  setLists: (lists: OutputListDTO[]) => void;
+  addList: (list: OutputListDTO) => void;
+  updateList: (list: OutputListDTO) => void;
+  removeList: (listId: string) => void;
+  selectList: (list: OutputListDTO) => void;
+  cleanUserData: () => void;
+
+  fetchLists: (boardId: string) => Promise<void>;
+}

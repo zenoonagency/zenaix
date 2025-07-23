@@ -2,35 +2,10 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { APIError } from "../services/errors/api.errors";
 import { teamService } from "../services/team/team.service";
-import { TeamMember, InputUpdateTeamMemberRoleDTO } from "../types/team.types";
+import {
+  TeamMembersState,
+} from "../types/team.types";
 import { cleanUserData } from "../utils/dataOwnership";
-
-interface TeamMembersState {
-  members: TeamMember[];
-  isLoading: boolean;
-  error: string | null;
-  lastFetched: number | null;
-
-  setMembers: (members: TeamMember[]) => void;
-  addMember: (member: TeamMember) => void;
-  updateMember: (member: TeamMember) => void;
-  removeMember: (memberId: string) => void;
-
-  fetchAllMembers: (token: string, organizationId: string) => Promise<void>;
-
-  updateMemberRole: (
-    token: string,
-    organizationId: string,
-    memberId: string,
-    data: InputUpdateTeamMemberRoleDTO
-  ) => Promise<void>;
-  removeMemberFromOrg: (
-    token: string,
-    organizationId: string,
-    memberId: string
-  ) => Promise<void>;
-  cleanUserData: () => void;
-}
 
 export const useTeamMembersStore = create<TeamMembersState>()(
   persist(

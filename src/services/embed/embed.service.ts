@@ -4,7 +4,7 @@ import {
   InputCreateEmbedDTO,
   InputUpdateEmbedDTO,
 } from "../../types/embed";
-import { ApiResponse } from "../../types/plan";
+import { ApiResponse } from "../../types/api.types";
 import { getAuthHeaders } from "../../utils/authHeaders";
 import { fetchWithAuth } from "../apiClient";
 import { APIError } from "../errors/api.errors";

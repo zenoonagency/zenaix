@@ -3,48 +3,10 @@ import { persist } from "zustand/middleware";
 import { transactionService } from "../services/transaction/transaction.service";
 import {
   OutputTransactionDTO,
-  FinancialSummaryDTO,
+  DashboardTransactionState,
+  CachedDashboardFilters,
 } from "../types/transaction";
 import { cleanUserData } from "../utils/dataOwnership";
-
-interface IDateRangeFilters {
-  startDate?: string; // formato YYYY-MM-DD
-  endDate?: string; // formato YYYY-MM-DD
-}
-
-interface CachedDashboardFilters extends IDateRangeFilters {
-  organizationId: string;
-}
-
-export interface DashboardTransactionState {
-  transactions: OutputTransactionDTO[];
-  summary: FinancialSummaryDTO | null;
-  isLoading: boolean;
-  error: string | null;
-  lastFetched: number | null;
-  lastFilters: CachedDashboardFilters | null;
-  cleanUserData: () => void;
-
-  setTransactions: (transactions: OutputTransactionDTO[]) => void;
-  setSummary: (summary: FinancialSummaryDTO | null) => void;
-  setLoading: (loading: boolean) => void;
-
-  fetchDashboardTransactions: (
-    token: string,
-    organizationId: string,
-    filters?: IDateRangeFilters,
-    forceRefresh?: boolean
-  ) => Promise<void>;
-
-  fetchDashboardSummary: (
-    token: string,
-    organizationId: string,
-    filters?: IDateRangeFilters
-  ) => Promise<void>;
-
-  clearError: () => void;
-  clearCache: () => void;
-}
 
 export const useDashboardTransactionStore = create<DashboardTransactionState>()(
   persist(

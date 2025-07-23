@@ -1,22 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { ContractOutput } from "../types/contract";
+import { ContractOutput, ContractState } from "../types/contract";
 import { contractService } from "../services/contract/contract.service";
 import { APIError } from "../services/errors/api.errors";
-
-export interface ContractState {
-  contracts: ContractOutput[];
-  isLoading: boolean;
-  error: string | null;
-  lastFetched: number | null;
-
-  setContracts: (contracts: ContractOutput[]) => void;
-  addContract: (contract: ContractOutput) => void;
-  updateContract: (contract: ContractOutput) => void;
-  deleteContract: (contractId: string) => void;
-  fetchAllContracts: (token: string, organizationId: string) => Promise<void>;
-  cleanUserData: () => void;
-}
 
 const CACHE_DURATION = 60 * 60 * 1000;
 

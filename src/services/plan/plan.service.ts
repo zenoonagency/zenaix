@@ -8,6 +8,7 @@ import {
 import { getAuthHeaders } from "../../utils/authHeaders";
 import { formatApiError } from "../../utils/formatters";
 import { APIError } from "../errors/api.errors";
+import { ApiResponse as ApiResponseType } from "../../types/api.types";
 
 export const planService = {
   async create(token: string, data: PlanInput): Promise<PlanOutput> {
@@ -20,7 +21,7 @@ export const planService = {
           body: JSON.stringify(data),
         }
       );
-      const responseData: ApiResponse<PlanOutput> = await response.json();
+      const responseData: ApiResponseType<PlanOutput> = await response.json();
       if (!response.ok) {
         throw formatApiError(responseData, "Falha ao criar o plano.");
       }
@@ -44,7 +45,7 @@ export const planService = {
         headers: getAuthHeaders(token),
         body: JSON.stringify(data),
       });
-      const responseData: ApiResponse<PlanOutput> = await response.json();
+      const responseData: ApiResponseType<PlanOutput> = await response.json();
       if (!response.ok) {
         throw formatApiError(responseData, "Falha ao atualizar o plano.");
       }
@@ -87,7 +88,7 @@ export const planService = {
         method: "GET",
         headers: getAuthHeaders(token),
       });
-      const responseData: ApiResponse<PlanOutput[]> = await response.json();
+      const responseData: ApiResponseType<PlanOutput[]> = await response.json();
       if (!response.ok) {
         throw formatApiError(responseData, "Falha ao buscar os planos.");
       }
@@ -106,7 +107,7 @@ export const planService = {
         method: "GET",
         headers: getAuthHeaders(token),
       });
-      const responseData: ApiResponse<PlanOutput> = await response.json();
+      const responseData: ApiResponseType<PlanOutput> = await response.json();
       if (!response.ok) {
         throw formatApiError(responseData, "Falha ao buscar o plano.");
       }

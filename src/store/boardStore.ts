@@ -1,69 +1,13 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { boardService } from "../services/board.service";
-import { Board, TopSellersResponse } from "../types/board";
+import { Board, TopSellersResponse, BoardState } from "../types/board";
 import { useAuthStore } from "./authStore";
 import { useToastStore } from "../components/Notification";
 import { APIError } from "../services/errors/api.errors";
 import { OutputListDTO } from "../types/list";
 import { AttachmentDTO, OutputCardDTO, SubtaskDTO } from "../types/card";
 import { cleanUserData } from "../utils/dataOwnership";
-
-interface BoardState {
-  boards: Board[];
-  isLoading: boolean;
-  isDashboardLoading: boolean; // Loading específico para dashboard
-  error: string | null;
-  selectedBoard: Board | null;
-  lastFetched: number | null;
-
-  activeBoardId: string | null;
-  lastUsedBoardId: string | null;
-  activeBoard: Board | null;
-  setActiveBoardId: (boardId: string | null) => void;
-  setLastUsedBoardId: (boardId: string | null) => void;
-  setActiveBoard: (board: Board | null) => void;
-  selectActiveBoard: (boards: Board[]) => void;
-  fetchFullBoard: (boardId: string) => Promise<void>;
-  selectAndLoadKanbanBoard: (boardId: string) => Promise<void>;
-
-  boardDashboardActiveId: string | null;
-  boardDashboardActive: Board | null;
-  lastUsedDashboardBoardId: string | null;
-  setBoardDashboardActiveId: (boardId: string | null) => void;
-  setBoardDashboardActive: (board: Board | null) => void;
-  setLastUsedDashboardBoardId: (boardId: string | null) => void;
-  selectDashboardBoard: (boards: Board[]) => void;
-  fetchFullDashboardBoard: (boardId: string) => Promise<void>;
-  selectAndLoadDashboardBoard: (boardId: string) => Promise<void>;
-  topSellers: TopSellersResponse;
-
-  setBoards: (boards: Board[]) => void;
-  addBoard: (board: Board) => void;
-  updateBoard: (board: Board) => void;
-  removeBoard: (boardId: string) => void;
-  cleanUserData: () => void;
-
-  setSelectedBoard: (board: Board | null) => void;
-  addListToActiveBoard: (list: OutputListDTO) => void;
-  updateListInActiveBoard: (list: OutputListDTO) => void;
-  removeListFromActiveBoard: (listId: string) => void;
-  addCardToActiveBoard: (card: OutputCardDTO) => void;
-  updateCardInActiveBoard: (card: OutputCardDTO) => void;
-  removeCardFromActiveBoard: (cardId: string, listId: string) => void;
-  addSubtaskToCard: (subtask: SubtaskDTO) => void;
-  updateSubtaskInCard: (subtask: SubtaskDTO) => void;
-  removeSubtaskFromCard: (subtask: { id: string; card_id: string }) => void;
-  addAttachmentToCard: (attachment: AttachmentDTO) => void;
-  updateAttachmentInCard: (attachment: AttachmentDTO) => void;
-  removeAttachmentFromCard: (attachment: {
-    id: string;
-    card_id: string;
-  }) => void;
-
-  fetchAllBoards: (token: string, organizationId: string) => Promise<void>;
-  fetchTopSellers: (boardId: string) => Promise<void>;
-}
 
 export const useBoardStore = create<BoardState>()(
   persist(
@@ -679,9 +623,22 @@ export const useBoardStore = create<BoardState>()(
         });
       },
       cleanUserData: () => {
-        const { boards } = get();
-        const filtered = cleanUserData(boards);
-        set({ boards: filtered });
+        console.log("[BoardStore] 🧹 Limpando dados do usuário");
+        set({
+          boards: [],
+          isLoading: false,
+          isDashboardLoading: false,
+          error: null,
+          selectedBoard: null,
+          lastFetched: null,
+          activeBoardId: null,
+          lastUsedBoardId: null,
+          activeBoard: null,
+          boardDashboardActiveId: null,
+          boardDashboardActive: null,
+          lastUsedDashboardBoardId: null,
+          topSellers: { data: [] },
+        });
       },
     }),
     {

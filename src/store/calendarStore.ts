@@ -1,37 +1,15 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { calendarService } from "../services/calendar/calendar.service";
-import { CalendarEvent, CalendarFilters } from "../types/calendar";
+import {
+  CalendarEvent,
+  CalendarFilters,
+  CalendarState,
+} from "../types/calendar";
 import { useAuthStore } from "./authStore";
 import { useToastStore } from "../components/Notification";
 import { APIError } from "../services/errors/api.errors";
 import { cleanUserData } from "../utils/dataOwnership";
-
-interface CalendarState {
-  events: CalendarEvent[];
-  isLoading: boolean;
-  error: string | null;
-  selectedEvent: CalendarEvent | null;
-  lastFetched: number | null;
-
-  setEvents: (events: CalendarEvent[]) => void;
-  addEvent: (event: CalendarEvent) => void;
-  updateEvent: (event: CalendarEvent) => void;
-  removeEvent: (eventId: string) => void;
-  setSelectedEvent: (event: CalendarEvent | null) => void;
-  removeEventsByFilter: (filters: {
-    start_date: string;
-    end_date: string;
-  }) => void;
-  removeAllEvents: () => void;
-
-  fetchEvents: (
-    filters?: CalendarFilters,
-    forceRefresh?: boolean
-  ) => Promise<void>;
-  // Novo método para limpar dados do usuário
-  cleanUserData: () => void;
-}
 
 export const useCalendarStore = create<CalendarState>()(
   persist(

@@ -71,6 +71,9 @@ export const authService = {
   },
 
   async refreshToken(): Promise<{ token: string }> {
+    console.log("AuthService: Tentando refresh token...");
+    console.log("AuthService: URL:", `${API_CONFIG.baseUrl}/auth/refresh`);
+
     const response = await fetch(`${API_CONFIG.baseUrl}/auth/refresh`, {
       method: "POST",
       headers: {
@@ -79,11 +82,20 @@ export const authService = {
       credentials: "include", // Essencial para enviar cookies
     });
 
+    console.log("AuthService: Status da resposta:", response.status);
+    console.log(
+      "AuthService: Headers da resposta:",
+      Object.fromEntries(response.headers.entries())
+    );
+
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.log("AuthService: Erro na resposta:", errorData);
       throw new Error("Sessão expirada. Por favor, faça login novamente.");
     }
 
     const data = await response.json();
+    console.log("AuthService: Token renovado com sucesso");
     return { token: data.token };
   },
 };

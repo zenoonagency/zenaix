@@ -97,3 +97,28 @@ export interface CalendarListResponse {
   data: CalendarEvent[];
   status: number;
 }
+
+export interface CalendarState {
+  events: CalendarEvent[];
+  isLoading: boolean;
+  error: string | null;
+  selectedEvent: CalendarEvent | null;
+  lastFetched: number | null;
+
+  setEvents: (events: CalendarEvent[]) => void;
+  addEvent: (event: CalendarEvent) => void;
+  updateEvent: (event: CalendarEvent) => void;
+  removeEvent: (eventId: string) => void;
+  setSelectedEvent: (event: CalendarEvent | null) => void;
+  removeEventsByFilter: (filters: {
+    start_date: string;
+    end_date: string;
+  }) => void;
+  removeAllEvents: () => void;
+
+  fetchEvents: (
+    filters?: CalendarFilters,
+    forceRefresh?: boolean
+  ) => Promise<void>;
+  cleanUserData: () => void;
+}

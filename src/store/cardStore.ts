@@ -5,32 +5,12 @@ import {
   OutputCardDTO,
   InputCreateCardDTO,
   InputUpdateCardDTO,
+  CardState,
 } from "../types/card";
 import { useAuthStore } from "./authStore";
 import { useToastStore } from "../components/Notification";
 import { APIError } from "../services/errors/api.errors";
 import { cleanUserData } from "../utils/dataOwnership";
-
-interface CardState {
-  cards: OutputCardDTO[];
-  isLoading: boolean;
-  error: string | null;
-  selectedCard: OutputCardDTO | null;
-  lastFetched: number | null;
-
-  setCards: (cards: OutputCardDTO[]) => void;
-  addCard: (card: OutputCardDTO) => void;
-  updateCard: (card: OutputCardDTO) => void;
-  removeCard: (cardId: string) => void;
-  setSelectedCard: (card: OutputCardDTO | null) => void;
-
-  fetchAllCards: (
-    boardId: string,
-    listId: string,
-    title?: string
-  ) => Promise<void>;
-  cleanUserData: () => void;
-}
 
 export const useCardStore = create<CardState>()(
   persist(

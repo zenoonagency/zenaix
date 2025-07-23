@@ -5,28 +5,12 @@ import {
   OutputListDTO,
   InputCreateListDTO,
   InputUpdateListDTO,
+  ListState,
 } from "../types/list";
 import { useAuthStore } from "./authStore";
 import { useToastStore } from "../components/Notification";
 import { APIError } from "../services/errors/api.errors";
 import { cleanUserData } from "../utils/dataOwnership";
-
-interface ListState {
-  lists: OutputListDTO[];
-  isLoading: boolean;
-  error: string | null;
-  lastFetched: number | null;
-  selectedList: OutputListDTO | null;
-
-  setLists: (lists: OutputListDTO[]) => void;
-  addList: (list: OutputListDTO) => void;
-  updateList: (list: OutputListDTO) => void;
-  removeList: (listId: string) => void;
-  selectList: (list: OutputListDTO) => void;
-  cleanUserData: () => void;
-
-  fetchLists: (boardId: string) => Promise<void>;
-}
 
 export const useListStore = create<ListState>()(
   persist(

@@ -2,19 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { APIError } from "../services/errors/api.errors";
 import { tagService } from "../services/tag/tag.service";
-
-interface TagState {
-  tags: any[];
-  isLoading: boolean;
-  error: string | null;
-  lastFetched: number | null;
-  setTags: (tags: any[]) => void;
-  addTag: (tag: any) => void;
-  updateTag: (tag: any) => void;
-  deleteTag: (tagId: string) => void;
-  fetchAllTags: (token: string, organizationId: string) => Promise<void>;
-  cleanUserData: () => void;
-}
+import { TagState } from "../types/tag";
 
 export const useTagStore = create<TagState>()(
   persist(

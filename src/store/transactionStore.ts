@@ -2,8 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { transactionService } from "../services/transaction/transaction.service";
 import {
-  OutputTransactionDTO,
-  FinancialSummaryDTO,
+  TransactionState,
 } from "../types/transaction";
 import { cleanUserData } from "../utils/dataOwnership";
 
@@ -14,35 +13,6 @@ interface IDateFilters {
 
 interface CachedFilters extends IDateFilters {
   organizationId: string;
-}
-
-export interface TransactionState {
-  transactions: OutputTransactionDTO[];
-  summary: FinancialSummaryDTO | null;
-  isLoading: boolean;
-  error: string | null;
-  lastFetched: number | null;
-  lastFilters: CachedFilters | null;
-
-  setTransactions: (transactions: OutputTransactionDTO[]) => void;
-  addTransaction: (transaction: OutputTransactionDTO) => void;
-  updateTransaction: (transaction: OutputTransactionDTO) => void;
-  deleteTransaction: (transactionId: string) => void;
-  setSummary: (summary: FinancialSummaryDTO) => void;
-
-  fetchAllTransactions: (
-    token: string,
-    organizationId: string,
-    filters?: IDateFilters,
-    forceRefresh?: boolean
-  ) => Promise<void>;
-  fetchSummary: (
-    token: string,
-    organizationId: string,
-    filters?: IDateFilters
-  ) => Promise<void>;
-  // Novo método para limpar dados do usuário
-  cleanUserData: () => void;
 }
 
 export const useTransactionStore = create<TransactionState>()(

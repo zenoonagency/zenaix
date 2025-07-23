@@ -1,25 +1,16 @@
 // src/store/messagingStore.ts
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { Contact } from '../types/contacts';
-import { generateId } from '../utils/generateId';
-
-interface MessagingState {
-  batches: any[];
-  selectedContacts: Contact[];
-  addBatch: (context: string, messages: string[]) => void;
-  updateBatchProgress: (id: string, progress: number, status: string) => void;
-  completeBatch: (id: string, sentCount: number, failedCount: number) => void;
-  addContacts: (contacts: Contact[]) => void;
-  clearContacts: () => void;
-}
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { Contact } from "../types/contacts";
+import { generateId } from "../utils/generateId";
+import { MessagingState } from "../types/messaging";
 
 export const useMessagingStore = create<MessagingState>()(
   persist(
     (set) => ({
       batches: [],
       selectedContacts: [],
-      
+
       addBatch: (context, messages) =>
         set((state) => ({
           batches: [
@@ -27,7 +18,7 @@ export const useMessagingStore = create<MessagingState>()(
               id: generateId(),
               context,
               messages,
-              status: 'pending',
+              status: "pending",
               progress: 0,
               sentCount: 0,
               failedCount: 0,
@@ -56,7 +47,7 @@ export const useMessagingStore = create<MessagingState>()(
             batch.id === id
               ? {
                   ...batch,
-                  status: 'completed',
+                  status: "completed",
                   progress: 100,
                   sentCount,
                   failedCount,
@@ -77,7 +68,7 @@ export const useMessagingStore = create<MessagingState>()(
         }),
     }),
     {
-      name: 'messaging-store',
+      name: "messaging-store",
     }
   )
 );

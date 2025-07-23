@@ -1,22 +1,8 @@
 // src/store/contactsStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Contact } from '../types/contacts';
+import { ContactsState } from '../types/contacts';
 import { generateId } from '../utils/generateId';
-
-interface ContactsState {
-  contacts: Contact[];
-  selectedContacts: string[];
-  selectedTags: string[];
-  addContact: (contact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateContact: (id: string, updates: Partial<Contact>) => void;
-  deleteContact: (id: string) => void;
-  deleteAllContacts: () => void;
-  toggleContactSelection: (id: string) => void;
-  selectAllContacts: (contactIds: string[]) => void;
-  clearSelection: () => void;
-  setSelectedTags: (tagIds: string[]) => void;
-}
 
 export const useContactsStore = create<ContactsState>()(
   persist(

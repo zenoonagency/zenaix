@@ -14,3 +14,17 @@ export interface EmbedOutput {
   created_at: string;
   updated_at: string;
 }
+
+export interface EmbedPagesState {
+  pages: EmbedOutput[];
+  isLoading: boolean;
+  error: string | null;
+  lastFetched: number | null;
+  cleanUserData: () => void;
+
+  setPages: (pages: EmbedOutput[]) => void;
+  addPage: (page: EmbedOutput) => void;
+  updatePage: (page: EmbedOutput) => void;
+  deletePage: (pageId: string) => void;
+  fetchAllEmbedPages: (token: string, organizationId: string) => Promise<void>;
+}

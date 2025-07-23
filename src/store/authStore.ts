@@ -22,6 +22,7 @@ import { useDataTablesStore } from "./dataTablesStore";
 import { useDashboardTransactionStore } from "./dashboardTransactionStore";
 import { usePermissionsStore } from "./permissionsStore";
 import { useSystemPermissionsStore } from "./systemPermissionsStore";
+import { useDashboardStore } from "./dashboardStore";
 
 export const useAuthStore = createWithEqualityFn<AuthState>()(
   persist(
@@ -40,6 +41,37 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
       },
 
       login: async (payload: AuthSuccessPayload) => {
+        const currentUser = get().user;
+        const newUser = payload.user;
+
+        const isDifferentUser = !currentUser || currentUser.id !== newUser.id;
+
+        if (isDifferentUser) {
+          console.log(
+            "[AuthStore] 🧹 Usuário diferente detectado, limpando dados das stores"
+          );
+          useBoardStore.getState().cleanUserData();
+          useTransactionStore.getState().cleanUserData();
+          useCalendarStore.getState().cleanUserData();
+          useCardStore.getState().cleanUserData();
+          useContactsStore.getState().cleanUserData();
+          useListStore.getState().cleanUserData();
+          useContractStore.getState().cleanUserData();
+          useTeamMembersStore.getState().cleanUserData();
+          useTagStore.getState().cleanUserData();
+          useEmbedPagesStore.getState().cleanUserData();
+          useInviteStore.getState().cleanUserData();
+          useDataTablesStore.getState().cleanUserData();
+          useDashboardTransactionStore.getState().cleanUserData();
+          usePermissionsStore.getState().cleanUserData();
+          useSystemPermissionsStore.getState().cleanUserData();
+          useDashboardStore.getState().cleanUserData();
+        } else {
+          console.log(
+            "[AuthStore] ✅ Mesmo usuário, mantendo dados das stores"
+          );
+        }
+
         set({
           isAuthenticated: true,
           user: payload.user,
@@ -47,26 +79,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           permissions: payload.permissions || [],
           organization: payload.user.organization || null,
         });
-        // Limpa dados das principais stores
-        useBoardStore.getState().cleanUserData();
-        useTransactionStore.getState().cleanUserData();
-        useCalendarStore.getState().cleanUserData();
-        useCardStore.getState().cleanUserData();
-        useContactsStore.getState().cleanUserData();
-        useListStore.getState().cleanUserData();
-        useContractStore.getState().cleanUserData();
-        useTeamMembersStore.getState().cleanUserData();
-        useTagStore.getState().cleanUserData();
-        useEmbedPagesStore.getState().cleanUserData();
-        useInviteStore.getState().cleanUserData();
-        useDataTablesStore.getState().cleanUserData();
-        useDashboardTransactionStore.getState().cleanUserData();
-        usePermissionsStore.getState().cleanUserData();
-        useSystemPermissionsStore.getState().cleanUserData();
-
-        // Nova store do dashboard
-        const { useDashboardStore } = await import("./dashboardStore");
-        useDashboardStore.getState().cleanUserData();
       },
 
       setToken: (newToken: string) => {

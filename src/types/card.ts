@@ -133,3 +133,24 @@ export interface CardListResponse {
   data: OutputCardDTO[];
   status: number;
 }
+
+export interface CardState {
+  cards: OutputCardDTO[];
+  isLoading: boolean;
+  error: string | null;
+  selectedCard: OutputCardDTO | null;
+  lastFetched: number | null;
+
+  setCards: (cards: OutputCardDTO[]) => void;
+  addCard: (card: OutputCardDTO) => void;
+  updateCard: (card: OutputCardDTO) => void;
+  removeCard: (cardId: string) => void;
+  setSelectedCard: (card: OutputCardDTO | null) => void;
+
+  fetchAllCards: (
+    boardId: string,
+    listId: string,
+    title?: string
+  ) => Promise<void>;
+  cleanUserData: () => void;
+}

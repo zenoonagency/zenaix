@@ -37,3 +37,79 @@ export interface FinancialSummaryDTO {
   expenses: number;
   balance: number;
 }
+
+export interface TransactionState {
+  transactions: OutputTransactionDTO[];
+  summary: FinancialSummaryDTO | null;
+  isLoading: boolean;
+  error: string | null;
+  lastFetched: number | null;
+  lastFilters: CachedFilters | null;
+
+  setTransactions: (transactions: OutputTransactionDTO[]) => void;
+  addTransaction: (transaction: OutputTransactionDTO) => void;
+  updateTransaction: (transaction: OutputTransactionDTO) => void;
+  deleteTransaction: (transactionId: string) => void;
+  setSummary: (summary: FinancialSummaryDTO) => void;
+
+  fetchAllTransactions: (
+    token: string,
+    organizationId: string,
+    filters?: IDateFilters,
+    forceRefresh?: boolean
+  ) => Promise<void>;
+  fetchSummary: (
+    token: string,
+    organizationId: string,
+    filters?: IDateFilters
+  ) => Promise<void>;
+  cleanUserData: () => void;
+}
+
+export interface DashboardTransactionState {
+  transactions: OutputTransactionDTO[];
+  summary: FinancialSummaryDTO | null;
+  isLoading: boolean;
+  error: string | null;
+  lastFetched: number | null;
+  lastFilters: CachedDashboardFilters | null;
+  cleanUserData: () => void;
+
+  setTransactions: (transactions: OutputTransactionDTO[]) => void;
+  setSummary: (summary: FinancialSummaryDTO | null) => void;
+  setLoading: (loading: boolean) => void;
+
+  fetchDashboardTransactions: (
+    token: string,
+    organizationId: string,
+    filters?: IDateRangeFilters,
+    forceRefresh?: boolean
+  ) => Promise<void>;
+
+  fetchDashboardSummary: (
+    token: string,
+    organizationId: string,
+    filters?: IDateRangeFilters
+  ) => Promise<void>;
+
+  clearError: () => void;
+  clearCache: () => void;
+}
+
+export interface IDateFilters {
+  year?: number;
+  month?: number;
+}
+
+export interface CachedFilters extends IDateFilters {
+  organizationId: string;
+}
+
+export interface IDateRangeFilters {
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface CachedDashboardFilters extends IDateRangeFilters {
+  organizationId: string;
+}
