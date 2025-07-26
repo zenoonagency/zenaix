@@ -31,6 +31,7 @@ import { useThemeStore } from "../../store/themeStore";
 import { useAuthStore } from "../../store/authStore";
 import { ProfileModal } from "../../components/ProfileModal";
 import { ProtectedLink } from "../ProtectedLink";
+import { OrganizationRequiredModal } from "../OrganizationRequiredModal";
 import { useOrganizationAccess } from "../../hooks/useOrganizationAccess";
 
 interface SidebarLinkProps {
@@ -730,7 +731,9 @@ function ProfileMenuModal({
 export function Sidebar() {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const { checkAccess, hasOrganization } = useOrganizationAccess();
   const [showTags, setShowTags] = useState(false);
+  const [showOrgModal, setShowOrgModal] = useState(false);
   const { theme } = useThemeStore();
 
   const { user, organization } = useAuthStore((state) => ({
@@ -990,26 +993,40 @@ h-[calc(100%-2.5rem)]
               <>
                 <div className="px-4 mb-4">
                   <button
-                    onClick={() => setShowTags(!showTags)}
+                    onClick={() => {
+                      if (!hasOrganization) {
+                        setShowOrgModal(true);
+                        return;
+                      }
+                      setShowTags(!showTags);
+                    }}
                     className="flex items-center w-full text-left text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-[16px]"
                   >
                     <Bookmark size={22} className="mr-3" />
                     <span className="whitespace-nowrap overflow-hidden text-ellipsis">
                       Marcadores
                     </span>
+                    {!hasOrganization && (
+                      <span className="flex items-center ml-2 flex-shrink-0">
+                        <Crown className="w-4 h-4 text-amber-500" />
+                        <span className="text-[10px] text-amber-500 ml-1 font-bold">PRO</span>
+                      </span>
+                    )}
                     <ChevronRight
                       size={22}
-                      className={`ml-auto transform transition-transform ${
-                        showTags ? "rotate-90" : ""
-                      }`}
+                      className={`ml-auto transform transition-transform ${showTags ? "rotate-90" : ""}`}
                     />
                   </button>
-                  {showTags && (
+                  {showTags && hasOrganization && (
                     <div className="mt-2 space-y-2">
-                      <TagList />
+                      <TagList
+                        blockNewTag={!hasOrganization}
+                        onBlockNewTag={() => setShowOrgModal(true)}
+                      />
                     </div>
                   )}
                 </div>
+                <OrganizationRequiredModal isOpen={showOrgModal} onClose={() => setShowOrgModal(false)} />
               </>
             )}
           </div>

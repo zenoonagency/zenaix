@@ -14,7 +14,7 @@ import { TagModal } from "./TagModal";
 
 type Tag = OutputTagDTO;
 
-export function TagList() {
+export function TagList({ blockNewTag = false, onBlockNewTag }: { blockNewTag?: boolean; onBlockNewTag?: () => void } = {}) {
   const { tags, fetchAllTags } = useTagStore();
   const { token, organizationId } = useAuthStore((state) => ({
     token: state.token,
@@ -90,10 +90,15 @@ export function TagList() {
       <div className="flex items-center justify-end">
         <button
           onClick={() => {
+            if (blockNewTag && onBlockNewTag) {
+              onBlockNewTag();
+              return;
+            }
             setEditingTag(null);
             setShowModal(true);
           }}
-          className="text-[#7f00ff] hover:text-[#7f00ff]/80 flex items-center text-sm"
+          className={`text-[#7f00ff] hover:text-[#7f00ff]/80 flex items-center text-sm ${blockNewTag ? 'opacity-60 cursor-not-allowed' : ''}`}
+          disabled={blockNewTag}
         >
           <Plus className="w-4 h-4 mr-1" />
           Novo
