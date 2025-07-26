@@ -6,6 +6,9 @@ import { useToast } from '../../hooks/useToast';
 import { whatsappInstanceService } from '../../services/whatsappInstance.service';
 import { WhatsAppInstanceOutput } from '../../types/whatsappInstance';
 import { CreateInstanceModal } from './components/CreateInstanceModal';
+import { EditInstanceModal } from './components/EditInstanceModal';
+import { QRCodeRenderer } from '../../components/QRCodeRenderer';
+import { useWhatsAppInstanceStore } from '../../store/whatsAppInstanceStore';
 
 export function Connections() {
   const { theme } = useThemeStore();
@@ -13,40 +16,30 @@ export function Connections() {
   const { showToast } = useToast();
   const isDark = theme === 'dark';
   
-  const [instances, setInstances] = useState<WhatsAppInstanceOutput[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const { instances, isLoading, fetchAllInstances } = useWhatsAppInstanceStore();
   const [deletingInstanceId, setDeletingInstanceId] = useState<string | null>(null);
   const [connectingInstanceId, setConnectingInstanceId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingInstance, setEditingInstance] = useState<WhatsAppInstanceOutput | null>(null);
   
-
-  const fetchInstances = useCallback(async (token: string, organizationId: string) => {
-    try {
-      setIsLoading(true);
-      const data = await whatsappInstanceService.findAll(token, organizationId);
-      setInstances(data);
-    } catch (error) {
-      console.error('Erro ao buscar instâncias:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
 
   const deleteInstance = useCallback(async (token: string, organizationId: string, instanceId: string) => {
     await whatsappInstanceService.delete(token, organizationId, instanceId);
-    setInstances(prev => prev.filter(instance => instance.id !== instanceId));
+    // A store será atualizada via realtime ou refresh manual
   }, []);
 
   const connectInstance = useCallback(async (token: string, organizationId: string, instanceId: string) => {
     await whatsappInstanceService.connect(token, organizationId, instanceId);
-    await fetchInstances(token, organizationId);
-  }, [fetchInstances]);
+    // A store será atualizada via realtime ou refresh manual
+  }, []);
 
+  // Fetch inicial se necessário (como outros componentes fazem)
   useEffect(() => {
-    if (token && user?.organization_id) {
-      fetchInstances(token, user.organization_id);
+    if (token && user?.organization_id && instances.length === 0 && !isLoading) {
+      fetchAllInstances(token, user.organization_id);
     }
-  }, [token, user?.organization_id, fetchInstances]);
+  }, [token, user?.organization_id, instances.length, isLoading, fetchAllInstances]);
 
   const handleDeleteInstance = async (instanceId: string) => {
     if (!token || !user?.organization_id) return;
@@ -81,12 +74,19 @@ export function Connections() {
     showToast('Telefone copiado!', 'success');
   };
 
+  const handleEditInstance = (instance: WhatsAppInstanceOutput) => {
+    setEditingInstance(instance);
+    setShowEditModal(true);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'CONNECTED':
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
       case 'DISCONNECTED':
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+      case 'QR_PENDING':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
     }
@@ -98,6 +98,8 @@ export function Connections() {
         return <Wifi className="w-4 h-4" />;
       case 'DISCONNECTED':
         return <WifiOff className="w-4 h-4" />;
+      case 'QR_PENDING':
+        return <QrCode className="w-4 h-4" />;
       default:
         return <WifiOff className="w-4 h-4" />;
     }
@@ -138,7 +140,7 @@ export function Connections() {
         onClose={() => setShowCreateModal(false)}
         onSuccess={() => {
           if (token && user?.organization_id) {
-            fetchInstances(token, user.organization_id);
+            fetchAllInstances(token, user.organization_id);
           }
         }}
       />
@@ -198,9 +200,9 @@ export function Connections() {
           {instances.map((instance) => (
             <div
               key={instance.id}
-              className={`bg-white dark:bg-dark-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-200 overflow-hidden`}
+              className={`bg-white dark:bg-dark-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col`}
             >
-              <div className="p-6">
+              <div className="p-6 flex-1 flex flex-col">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
@@ -220,6 +222,7 @@ export function Connections() {
                       {getStatusIcon(instance.status)}
                       {instance.status === 'CONNECTED' && 'Conectado'}
                       {instance.status === 'DISCONNECTED' && 'Desconectado'}
+                      {instance.status === 'QR_PENDING' && 'QR Pendente'}
                     </span>
                   </div>
                 </div>
@@ -253,7 +256,7 @@ export function Connections() {
                   </div>
                 </div>
 
-                {instance.status === 'DISCONNECTED' && instance.qr_code && (
+                {(instance.status === 'DISCONNECTED' || instance.status === 'QR_PENDING') && instance.qr_code && (
                   <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <QrCode className="w-4 h-4 text-gray-500" />
@@ -262,10 +265,10 @@ export function Connections() {
                       </span>
                     </div>
                     <div className="flex justify-center">
-                      <img 
-                        src={instance.qr_code} 
-                        alt="QR Code" 
-                        className="w-32 h-32 border border-gray-200 dark:border-gray-600 rounded"
+                      <QRCodeRenderer 
+                        qrCodeString={instance.qr_code}
+                        size={128}
+                        className="w-32 h-32"
                       />
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
@@ -274,12 +277,33 @@ export function Connections() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                <div className="flex items-center gap-2 pt-4 border-t border-gray-200 dark:border-gray-700 mt-auto">
+                  <button 
+                    onClick={() => handleEditInstance(instance)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  >
                     <Settings className="w-4 h-4" />
                     Configurar
                   </button>
-                  {instance.status === 'DISCONNECTED' ? (
+                  {instance.status === 'CONNECTED' ? (
+                    <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
+                      <ExternalLink className="w-4 h-4" />
+                      Acessar
+                    </button>
+                  ) : instance.qr_code ? (
+                    <button 
+                      onClick={() => handleConnectInstance(instance.id)}
+                      disabled={connectingInstanceId === instance.id}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors disabled:opacity-50"
+                    >
+                      {connectingInstanceId === instance.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <QrCode className="w-4 h-4" />
+                      )}
+                      Gerar Novo QR
+                    </button>
+                  ) : (
                     <button 
                       onClick={() => handleConnectInstance(instance.id)}
                       disabled={connectingInstanceId === instance.id}
@@ -291,11 +315,6 @@ export function Connections() {
                         <QrCode className="w-4 h-4" />
                       )}
                       Conectar
-                    </button>
-                  ) : (
-                    <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
-                      <ExternalLink className="w-4 h-4" />
-                      Acessar
                     </button>
                   )}
                   <button 
@@ -376,9 +395,23 @@ export function Connections() {
         onClose={() => setShowCreateModal(false)}
         onSuccess={() => {
           if (token && user?.organization_id) {
-            fetchInstances(token, user.organization_id);
+            fetchAllInstances(token, user.organization_id);
           }
         }}
+      />
+
+      <EditInstanceModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingInstance(null);
+        }}
+        onSuccess={() => {
+          if (token && user?.organization_id) {
+            fetchAllInstances(token, user.organization_id);
+          }
+        }}
+        instance={editingInstance}
       />
     </div>
   );

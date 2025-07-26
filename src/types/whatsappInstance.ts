@@ -1,5 +1,5 @@
 // Tipos para Instância WhatsApp
-export type WhatsAppInstanceStatus = "CONNECTED" | "DISCONNECTED";
+export type WhatsAppInstanceStatus = "CONNECTED" | "DISCONNECTED" | "QR_PENDING";
 export type WhatsAppInstanceAccessLevel = "CREATOR_ONLY" | "SELECTED_MEMBERS" | "TEAM_WIDE"; 
 
 

@@ -57,6 +57,8 @@ export interface RealtimeEventPayload {
     | "USER_REMOVED_FROM_ORG"
     | "USER_PROFILE_UPDATED"
     | "WHATSAPP_INSTANCE_CREATED"
+    | "WHATSAPP_INSTANCE_UPDATED"
+    | "WHATSAPP_INSTANCE_DELETED"
     | "WHATSAPP_QR_CODE";
   data: any;
 }
