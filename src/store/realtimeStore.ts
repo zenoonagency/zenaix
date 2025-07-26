@@ -21,14 +21,19 @@ interface RealtimeState {
   orgChannel: RealtimeChannel | null;
   connect: (userId: string, organizationId?: string | null) => void;
   disconnect: () => void;
+  heartbeatInterval: NodeJS.Timeout | null;
 }
 
 export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
   userChannel: null,
   orgChannel: null,
+  heartbeatInterval: null,
 
   connect: (userId, organizationId) => {
     const { userChannel, orgChannel } = get();
+
+    const { heartbeatInterval } = get();
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
 
     if (!userChannel) {
       const newUserChannel = supabase.channel(`user-updates-${userId}`);
@@ -46,7 +51,6 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
         })
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
-            // Canal pessoal inscrito com sucesso
           }
         });
       set({ userChannel: newUserChannel });
@@ -58,19 +62,7 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
         .on("broadcast", { event: "message" }, (message) => {
           const eventData = message.payload as RealtimeEventPayload;
 
-          const refreshSummaryForDate = (dateString: string) => {
-            // Comentado para evitar chamadas automáticas de summary
-            // que podem causar sobrecarga no dashboard
-            // const { token, organization } = useAuthStore.getState();
-            // if (token && organization.id && dateString) {
-            //   const transactionDate = new Date(dateString);
-            //   const year = transactionDate.getFullYear();
-            //   const month = transactionDate.getMonth() + 1; // getMonth() é 0-11
-            //   useTransactionStore
-            //     .getState()
-            //     .fetchSummary(token, organization.id, { year, month });
-            // }
-          };
+          const refreshSummaryForDate = (dateString: string) => {};
 
           switch (eventData.event) {
             case "ORGANIZATION_UPDATED":
@@ -240,16 +232,44 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
         });
       set({ orgChannel: newOrgChannel });
     }
+
+    const newHeartbeatInterval = setInterval(() => {
+      const { userChannel, orgChannel } = get();
+
+      [userChannel, orgChannel].forEach((channel) => {
+        if (channel) {
+          if (channel.state !== "joined") {
+            console.warn(
+              `[Realtime] Canal ${channel.topic} não está conectado. Tentando reinscrever...`
+            );
+            channel.subscribe(async (status) => {
+              if (status === "SUBSCRIBED") {
+                console.log(
+                  `[Realtime] Canal ${channel.topic} reconectado com sucesso!`
+                );
+              }
+            });
+          }
+        }
+      });
+    }, 20000);
+
+    set({ heartbeatInterval: newHeartbeatInterval });
   },
 
   disconnect: () => {
-    const { userChannel, orgChannel } = get();
+    const { userChannel, orgChannel, heartbeatInterval } = get();
+
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+    }
+
     if (userChannel) {
       supabase.removeChannel(userChannel);
     }
     if (orgChannel) {
       supabase.removeChannel(orgChannel);
     }
-    set({ userChannel: null, orgChannel: null });
+    set({ userChannel: null, orgChannel: null, heartbeatInterval: null });
   },
 }));
