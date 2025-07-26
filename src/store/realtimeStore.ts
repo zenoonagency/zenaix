@@ -4,17 +4,14 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuthStore } from "./authStore";
 import { useEmbedPagesStore } from "./embedPagesStore";
 import { RealtimeEventPayload } from "../types/realtime.types";
-import { EmbedOutput } from "../types/embed";
 import { useTagStore } from "./tagStore";
 import { useContractStore } from "./contractStore";
 import { useTransactionStore } from "./transactionStore";
-import { TransactionType } from "../types/transaction";
 import { useTeamMembersStore } from "./teamMembersStore";
 import { useInviteStore } from "./inviteStore";
 import { usePermissionsStore } from "./permissionsStore";
 import { useCalendarStore } from "./calendarStore";
 import { useBoardStore } from "./boardStore";
-import { useListStore } from "./listStore";
 
 interface RealtimeState {
   userChannel: RealtimeChannel | null;
@@ -27,14 +24,21 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
   userChannel: null,
   orgChannel: null,
 
-  connect: (userId, organizationId) => {
+  connect: async (userId, organizationId) => {
     const { userChannel, orgChannel } = get();
 
+    if (!supabase) {
+      console.error("[RealtimeStore] Supabase client não está configurado!");
+      return;
+    }
+
     if (!userChannel) {
+      // Usar canal público sem autenticação
       const newUserChannel = supabase.channel(`user-updates-${userId}`);
       newUserChannel
         .on("broadcast", { event: "message" }, (message) => {
           const eventData = message.payload as RealtimeEventPayload;
+          console.log("📢 [Realtime] Evento pessoal recebido:", eventData.event, eventData.data);
 
           switch (eventData.event) {
             case "USER_UPDATED_IN_ORGANIZATION":
@@ -45,18 +49,20 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
           }
         })
         .subscribe((status) => {
-          if (status === "SUBSCRIBED") {
-            // Canal pessoal inscrito com sucesso
+          if (status === "CHANNEL_ERROR") {
+            console.error(`[RealtimeStore] Erro ao inscrever no canal do usuário.`);
           }
         });
       set({ userChannel: newUserChannel });
     }
 
     if (organizationId && !orgChannel) {
+      // Usar canal público sem autenticação
       const newOrgChannel = supabase.channel(`org-updates-${organizationId}`);
       newOrgChannel
         .on("broadcast", { event: "message" }, (message) => {
           const eventData = message.payload as RealtimeEventPayload;
+          console.log("📢 [Realtime] Evento da organização recebido:", eventData.event, eventData.data);
 
           const refreshSummaryForDate = (dateString: string) => {
             // Comentado para evitar chamadas automáticas de summary
@@ -234,8 +240,8 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
           }
         })
         .subscribe((status) => {
-          if (status === "SUBSCRIBED") {
-            // Canal da organização inscrito com sucesso
+          if (status === "CHANNEL_ERROR") {
+            console.error(`[RealtimeStore] Erro ao inscrever no canal da organização.`);
           }
         });
       set({ orgChannel: newOrgChannel });

@@ -34,8 +34,7 @@ export function App() {
   const hasInitialized = useRef(false);
 
   useEffect(() => {
-    if (isAuthenticated && _hasHydrated && token && !hasInitialized.current) {
-      console.log("[App] Inicializando aplicação...");
+    if (isAuthenticated && _hasHydrated && token && userId && !hasInitialized.current) {
       hasInitialized.current = true;
 
       // Usar getState() para evitar dependências das funções
@@ -64,15 +63,13 @@ export function App() {
         fetchEvents();
       }
 
-      if (userId) {
-        connectToRealtime(userId, organizationId);
-      }
+      connectToRealtime(userId, organizationId);
 
       return () => {
         disconnectFromRealtime();
       };
     }
-  }, [isAuthenticated, _hasHydrated, token]); // Removidas funções e IDs das dependências
+  }, [isAuthenticated, _hasHydrated, token, userId]); // Adicionado userId nas dependências
 
   // Reset do flag quando usuário desloga
   useEffect(() => {
@@ -89,19 +86,9 @@ export function App() {
 
         // Só atualizar se passaram pelo menos 30 segundos desde a última mudança
         if (timeSinceLastChange >= 30000) {
-          console.log(
-            "👀 Aba tornou-se visível. A verificar a sessão e o estado do Realtime..."
-          );
-
           supabase.realtime.connect();
           useAuthStore.getState().fetchAndSyncUser();
           setLastVisibilityChange(now);
-        } else {
-          console.log(
-            `⏳ Aguardando ${Math.ceil(
-              (30000 - timeSinceLastChange) / 1000
-            )}s antes de reconectar...`
-          );
         }
       }
     };
