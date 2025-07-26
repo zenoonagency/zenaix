@@ -16,6 +16,7 @@ import { Settings } from "../pages/Settings";
 import { DataTables } from "../pages/DataTables";
 import { Help } from "../pages/Help";
 import { Tags } from "../pages/Tags";
+import { Connections } from "../pages/Connections";
 import { Login } from "../pages/Login";
 import { Register } from "../pages/Register";
 import { ForgotPassword } from "../pages/ForgotPassword";
@@ -165,6 +166,16 @@ export const router = createBrowserRouter([
                   <OrganizationProtectedRoute>
                     <PageTransition>
                       <EmbedPages />
+                    </PageTransition>
+                  </OrganizationProtectedRoute>
+                ),
+              },
+              {
+                path: "connections",
+                element: (
+                  <OrganizationProtectedRoute>
+                    <PageTransition>
+                      <Connections />
                     </PageTransition>
                   </OrganizationProtectedRoute>
                 ),

@@ -24,6 +24,7 @@ import {
   Send,
   Webhook,
   Crown,
+  Link,
 } from "lucide-react";
 import { TagList } from "../tags/TagList";
 import { useThemeStore } from "../../store/themeStore";
@@ -976,6 +977,13 @@ h-[calc(100%-2.5rem)]
                 label="Páginas Embed"
                 collapsed={collapsed}
                 isNew
+                requiresOrganization={true}
+              />
+              <SidebarLink
+                to="/dashboard/connections"
+                icon={<Link size={22} />}
+                label="Conexões"
+                collapsed={collapsed}
                 requiresOrganization={true}
               />
             </SidebarSection>
