@@ -14,5 +14,10 @@ export const supabase = createClient(
         eventsPerSecond: 10,
       },
     },
+    global: {
+      headers: {
+        'X-Client-Info': 'supabase-js/2.38.0',
+      },
+    },
   }
 );

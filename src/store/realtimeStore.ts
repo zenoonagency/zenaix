@@ -18,13 +18,17 @@ interface RealtimeState {
   orgChannel: RealtimeChannel | null;
   connect: (userId: string, organizationId?: string | null) => void;
   disconnect: () => void;
+  heartbeatInterval: NodeJS.Timeout | null;
 }
 
 export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
   userChannel: null,
   orgChannel: null,
+  heartbeatInterval: null,
 
   connect: async (userId, organizationId) => {
+    console.log("[RealtimeStore] 🔌 Iniciando conexão realtime...");
+    
     const { userChannel, orgChannel } = get();
 
     if (!supabase) {
@@ -32,9 +36,24 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       return;
     }
 
+    if (supabase.realtime.getChannels().length === 0) {
+      supabase.realtime.connect();
+    }
+
+    const { heartbeatInterval } = get();
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     if (!userChannel) {
-      // Usar canal público sem autenticação
-      const newUserChannel = supabase.channel(`user-updates-${userId}`);
+      console.log("[RealtimeStore] Criando canal do usuário...");
+      const newUserChannel = supabase.channel(`user-updates-${userId}`, {
+        config: {
+          presence: {
+            key: userId,
+          },
+        },
+      });
       newUserChannel
         .on("broadcast", { event: "message" }, (message) => {
           const eventData = message.payload as RealtimeEventPayload;
@@ -49,34 +68,32 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
           }
         })
         .subscribe((status) => {
+          console.log(`[RealtimeStore] Status do canal do usuário:`, status);
           if (status === "CHANNEL_ERROR") {
             console.error(`[RealtimeStore] Erro ao inscrever no canal do usuário.`);
+          } else if (status === "SUBSCRIBED") {
+            console.log(`[RealtimeStore] ✅ Canal do usuário conectado com sucesso!`);
           }
         });
       set({ userChannel: newUserChannel });
     }
 
     if (organizationId && !orgChannel) {
+      console.log("[RealtimeStore] Criando canal da organização...");
       // Usar canal público sem autenticação
-      const newOrgChannel = supabase.channel(`org-updates-${organizationId}`);
+      const newOrgChannel = supabase.channel(`org-updates-${organizationId}`, {
+        config: {
+          presence: {
+            key: organizationId,
+          },
+        },
+      });
       newOrgChannel
         .on("broadcast", { event: "message" }, (message) => {
           const eventData = message.payload as RealtimeEventPayload;
           console.log("📢 [Realtime] Evento da organização recebido:", eventData.event, eventData.data);
 
-          const refreshSummaryForDate = (dateString: string) => {
-            // Comentado para evitar chamadas automáticas de summary
-            // que podem causar sobrecarga no dashboard
-            // const { token, organization } = useAuthStore.getState();
-            // if (token && organization.id && dateString) {
-            //   const transactionDate = new Date(dateString);
-            //   const year = transactionDate.getFullYear();
-            //   const month = transactionDate.getMonth() + 1; // getMonth() é 0-11
-            //   useTransactionStore
-            //     .getState()
-            //     .fetchSummary(token, organization.id, { year, month });
-            // }
-          };
+          const refreshSummaryForDate = (dateString: string) => {};
 
           switch (eventData.event) {
             case "ORGANIZATION_UPDATED":
@@ -240,22 +257,67 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
           }
         })
         .subscribe((status) => {
+          console.log(`[RealtimeStore] Status do canal da organização:`, status);
           if (status === "CHANNEL_ERROR") {
             console.error(`[RealtimeStore] Erro ao inscrever no canal da organização.`);
+          } else if (status === "SUBSCRIBED") {
+            console.log(`[RealtimeStore] ✅ Canal da organização conectado com sucesso!`);
           }
         });
       set({ orgChannel: newOrgChannel });
     }
+
+    const newHeartbeatInterval = setInterval(() => {
+      const { userChannel, orgChannel } = get();
+      console.log("[RealtimeStore] 💓 Heartbeat - Verificando canais...");
+      console.log("[RealtimeStore] Canal do usuário estado:", userChannel?.state);
+      console.log("[RealtimeStore] Canal da organização estado:", orgChannel?.state);
+
+      [userChannel, orgChannel].forEach((channel) => {
+        if (channel && channel.state !== "joined") {
+          console.warn(
+            `[Realtime] Canal ${channel.topic} não está conectado. Tentando reinscrever...`
+          );
+          
+          // Verificar se o canal ainda existe antes de tentar reinscrever
+          try {
+            channel.subscribe(async (status) => {
+              if (status === "SUBSCRIBED") {
+                console.log(
+                  `[Realtime] Canal ${channel.topic} reconectado com sucesso!`
+                );
+              } else if (status === "CHANNEL_ERROR") {
+                console.error(
+                  `[Realtime] Erro ao reconectar canal ${channel.topic}`
+                );
+              }
+            });
+          } catch (error) {
+            console.error(
+              `[Realtime] Erro ao tentar reinscrever canal ${channel.topic}:`,
+              error
+            );
+          }
+        }
+      });
+    }, 20000);
+
+    set({ heartbeatInterval: newHeartbeatInterval });
   },
 
   disconnect: () => {
-    const { userChannel, orgChannel } = get();
+    const { userChannel, orgChannel, heartbeatInterval } = get();
+
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+    }
+
     if (userChannel) {
       supabase.removeChannel(userChannel);
     }
     if (orgChannel) {
       supabase.removeChannel(orgChannel);
     }
-    set({ userChannel: null, orgChannel: null });
+    set({ userChannel: null, orgChannel: null, heartbeatInterval: null });
   },
 }));
