@@ -418,9 +418,7 @@ export const useBoardStore = create<BoardState>()(
           return;
         }
 
-        if (get().boards.length === 0) {
-          set({ isLoading: true });
-        }
+        set({ isLoading: true });
 
         try {
           const boards = await boardService.getBoards(token, organizationId);

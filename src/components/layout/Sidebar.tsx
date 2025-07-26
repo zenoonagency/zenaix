@@ -24,6 +24,7 @@ import {
   Send,
   Webhook,
   Crown,
+  Link,
 } from "lucide-react";
 import { TagList } from "../tags/TagList";
 import { useThemeStore } from "../../store/themeStore";
@@ -94,8 +95,6 @@ const SidebarLink = ({
     isActive
       ? "bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border-r-4 border-primary-500 shadow-sm"
       : ""
-  } ${
-    !hasAccess && requiresOrganization ? "opacity-40 pointer-events-none" : ""
   }`;
 
   const linkContent = (
@@ -909,7 +908,7 @@ h-[calc(100%-2.5rem)]
                 icon={<Calendar size={22} />}
                 label="Calendário"
                 collapsed={collapsed}
-                isNew
+                requiresOrganization={true}
               />
             </SidebarSection>
 
@@ -938,7 +937,6 @@ h-[calc(100%-2.5rem)]
                 icon={<Trello size={22} />}
                 label="Gestão de funil"
                 collapsed={collapsed}
-                isNew
                 requiresOrganization={true}
               />
               <SidebarLink
@@ -975,7 +973,13 @@ h-[calc(100%-2.5rem)]
                 icon={<Globe size={22} />}
                 label="Páginas Embed"
                 collapsed={collapsed}
-                isNew
+                requiresOrganization={true}
+              />
+              <SidebarLink
+                to="/dashboard/connections"
+                icon={<Link size={22} />}
+                label="Conexões"
+                collapsed={collapsed}
                 requiresOrganization={true}
               />
             </SidebarSection>

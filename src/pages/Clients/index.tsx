@@ -66,6 +66,7 @@ export function Clients() {
 
   const handleAddBoard = () => {
     setShowCreateModal(true);
+    setShowBoardSelector(false); // Fecha o BoardSelector quando abre a modal de criar
   };
 
   const handleCreateNewBoard = async () => {
@@ -166,8 +167,7 @@ export function Clients() {
 
   const handleAddList = () => {
     if (!activeBoardId || !currentBoard) {
-      showToast("Crie um quadro primeiro!", "warning");
-      setShowCreateModal(true);
+      showToast("Nenhum quadro encontrado. Crie um quadro primeiro!", "warning");
       return;
     }
     setShowListSelector(true);
@@ -193,9 +193,9 @@ export function Clients() {
           </h1>
         </div>
         <div className="flex items-center space-x-2 my-4">
-          {boardStoreLoading || !activeBoard ? (
+          {boardStoreLoading && boards.length > 0 ? (
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#7f00ff]"></div>
-          ) : (
+          ) : activeBoard ? (
             <div>
               <h2 className="text-xl font-bold bg-gradient-to-r inline-block  from-[#7f00ff] to-[#e100ff]   text-transparent bg-clip-text">
                 Quadro: 
@@ -203,6 +203,12 @@ export function Clients() {
               {" "}
               <h2 className="text-xl font-bold inline-block text-[#000] bg-clip-text">
                  {activeBoard?.name}
+              </h2>
+            </div>
+          ) : (
+            <div>
+              <h2 className="text-xl font-bold text-gray-500 dark:text-gray-400">
+                Nenhum quadro selecionado
               </h2>
             </div>
           )}
@@ -213,7 +219,6 @@ export function Clients() {
             <button
               onClick={() => setShowBoardSelector(true)}
               className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
-              disabled={boards.length === 0}
             >
               <span className="mr-2">Escolher Quadro</span>
               <LayoutGrid className="w-4 h-4" />
@@ -221,31 +226,45 @@ export function Clients() {
             <button
               onClick={handleAddList}
               className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
-              disabled={!activeBoardId}
             >
               <span className="mr-2">Lista de Concluídos</span>
               <CheckSquare className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setShowSearchModal(true)}
+              onClick={() => {
+                if (!activeBoardId || !currentBoard) {
+                  showToast("Nenhum quadro encontrado. Crie um quadro primeiro!", "warning");
+                  return;
+                }
+                setShowSearchModal(true);
+              }}
               className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
-              disabled={!activeBoardId}
             >
               <span className="mr-2">Procurar Cartão</span>
               <Search className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setShowAutomationModal(true)}
+              onClick={() => {
+                if (!activeBoardId || !currentBoard) {
+                  showToast("Nenhum quadro encontrado. Crie um quadro primeiro!", "warning");
+                  return;
+                }
+                setShowAutomationModal(true);
+              }}
               className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
-              disabled={!activeBoardId}
             >
               <span className="mr-2">Criar Automação</span>
               <Zap className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setShowBoardConfigModal(true)}
+              onClick={() => {
+                if (!activeBoardId || !currentBoard) {
+                  showToast("Nenhum quadro encontrado. Crie um quadro primeiro!", "warning");
+                  return;
+                }
+                setShowBoardConfigModal(true);
+              }}
               className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
-              disabled={!activeBoardId}
             >
               <span className="mr-2">Configurar Quadro</span>
               <Settings className="w-4 h-4" />
@@ -261,6 +280,10 @@ export function Clients() {
             </button>
             <button
               onClick={() => {
+                if (!activeBoardId || boards.length === 0) {
+                  showToast("Nenhum quadro encontrado. Crie um quadro primeiro!", "warning");
+                  return;
+                }
                 const board = boards.find((b) => b.id === activeBoardId);
                 if (board) {
                   setEditBoardTitle(board.name || "");
@@ -268,15 +291,18 @@ export function Clients() {
                 }
               }}
               className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
-              disabled={!activeBoardId}
             >
               <Edit2 className="w-4 h-4 mr-1" />
               Editar
             </button>
             <button
               onClick={async () => {
-                if (!token || !organization?.id || !activeBoardId) {
-                  showToast("Sem autenticação ou quadro selecionado", "error");
+                if (!token || !organization?.id) {
+                  showToast("Sem autenticação", "error");
+                  return;
+                }
+                if (!activeBoardId || boards.length === 0) {
+                  showToast("Nenhum quadro encontrado. Crie um quadro primeiro!", "warning");
                   return;
                 }
                 setIsDuplicatingBoard(true);
@@ -294,18 +320,21 @@ export function Clients() {
                 }
               }}
               className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
-              disabled={!activeBoardId || isDuplicatingBoard}
+              disabled={isDuplicatingBoard}
             >
               <Copy className="w-4 h-4 mr-1" />
               {isDuplicatingBoard ? "Duplicando..." : "Duplicar"}
             </button>
             <button
               onClick={() => {
+                if (!activeBoardId || boards.length === 0) {
+                  showToast("Nenhum quadro encontrado. Crie um quadro primeiro!", "warning");
+                  return;
+                }
                 setBoardToDelete(activeBoardId);
                 setShowDeleteModal(true);
               }}
               className="flex items-center px-4 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50"
-              disabled={!activeBoardId}
             >
               <Trash2 className="w-4 h-4 mr-1" />
               Excluir
@@ -315,7 +344,7 @@ export function Clients() {
       </div>
       <div className="flex-1 bg-background dark:bg-background overflow-hidden">
         <div>{/* Sempre mostra o header de menus */}</div>
-        {boardStoreLoading ? (
+        {boardStoreLoading && boards.length > 0 ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7f00ff] mx-auto mb-4"></div>
@@ -326,13 +355,23 @@ export function Clients() {
           </div>
         ) : activeBoardId && currentBoard ? (
           <KanbanBoard />
+        ) : boards.length === 0 ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <button
+                onClick={handleAddBoard}
+                className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md mx-auto"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Novo Quadro
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
               <p className="text-gray-500 dark:text-gray-400 mb-4">
-                {boards.length === 0
-                  ? "Nenhum quadro criado"
-                  : "Nenhum quadro selecionado"}
+                Nenhum quadro selecionado
               </p>
               <button
                 onClick={handleAddBoard}
@@ -347,7 +386,7 @@ export function Clients() {
       </div>
       {modal}
 
-      {showBoardSelector && boards.length > 0 && (
+      {showBoardSelector && (
         <BoardSelector
           boards={boards.map((b: Board) => ({ id: b.id, name: b.name }))}
           activeBoardId={activeBoardId}
@@ -359,7 +398,7 @@ export function Clients() {
       )}
 
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]">
           <div
             className={`w-full max-w-md p-6 rounded-lg shadow-xl ${
               isDark ? "bg-dark-800" : "bg-white"
@@ -438,7 +477,7 @@ export function Clients() {
       )}
 
       {showEditModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]">
           <div
             className={`w-full max-w-md p-6 rounded-lg shadow-xl ${
               isDark ? "bg-dark-800" : "bg-white"
@@ -517,7 +556,7 @@ export function Clients() {
       )}
 
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]">
           <div
             className={`w-full max-w-md p-6 rounded-lg shadow-xl ${
               isDark ? "bg-dark-800" : "bg-white"
@@ -565,7 +604,7 @@ export function Clients() {
 
       {/* Temporariamente removido até implementar corretamente com as novas stores */}
       {showListSelector && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]">
           <div
             className={`w-full max-w-md p-6 rounded-lg shadow-xl ${
               isDark ? "bg-dark-800" : "bg-white"
