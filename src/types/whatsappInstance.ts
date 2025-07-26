@@ -46,6 +46,8 @@ export interface WhatsAppInstanceState {
   addInstance: (instance: WhatsAppInstanceOutput) => void;
   updateInstance: (instance: WhatsAppInstanceOutput) => void;
   deleteInstance: (instanceId: string) => void;
+  updateQrCode: (instanceId: string, qrCode: string) => void;
   fetchAllInstances: (token: string, organizationId: string) => Promise<void>;
+  
   cleanUserData: () => void;
 } 

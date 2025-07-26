@@ -1,5 +1,4 @@
 import { ErrorApiResponse } from "../types/api.types";
-import { ApiResponse } from "../types/plan";
 import { APIError } from "../services/errors/api.errors";
 
 export function formatCurrency(value: number): string {

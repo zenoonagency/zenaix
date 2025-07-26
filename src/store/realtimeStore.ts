@@ -12,6 +12,7 @@ import { useInviteStore } from "./inviteStore";
 import { usePermissionsStore } from "./permissionsStore";
 import { useCalendarStore } from "./calendarStore";
 import { useBoardStore } from "./boardStore";
+import { useWhatsAppInstanceStore } from "./whatsAppInstanceStore";
 
 interface RealtimeState {
   userChannel: RealtimeChannel | null;
@@ -427,6 +428,12 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
                         break;
                       case "CARD_FILE_DELETED":
                         useBoardStore.getState().removeAttachmentFromCard(eventData.data);
+                        break;
+                      case "WHATSAPP_INSTANCE_CREATED":
+                        // useBoardStore.getState().removeAttachmentFromCard(eventData.data);
+                        break;
+                      case "WHATSAPP_QR_CODE":
+                        useWhatsAppInstanceStore.getState().updateQrCode(eventData.data.instanceId, eventData.data.qrCode )
                         break;
                     }
                   }

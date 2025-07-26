@@ -33,6 +33,13 @@ export const useWhatsAppInstanceStore = create<WhatsAppInstanceState>()(
           instances: state.instances.filter((instance) => instance.id !== instanceId),
         })),
 
+      updateQrCode: (instanceId: string, qrCode: string) =>
+        set((state) => ({
+          instances: state.instances.map((instance) =>
+            instance.id === instanceId ? { ...instance, qrCode } : instance
+          ),
+        })),
+
       fetchAllInstances: async (token: string, organizationId: string) => {
         const { instances, isLoading } = get();
         if (instances.length === 0) {
