@@ -23,9 +23,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { ProfileModal } from "../../components/ProfileModal";
-import { Contact, MessageContent } from "./types";
+// import { Contact, MessageContent } from "./types";
 import { useThemeStore } from "../../store/themeStore";
-import { useWhatsAppConnectionStore } from "../../store/whatsAppConnectionStore";
 
 // Estilos personalizados para o carrossel
 import "./carousel.css";
@@ -45,7 +44,7 @@ export function Messaging() {
   } = useMessagingStore();
   const { contacts } = useContactsStore();
   const { tags, addTag } = useTagStore();
-  const { isConnected: whatsAppIsConnected } = useWhatsAppConnectionStore();
+  // const { isConnected: whatsAppIsConnected } = useWhatsAppConnectionStore();
   const [isSending, setIsSending] = useState(false);
   const [sendingProgress, setSendingProgress] = useState(0);
   const [showWhatsAppConnectModal, setShowWhatsAppConnectModal] =

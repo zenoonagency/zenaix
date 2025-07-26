@@ -109,6 +109,20 @@ export const API_CONFIG = {
     getAllMessages: "/todas_messages",
     getMessages: "/messages",
   },
+  whatsappInstances: {
+    create: (organizationId: string) =>
+      `/organizations/${organizationId}/whatsapp-instances`,
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/whatsapp-instances`,
+    findById: (organizationId: string, instanceId: string) =>
+      `/organizations/${organizationId}/whatsapp-instances/${instanceId}`,
+    update: (organizationId: string, instanceId: string) =>
+      `/organizations/${organizationId}/whatsapp-instances/${instanceId}`,
+    delete: (organizationId: string, instanceId: string) =>
+      `/organizations/${organizationId}/whatsapp-instances/${instanceId}`,
+    connect: (organizationId: string, instanceId: string) =>
+      `/organizations/${organizationId}/whatsapp-instances/${instanceId}/connect`,
+  },
   contracts: {
     create: (organizationId: string) =>
       `/organizations/${organizationId}/contracts`,
