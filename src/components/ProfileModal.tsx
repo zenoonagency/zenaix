@@ -84,12 +84,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       );
       updateUser({ avatar_url: updatedUserFromApi.avatar_url });
 
-      if (
-        result.compressedSize &&
-        result.compressedSize < result.originalSize
-      ) {
-        showToast("Imagem processada com sucesso!", "success");
-      }
+  
       showToast("Avatar atualizado com sucesso!", "success");
     } catch (error) {
       const message =

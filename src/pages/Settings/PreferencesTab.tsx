@@ -37,9 +37,9 @@ export function PreferencesTab() {
     setIsLoading(true);
 
     try {
-      if (!token) throw new Error("Usuário não autenticado.");
+      if (!token || !user?.id) throw new Error("Usuário não autenticado.");
 
-      const updatedUser = await userService.updateProfile(token, {
+      const updatedUser = await userService.updateUser(token, user.id, {
         ...formData,
         name: user?.name || "",
       });

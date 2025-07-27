@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { userService } from "../../services/user/user.service";
 import { useToast } from "../../hooks/useToast";
-import { imageService } from "../../services/imageService";
 import { compressImage } from "../../utils/imageCompression";
 import { User, Camera, Trash2, Save } from "lucide-react";
 import { motion } from "framer-motion";
@@ -74,12 +73,7 @@ export function ProfileTab() {
       );
       updateUser(updatedUserFromApi);
 
-      if (
-        result.compressedSize &&
-        result.compressedSize < result.originalSize
-      ) {
-        showToast("Imagem processada com sucesso!", "success");
-      }
+    
       showToast("Avatar atualizado com sucesso!", "success");
     } catch (error) {
       showToast("Erro ao atualizar avatar. Tente novamente.", "error");
@@ -109,9 +103,9 @@ export function ProfileTab() {
     setIsLoading(true);
 
     try {
-      if (!token) throw new Error("Utilizador não autenticado.");
+      if (!token || !user?.id) throw new Error("Utilizador não autenticado.");
 
-      const updatedUser = await userService.updateProfile(token, {
+      const updatedUser = await userService.updateUser(token, user.id, {
         ...formData,
         language: user?.language || "pt-BR",
         timezone: user?.timezone || "America/Sao_Paulo",

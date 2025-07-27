@@ -15,7 +15,6 @@ const cleanAllUserDataStores = () => {
       return;
     }
 
-    // Importar e limpar todas as stores de forma mais segura
     const stores = [
       () => import('./boardStore').then(m => {
         try { m.useBoardStore.getState().cleanUserData(); } 
@@ -228,6 +227,23 @@ export const useAuthStore = create<AuthState>()(
       hasPermission: (permission: string) => {
         const { permissions } = get();
         return permissions.includes(permission);
+      },
+
+      updateUser: (userData: Partial<User>) => {
+        set((state) => {
+          if (!state.user) return {}; 
+
+          const updatedUser = { ...state.user, ...userData };
+
+          const updatedOrganization = userData.organization 
+            ? userData.organization 
+            : state.organization;
+
+          return {
+            user: updatedUser,
+            organization: updatedOrganization
+          };
+        });
       },
     }),
     {

@@ -13,8 +13,6 @@ export const supabase = createClient(
       params: {
         eventsPerSecond: 10,
       },
-      retryAfterMs: (tries) => Math.min(tries * 1000, 10000),
-      maxRetries: 5,
     },
     global: {
       headers: {

@@ -87,12 +87,7 @@ export function Register() {
       if (result.success && result.file) {
         handleInputChange("avatar", result.file);
         setAvatarPreview(URL.createObjectURL(result.file));
-        if (
-          result.compressedSize &&
-          result.compressedSize < result.originalSize
-        ) {
-          showToast("Imagem processada com sucesso!", "success");
-        }
+      
       } else {
         showToast(result.error || "Erro ao processar imagem", "error");
       }

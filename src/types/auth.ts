@@ -59,4 +59,5 @@ export interface AuthState {
   fetchAndSetDeepUserData: () => void;
   isLoggingOut: () => boolean;
   hasPermission: (permission: string) => boolean;
+  updateUser: (userData: Partial<User>) => void;
 }
