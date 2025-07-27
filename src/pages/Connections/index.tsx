@@ -16,7 +16,7 @@ export function Connections() {
   const { showToast } = useToast();
   const isDark = theme === 'dark';
   
-  const { instances, isLoading, fetchAllInstances } = useWhatsAppInstanceStore();
+  const { instances, isLoading, fetchAllInstances, lastFetched } = useWhatsAppInstanceStore();
   const [deletingInstanceId, setDeletingInstanceId] = useState<string | null>(null);
   const [connectingInstanceId, setConnectingInstanceId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -36,10 +36,14 @@ export function Connections() {
 
   // Fetch inicial se necessário (como outros componentes fazem)
   useEffect(() => {
-    if (token && user?.organization_id && instances.length === 0 && !isLoading) {
+    if (
+      token &&
+      user?.organization_id &&
+      !isLoading 
+    ) {
       fetchAllInstances(token, user.organization_id);
     }
-  }, [token, user?.organization_id, instances.length, isLoading]); // Remover fetchAllInstances das dependências
+  }, [token, user?.organization_id ]);
 
   const handleDeleteInstance = async (instanceId: string) => {
     if (!token || !user?.organization_id) return;
@@ -61,7 +65,7 @@ export function Connections() {
     try {
       setConnectingInstanceId(instanceId);
       await connectInstance(token, user.organization_id, instanceId);
-      showToast('Conexão iniciada! Verifique o QR Code.', 'success');
+      showToast('Conexão iniciada! Aguarde o QR Code.', 'success');
     } catch (error) {
       showToast('Erro ao conectar instância', 'error');
     } finally {
@@ -138,11 +142,6 @@ export function Connections() {
       <CreateInstanceModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onSuccess={() => {
-          if (token && user?.organization_id) {
-            fetchAllInstances(token, user.organization_id);
-          }
-        }}
       />
     </div>
   );
@@ -171,7 +170,8 @@ export function Connections() {
         </button>
       </div>
 
-      {instances.length === 0 ? (
+      {/* Exibe mensagem se não houver instâncias */}
+      {!isLoading && instances.length === 0 ? (
         <div className="bg-white dark:bg-dark-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12">
           <div className="text-center">
             <div className="p-4 bg-[#7f00ff]/10 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">

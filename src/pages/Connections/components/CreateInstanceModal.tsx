@@ -12,7 +12,7 @@ import { useTeamMembersStore } from '../../../store/teamMembersStore';
 interface CreateInstanceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
 export function CreateInstanceModal({ isOpen, onClose, onSuccess }: CreateInstanceModalProps) {

@@ -108,8 +108,22 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
     case "WHATSAPP_QR_CODE":
       useWhatsAppInstanceStore.getState().updateQrCode(payload.data.instance_id, payload.data.qrCode);
       break;
-    case "test":
+    case "WHATSAPP_INSTANCE_CONNECTED": {
+
+      console.log('fui chamado')
+      console.log(payload.data)
+
+      const store = useWhatsAppInstanceStore.getState();
+      const oldInstance = store.instances.find(i => i.id === payload.data.instance_id);
+      if (oldInstance) {
+        store.updateInstance({
+          ...oldInstance,
+          phone_number: payload.data.phoneNumber, // corrigido para snake_case
+          status: payload.data.status,
+        });
+      }
       break;
+    }
     default:
       break;
   }
