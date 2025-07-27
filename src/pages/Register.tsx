@@ -24,6 +24,7 @@ import { ParticlesEffect } from "../components/effects/ParticlesEffect";
 import { NotificationSingle } from "../components/Notification";
 import { userService } from "../services/user/user.service";
 import { compressImage } from "../utils/imageCompression";
+import { supabase } from "../lib/supabaseClient";
 
 export function Register() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -42,7 +43,6 @@ export function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const navigate = useNavigate();
-  const { login, updateUser } = useAuthStore();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const _hasHydrated = useAuthStore((state) => state._hasHydrated);
   const { showToast } = useToast();
@@ -143,49 +143,51 @@ export function Register() {
     setLoading(true);
 
     try {
-      const registrationData = {
-        name: formData.name,
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
-        language: formData.language,
-        timezone: formData.timezone,
-      };
+        options: {
+          data: {
+            name: formData.name,
+            // Outros metadados que você queira salvar no registro
+          },
+        },
+      });
 
-      const authResponse = await authService.register(registrationData);
+      if (signUpError) throw signUpError;
+      if (!signUpData.user) throw new Error("Não foi possível criar o usuário.");
 
-      login(authResponse);
-      showToast(
-        "Conta criada com sucesso! Configurando o seu perfil...",
-        "success"
-      );
 
+      showToast("Conta criada com sucesso! Configurando seu perfil...", "success");
+
+    
       if (formData.avatar) {
-        try {
-          const updatedUserWithAvatar = await userService.updateAvatar(
-            authResponse.token,
-            formData.avatar
-          );
-          updateUser({ avatar_url: updatedUserWithAvatar.avatar_url });
-        } catch (avatarError) {
-          console.error(
-            "Erro no upload do avatar após o registo:",
-            avatarError
-          );
-          showToast(
-            "A sua conta foi criada, mas houve um erro ao enviar o seu avatar, tente novamente nas configurações do seu perfil.",
-            "warning"
-          );
-        }
-      }
+        const fileExtension = formData.avatar.type.split("/")[1];
+        const filePath = `${signUpData.user.id}/avatar.${fileExtension}`;
 
-      // 5. Finalmente, redirecionamos para o dashboar
-      navigate("/dashboard");
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Erro ao registar utilizador";
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, formData.avatar, { upsert: true }); 
+
+        if (uploadError) {
+          throw new Error("Sua conta foi criada, mas houve um erro ao enviar o avatar. Tente novamente no seu perfil.");
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(filePath);
+
+  
+        await supabase.auth.updateUser({
+          data: {
+            avatar_url: urlData.publicUrl,
+          },
+        });
+      }
+    } catch (error: any) {
+      const message = error.message || "Erro ao registrar usuário";
       setError(message);
       showToast(message, "error");
-      console.error("Erro ao cadastrar:", error);
     } finally {
       setLoading(false);
     }

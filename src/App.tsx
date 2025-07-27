@@ -1,104 +1,81 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { RouterProvider } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { Toaster } from "react-hot-toast";
 import { NetworkStatus } from "./components/NetworkStatus";
 import { Notification } from "./components/Notification";
 import { router } from "./routes";
+import { supabase } from "./lib/supabaseClient";
+
+// Stores
 import { useAuthStore } from "./store/authStore";
-import { usePlanStore } from "./store/planStore";
-import { useEmbedPagesStore } from "./store/embedPagesStore";
 import { useRealtimeStore } from "./store/realtimeStore";
+import { usePlanStore } from "./store/planStore";
+import { useTransactionStore } from "./store/transactionStore";
+import { useEmbedPagesStore } from "./store/embedPagesStore";
 import { useTagStore } from "./store/tagStore";
 import { useContractStore } from "./store/contractStore";
-import { useTransactionStore } from "./store/transactionStore";
-import { supabase } from "./lib/supabaseClient";
 import { useTeamMembersStore } from "./store/teamMembersStore";
 import { useBoardStore } from "./store/boardStore";
 import { useCalendarStore } from "./store/calendarStore";
+import { useWhatsAppInstanceStore } from "./store/whatsAppInstanceStore";
 
 export function App() {
-  const { isAuthenticated, _hasHydrated, token, userId, organizationId } =
-    useAuthStore((state) => ({
-      isAuthenticated: state.isAuthenticated,
-      _hasHydrated: state._hasHydrated,
-      token: state.token,
-      userId: state.user?.id,
-      organizationId: state.user?.organization_id,
-    }));
-
-  // State para controlar o delay de reconexão
-  const [lastVisibilityChange, setLastVisibilityChange] = useState<number>(0);
-
-  // Ref para controlar se já foi inicializado
   const hasInitialized = useRef(false);
 
   useEffect(() => {
-    if (isAuthenticated && _hasHydrated && token && userId && !hasInitialized.current) {
-      hasInitialized.current = true;
+    console.log("[App] Configurando listener de autenticação (onAuthStateChange)...");
 
-      // Usar getState() para evitar dependências das funções
-      const { fetchAndSyncUser } = useAuthStore.getState();
-      const { fetchAllPlans } = usePlanStore.getState();
-      const { fetchAllTransactions } = useTransactionStore.getState();
-      const { fetchAllEmbedPages } = useEmbedPagesStore.getState();
-      const { fetchAllTags } = useTagStore.getState();
-      const { fetchAllContracts } = useContractStore.getState();
-      const { fetchAllMembers } = useTeamMembersStore.getState();
-      const { fetchAllBoards } = useBoardStore.getState();
-      const { fetchEvents } = useCalendarStore.getState();
-      const { connect: connectToRealtime, disconnect: disconnectFromRealtime } =
-        useRealtimeStore.getState();
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async  (event, session) => {
+        const { connect, disconnect } = useRealtimeStore.getState();
+        const { setSession, clearAuth, fetchAndSetDeepUserData } = useAuthStore.getState();
 
-      fetchAndSyncUser();
-      fetchAllPlans(token);
+        if (session && !hasInitialized.current) {
+          console.log(`[App] ✅ Evento '${event}' com sessão válida. Inicializando aplicação...`);
+          hasInitialized.current = true;
+          
+          setSession(session);
 
-      if (organizationId) {
-        fetchAllEmbedPages(token, organizationId);
-        fetchAllTags(token, organizationId);
-        fetchAllContracts(token, organizationId);
-        fetchAllTransactions(token, organizationId);
-        fetchAllMembers(token, organizationId);
-        fetchAllBoards(token, organizationId);
-        fetchEvents();
-      }
+          // Só buscar dados adicionais se necessário (a organização já vem do token)
+          const { organization } = useAuthStore.getState();
+          if (!organization) {
+            await fetchAndSetDeepUserData();
+          }
 
-      connectToRealtime(userId, organizationId);
+          const { token, user } = useAuthStore.getState();
+          const organizationId = user?.organization_id;
 
-      return () => {
-        disconnectFromRealtime();
-      };
-    }
-  }, [isAuthenticated, _hasHydrated, token, userId]); // Adicionado userId nas dependências
-
-  // Reset do flag quando usuário desloga
-  useEffect(() => {
-    if (!isAuthenticated) {
-      hasInitialized.current = false;
-    }
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        const now = Date.now();
-        const timeSinceLastChange = now - lastVisibilityChange;
-
-        // Só atualizar se passaram pelo menos 30 segundos desde a última mudança
-        if (timeSinceLastChange >= 30000) {
-          supabase.realtime.connect();
-          useAuthStore.getState().fetchAndSyncUser();
-          setLastVisibilityChange(now);
+          if (token && user) {
+            usePlanStore.getState().fetchAllPlans(token);
+            usePlanStore.getState().fetchAllPlans(session.access_token);
+            if (organizationId) {
+              useEmbedPagesStore.getState().fetchAllEmbedPages(session.access_token, organizationId);
+              useTagStore.getState().fetchAllTags(session.access_token, organizationId);
+              useContractStore.getState().fetchAllContracts(session.access_token, organizationId);
+              useTransactionStore.getState().fetchAllTransactions(session.access_token, organizationId);
+              useTeamMembersStore.getState().fetchAllMembers(session.access_token, organizationId);
+              useBoardStore.getState().fetchAllBoards(session.access_token, organizationId);
+              useWhatsAppInstanceStore.getState().fetchAllInstances(session.access_token, organizationId);
+              useCalendarStore.getState().fetchEvents();
+            }
+            connect(user.id, organizationId);
+          }
+        }
+        else if (event === "SIGNED_OUT") {
+          console.log("[App] ❌ Evento SIGNED_OUT. Desconectando e limpando...");
+          hasInitialized.current = false;
+          disconnect();
+          clearAuth(); 
         }
       }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    );
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      console.log("[App] Desmontando componente. Removendo listener de autenticação.");
+      authListener.subscription.unsubscribe();
     };
-  }, [lastVisibilityChange]);
+  }, []); // O array vazio [] garante que isso rode apenas uma vez na vida do componente.
 
   return (
     <>

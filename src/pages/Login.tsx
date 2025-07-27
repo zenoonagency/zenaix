@@ -6,15 +6,11 @@ import { motion } from "framer-motion";
 import { Input } from "../components/ui/Input";
 import { useThemeStore } from "../store/themeStore";
 import { ParticlesEffect } from "../components/effects/ParticlesEffect";
-import { authService } from "../services/authService";
 import { useToast } from "../hooks/useToast";
 import { OAuthButtons } from "../components/auth/OAuthButtons";
+import { supabase } from "../lib/supabaseClient"; // ✅ Importar o Supabase client
 
-interface LoginProps {
-  onLoginSuccess?: () => void;
-}
-
-export function Login({ onLoginSuccess }: LoginProps) {
+export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,63 +18,15 @@ export function Login({ onLoginSuccess }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const { theme } = useThemeStore();
   const navigate = useNavigate();
-  const login = useAuthStore((state) => state.login);
+  const { showToast } = useToast();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const _hasHydrated = useAuthStore((state) => state._hasHydrated);
-  const { showToast } = useToast();
 
-  // Redireciona se já estiver autenticado
   React.useEffect(() => {
     if (isAuthenticated) {
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate]);
-
-  // Detectar callback OAuth
-  React.useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const handleOAuthCallback = async () => {
-      try {
-        const authData = await authService.handleOAuthCallback(urlParams);
-        if (authData) {
-          login(authData);
-          showToast("Login realizado com sucesso!", "success");
-          if (onLoginSuccess) {
-            onLoginSuccess();
-          }
-        }
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Erro no login social";
-        setError(message);
-        showToast(message, "error");
-        // Limpar URL parameters
-        window.history.replaceState(
-          {},
-          document.title,
-          window.location.pathname
-        );
-      }
-    };
-
-    if (urlParams.get("oauth_success")) {
-      handleOAuthCallback();
-    }
-
-    // Detectar erro OAuth
-    if (urlParams.get("oauth_error")) {
-      const errorMessage = urlParams.get("message") || "Erro no login social";
-      setError(errorMessage);
-      showToast(errorMessage, "error");
-      // Limpar URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
-    // Debug - mostrar todos os parâmetros da URL
-    if (urlParams.toString()) {
-      console.log("Parâmetros da URL detectados:", urlParams.toString());
-    }
-  }, [login, onLoginSuccess, showToast]);
 
   if (!_hasHydrated) {
     return (
@@ -101,20 +49,21 @@ export function Login({ onLoginSuccess }: LoginProps) {
     setLoading(true);
 
     try {
-      const response = await authService.login({ email, password });
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      console.log("DADOS RECEBIDOS DO BACKEND:", response);
-
-      login(response);
-
-      if (onLoginSuccess) {
-        onLoginSuccess();
+      if (signInError) {
+        throw signInError;
       }
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Erro ao fazer login";
+
+      showToast("Login realizado com sucesso!", "success");
+
+    } catch (error: any) {
+      const message = error.message || "Erro ao fazer login";
       setError(message);
-      showToast(message, "error");
+      showToast("Email ou senha inválidos.", "error");
     } finally {
       setLoading(false);
     }

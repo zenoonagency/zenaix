@@ -1,4 +1,4 @@
-import { RealtimeChannel } from "@supabase/supabase-js";
+import { RealtimeChannel, Session } from "@supabase/supabase-js";
 import { OrganizationOutput } from "./organization";
 
 export interface User {
@@ -49,15 +49,11 @@ export interface AuthState {
   organization: OrganizationOutput | null;
   permissions: string[];
   _hasHydrated: boolean;
-  isSyncingUser: boolean;
 
-  setToken: (token: string) => void;
-  setSession: (accessToken: string) => Promise<void>;
-  hasPermission: (permission: string) => boolean;
-  login: (payload: AuthSuccessPayload) => Promise<void>;
+  setSession: (session: Session) => void;
   logout: () => void;
-  updateUser: (user: Partial<User>) => void;
+  clearAuth: () => void; 
   setOrganization: (organization: OrganizationOutput) => void;
-  refreshToken: () => Promise<boolean>;
-  fetchAndSyncUser: () => Promise<User | null>;
+  fetchAndSetDeepUserData: () => void
+
 }
