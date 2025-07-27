@@ -5,6 +5,7 @@ import { User, AuthState } from "../types/auth"; // Seus tipos customizados
 import { OrganizationOutput } from "../types/organization";
 import { supabase } from "../lib/supabaseClient";
 import { userService } from "../services/user/user.service";
+import { permissionsService } from "../services/permission/permissions.service";
 
 // Função para limpar todas as stores de dados do usuário
 const cleanAllUserDataStores = () => {
@@ -170,11 +171,28 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           const fullUserPayload = await userService.getMe(token);
+          
+          // Buscar permissões do usuário atual
+          let userPermissions: string[] = [];
+          if (fullUserPayload.organization_id) {
+            try {
+              const permissions = await permissionsService.list(
+                token, 
+                fullUserPayload.organization_id, 
+                fullUserPayload.id
+              );
+              userPermissions = permissions.map(perm => perm.name);
+            } catch (permError) {
+              console.warn("Erro ao buscar permissões do usuário:", permError);
+              // Se falhar, usar permissões vazias
+              userPermissions = [];
+            }
+          }
 
           set({
             user: fullUserPayload,
             organization: fullUserPayload.organization,
-            permissions: fullUserPayload.permissions,
+            permissions: userPermissions,
           });
 
         } catch (error) {
@@ -222,6 +240,12 @@ export const useAuthStore = create<AuthState>()(
       // Função utilitária para verificar se está fazendo logout
       isLoggingOut: () => {
         return get()._isLoggingOut;
+      },
+
+      // Função para verificar permissões
+      hasPermission: (permission: string) => {
+        const { permissions } = get();
+        return permissions.includes(permission);
       },
     }),
     {

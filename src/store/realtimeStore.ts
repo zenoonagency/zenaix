@@ -110,7 +110,6 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
       useWhatsAppInstanceStore.getState().deleteInstance(payload.data.instance_id);
       break;
     case "WHATSAPP_QR_CODE":
-      console.log("[RealtimeStore] Processando evento WHATSAPP_QR_CODE:", payload.data);
       useWhatsAppInstanceStore.getState().updateQrCode(payload.data.instance_id, payload.data.qrCode);
       break;
     case "test":

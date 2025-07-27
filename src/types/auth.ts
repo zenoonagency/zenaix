@@ -58,5 +58,5 @@ export interface AuthState {
   setOrganization: (organization: OrganizationOutput) => void;
   fetchAndSetDeepUserData: () => void;
   isLoggingOut: () => boolean;
-
+  hasPermission: (permission: string) => boolean;
 }

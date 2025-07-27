@@ -31,7 +31,6 @@ export const useWhatsAppInstanceStore = create<WhatsAppInstanceState>()((set, ge
     })),
 
   updateQrCode: (instanceId: string, qrCode: string) => {
-    console.log("[WhatsAppInstanceStore] Atualizando QR Code para instância:", instanceId, "qrCode:", qrCode);
     set((state) => ({
       instances: state.instances.map((instance) =>
         instance.id === instanceId ? { ...instance, qr_code: qrCode } : instance

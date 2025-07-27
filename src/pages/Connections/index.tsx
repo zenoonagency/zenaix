@@ -17,10 +17,6 @@ export function Connections() {
   const isDark = theme === 'dark';
   
   const { instances, isLoading, fetchAllInstances } = useWhatsAppInstanceStore();
-  
-  // Debug: Log das instâncias para verificar se estão sendo atualizadas
-  console.log("[Connections] Instâncias atuais:", instances);
-  
   const [deletingInstanceId, setDeletingInstanceId] = useState<string | null>(null);
   const [connectingInstanceId, setConnectingInstanceId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
