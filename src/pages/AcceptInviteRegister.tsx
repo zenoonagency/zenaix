@@ -16,13 +16,13 @@ import { useAuthStore } from "../store/authStore";
 import { useToast } from "../hooks/useToast";
 import { useThemeStore } from "../store/themeStore";
 import { ParticlesEffect } from "../components/effects/ParticlesEffect";
-import { authService } from "../services/authService";
 import { inviteService } from "../services/invite/invite.service";
 import { LANGUAGE_OPTIONS } from "../contexts/LocalizationContext";
 import { TIMEZONE_OPTIONS } from "../utils/dateUtils";
 import { userService } from "../services/user/user.service";
 import { compressImage } from "../utils/imageCompression";
 import { OAuthButtonsInvite } from "../components/auth/OAuthButtonsInvite";
+import { supabase } from "../lib/supabaseClient";
 
 export function AcceptInviteRegister() {
   const [searchParams] = useSearchParams();
@@ -43,78 +43,11 @@ export function AcceptInviteRegister() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
-  const { login, updateUser } = useAuthStore();
   const { showToast } = useToast();
   const { theme } = useThemeStore();
   const navigate = useNavigate();
 
-  // Detectar callback OAuth para convites no registro
-  React.useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const handleOAuthCallback = async () => {
-      try {
-        const authData = await authService.handleOAuthCallback(urlParams);
-        if (authData) {
-          login(authData);
 
-          // Tentar recuperar dados do convite do sessionStorage
-          const storedOrg = sessionStorage.getItem("invite_org");
-          const storedToken = sessionStorage.getItem("invite_token");
-          const currentInviteToken = inviteToken || storedToken;
-
-          if (currentInviteToken) {
-            try {
-              await inviteService.acceptInvite(authData.token, {
-                token: currentInviteToken,
-              });
-              showToast(
-                "Conta criada e convite aceito com sucesso!",
-                "success"
-              );
-
-              // Limpar sessionStorage
-              sessionStorage.removeItem("invite_org");
-              sessionStorage.removeItem("invite_token");
-            } catch (inviteError) {
-              showToast(
-                "Conta criada, mas erro ao aceitar convite. Tente novamente.",
-                "warning"
-              );
-            }
-          } else {
-            showToast("Conta criada com sucesso!", "success");
-          }
-
-          navigate("/dashboard");
-        }
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Erro no registro social";
-        setError(message);
-        showToast(message, "error");
-        // Limpar URL parameters
-        window.history.replaceState(
-          {},
-          document.title,
-          window.location.pathname
-        );
-      }
-    };
-
-    if (urlParams.get("oauth_success")) {
-      handleOAuthCallback();
-    }
-
-    // Detectar erro OAuth
-    if (urlParams.get("oauth_error")) {
-      const errorMessage =
-        urlParams.get("message") || "Erro no registro social";
-      setError(errorMessage);
-      showToast(errorMessage, "error");
-      // Limpar URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, [login, inviteToken, navigate, showToast]);
 
   const logoUrl =
     theme === "dark"
@@ -189,26 +122,45 @@ export function AcceptInviteRegister() {
     setError("");
     setLoading(true);
     try {
-      const registrationData = {
-        name: formData.name,
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
-        language: formData.language,
-        timezone: formData.timezone,
-      };
-      const authResponse = await authService.register(registrationData);
-      login(authResponse);
-      showToast(
-        "Conta criada com sucesso! Configurando o seu perfil...",
-        "success"
-      );
+        options: {
+          data: {
+            name: formData.name,
+            language: formData.language,
+            timezone: formData.timezone,
+          },
+        },
+      });
+
+      if (signUpError) throw signUpError;
+      if (!signUpData.user) throw new Error("Não foi possível criar o usuário.");
+
+      showToast("Conta criada com sucesso! Configurando o seu perfil...", "success");
+
       if (formData.avatar) {
         try {
-          const updatedUserWithAvatar = await userService.updateAvatar(
-            authResponse.token,
-            formData.avatar
-          );
-          updateUser({ avatar_url: updatedUserWithAvatar.avatar_url });
+          const fileExtension = formData.avatar.type.split("/")[1];
+          const filePath = `${signUpData.user.id}/avatar.${fileExtension}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("avatars")
+            .upload(filePath, formData.avatar, { upsert: true });
+
+          if (uploadError) {
+            throw new Error("Sua conta foi criada, mas houve um erro ao enviar o avatar. Tente novamente no seu perfil.");
+          }
+
+          const { data: urlData } = supabase.storage
+            .from("avatars")
+            .getPublicUrl(filePath);
+
+          await supabase.auth.updateUser({
+            data: {
+              avatar_url: urlData.publicUrl,
+            },
+          });
         } catch (avatarError) {
           showToast(
             "A sua conta foi criada, mas houve um erro ao enviar o seu avatar, tente novamente nas configurações do seu perfil.",
@@ -216,18 +168,20 @@ export function AcceptInviteRegister() {
           );
         }
       }
+
       // Chama a service de aceitar convite
-      await inviteService.acceptInvite(authResponse.token, {
-        token: inviteToken!,
-      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && inviteToken) {
+        await inviteService.acceptInvite(session.access_token, { token: inviteToken });
+      }
+
       showToast("Convite aceito com sucesso!", "success");
       navigate("/dashboard");
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Erro ao registrar";
+    } catch (error: any) {
+      const message = error.message || "Erro ao registrar";
       setError(message);
 
-      if (message.toLowerCase().includes("já existe")) {
+      if (message.toLowerCase().includes("já existe") || message.toLowerCase().includes("already registered")) {
         showToast(
           "Conta já existe, faça login para aceitar o convite.",
           "info"

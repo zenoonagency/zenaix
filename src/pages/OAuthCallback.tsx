@@ -63,7 +63,6 @@ export function OAuthCallback() {
                 };
 
                 login(authData);
-                showToast("Login realizado com sucesso!", "success");
                 navigate("/dashboard");
                 return;
               } else {
@@ -101,7 +100,6 @@ export function OAuthCallback() {
           const authData = await authService.handleOAuthCallback(searchParams);
           if (authData) {
             login(authData);
-            showToast("Login realizado com sucesso!", "success");
             navigate("/dashboard");
             return;
           }

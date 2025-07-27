@@ -58,7 +58,6 @@ export function Login() {
         throw signInError;
       }
 
-      showToast("Login realizado com sucesso!", "success");
 
     } catch (error: any) {
       const message = error.message || "Erro ao fazer login";

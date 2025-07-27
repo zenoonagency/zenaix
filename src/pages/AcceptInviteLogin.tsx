@@ -6,10 +6,10 @@ import { motion } from "framer-motion";
 import { Input } from "../components/ui/Input";
 import { useThemeStore } from "../store/themeStore";
 import { ParticlesEffect } from "../components/effects/ParticlesEffect";
-import { authService } from "../services/authService";
 import { useToast } from "../hooks/useToast";
 import { inviteService } from "../services/invite/invite.service";
 import { OAuthButtonsInvite } from "../components/auth/OAuthButtonsInvite";
+import { supabase } from "../lib/supabaseClient";
 
 export function AcceptInviteLogin() {
   const [searchParams] = useSearchParams();
@@ -22,62 +22,9 @@ export function AcceptInviteLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const { theme } = useThemeStore();
   const navigate = useNavigate();
-  const login = useAuthStore((state) => state.login);
   const { showToast } = useToast();
 
-  // Detectar callback OAuth para convites
-  React.useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const handleOAuthCallback = async () => {
-      try {
-        const authData = await authService.handleOAuthCallback(urlParams);
-        if (authData) {
-          login(authData);
-          
-          // Tentar recuperar dados do convite do sessionStorage
-          const storedOrg = sessionStorage.getItem('invite_org');
-          const storedToken = sessionStorage.getItem('invite_token');
-          const currentInviteToken = inviteToken || storedToken;
-          
-          if (currentInviteToken) {
-            try {
-              await inviteService.acceptInvite(authData.token, { token: currentInviteToken });
-              showToast("Login realizado e convite aceito com sucesso!", "success");
-              
-              // Limpar sessionStorage
-              sessionStorage.removeItem('invite_org');
-              sessionStorage.removeItem('invite_token');
-            } catch (inviteError) {
-              showToast("Login realizado, mas erro ao aceitar convite. Tente novamente.", "warning");
-            }
-          } else {
-            showToast("Login realizado com sucesso!", "success");
-          }
-          
-          navigate("/dashboard");
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Erro no login social";
-        setError(message);
-        showToast(message, "error");
-        // Limpar URL parameters
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    };
 
-    if (urlParams.get("oauth_success")) {
-      handleOAuthCallback();
-    }
-
-    // Detectar erro OAuth
-    if (urlParams.get("oauth_error")) {
-      const errorMessage = urlParams.get("message") || "Erro no login social";
-      setError(errorMessage);
-      showToast(errorMessage, "error");
-      // Limpar URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, [login, inviteToken, navigate, showToast]);
 
   const logoUrl =
     theme === "dark"
@@ -90,17 +37,25 @@ export function AcceptInviteLogin() {
     setLoading(true);
 
     try {
-      const response = await authService.login({ email, password });
-      login(response);
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        throw signInError;
+      }
 
       // Chama a service de aceitar convite
-      await inviteService.acceptInvite(response.token, { token: inviteToken! });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && inviteToken) {
+        await inviteService.acceptInvite(session.access_token, { token: inviteToken });
+      }
 
       showToast("Convite aceito com sucesso!", "success");
       navigate("/dashboard");
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Erro ao fazer login";
+    } catch (error: any) {
+      const message = error.message || "Erro ao fazer login";
       if (
         message.includes("Convite não pode ser aceito. Status atual: ACCEPTED.")
       ) {
