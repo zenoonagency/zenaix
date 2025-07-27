@@ -2,15 +2,11 @@ import { create } from "zustand";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 import { useAuthStore } from "./authStore";
-import { useEmbedPagesStore } from "./embedPagesStore";
 import { RealtimeEventPayload } from "../types/realtime.types";
 import { useTagStore } from "./tagStore";
 import { useContractStore } from "./contractStore";
 import { useTransactionStore } from "./transactionStore";
 import { useTeamMembersStore } from "./teamMembersStore";
-import { useInviteStore } from "./inviteStore";
-import { usePermissionsStore } from "./permissionsStore";
-import { useCalendarStore } from "./calendarStore";
 import { useBoardStore } from "./boardStore";
 import { useWhatsAppInstanceStore } from "./whatsAppInstanceStore";
 
@@ -125,50 +121,54 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
   heartbeatInterval: null,
 
   connect: (userId, organizationId) => {
-    const { userChannel, orgChannel, heartbeatInterval } = get();
+    get().disconnect();
 
-    if (heartbeatInterval) clearInterval(heartbeatInterval);
-    if (!supabase) return console.error("[RealtimeStore] Supabase client não está configurado!");
-    
+    console.log("[RealtimeStore] 🔌 Iniciando nova conexão realtime...");
+    if (!supabase) return console.error("Supabase client não configurado!");
+
     if (!supabase.realtime.isConnected()) {
       supabase.realtime.connect();
     }
-    
-    if (!userChannel || userChannel.state === 'closed') {
-      const newUserChannel = supabase.channel(`user-updates-${userId}`);
-      newUserChannel
-        .on("broadcast", { event: "message" }, (message) => {
-          handleRealtimeEvent(message.payload);
-        })
-        .subscribe((status) => {
-          if (status === "CHANNEL_ERROR") {
-            console.error(`[RealtimeStore] ❌ Erro ao conectar no canal do usuário.`);
-          }
-        });
-      set({ userChannel: newUserChannel });
-    }
 
-    if (organizationId && (!orgChannel || orgChannel.state === 'closed')) {
-      const newOrgChannel = supabase.channel(`org-updates-${organizationId}`);
+    const handleSubscription = (status: string, channelName: string) => {
+      if (status === "SUBSCRIBED") {
+        console.log(`[RealtimeStore] ✅ Canal ${channelName} conectado com sucesso.`);
+      } else if (status === "CHANNEL_ERROR") {
+        console.error(`[RealtimeStore] ❌ Erro ao conectar no canal ${channelName}.`);
+      }
+    };
+
+    // --- Canal do Usuário ---
+    const userChannelName = `user-updates-${userId}`;
+    const newUserChannel = supabase.channel(userChannelName);
+    newUserChannel
+      .on("broadcast", { event: "message" }, (message) => handleRealtimeEvent(message.payload))
+      .subscribe((status) => handleSubscription(status, userChannelName));
+
+    // --- Canal da Organização ---
+    let newOrgChannel: RealtimeChannel | null = null;
+    if (organizationId) {
+      const orgChannelName = `org-updates-${organizationId}`;
+      newOrgChannel = supabase.channel(orgChannelName);
       newOrgChannel
-        .on("broadcast", { event: "message" }, (message) => {
-          handleRealtimeEvent(message.payload);
-        })
-        .subscribe((status) => {
-          if (status === "CHANNEL_ERROR") {
-            console.error(`[RealtimeStore] ❌ Erro ao conectar no canal da organização.`);
-          }
-        });
-      set({ orgChannel: newOrgChannel });
+        .on("broadcast", { event: "message" }, (message) => handleRealtimeEvent(message.payload))
+        .subscribe((status) => handleSubscription(status, orgChannelName));
     }
 
+    // --- Heartbeat ---
     const newHeartbeatInterval = setInterval(() => {
       if (!supabase.realtime.isConnected()) {
         console.warn("[RealtimeStore] ⚠️ Conexão principal perdida. Tentando reconectar...");
         supabase.realtime.connect();
       }
     }, 30000);
-    set({ heartbeatInterval: newHeartbeatInterval });
+
+    // ✅ PASSO 2: Atualiza o estado uma única vez com os novos canais e o heartbeat.
+    set({
+      userChannel: newUserChannel,
+      orgChannel: newOrgChannel,
+      heartbeatInterval: newHeartbeatInterval,
+    });
   },
 
   disconnect: () => {
@@ -179,17 +179,17 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
     }
 
     const channelsToRemove = [userChannel, orgChannel].filter(Boolean) as RealtimeChannel[];
-    channelsToRemove.forEach(channel => {
-      supabase.removeChannel(channel);
-    });
-    
+    if (channelsToRemove.length > 0) {
+      console.log(`[RealtimeStore] 🔌 Removendo ${channelsToRemove.length} canais...`);
+      // O Supabase recomenda usar removeChannel em um loop para garantir a remoção
+      channelsToRemove.forEach(ch => supabase.removeChannel(ch));
+    }
+
     set({ userChannel: null, orgChannel: null, heartbeatInterval: null });
   },
 
   testConnection: () => {
-    const { userChannel, orgChannel } = get();
-    
-    // Testar envio de mensagem
+    const { userChannel } = get();
     if (userChannel && userChannel.state === 'joined') {
       userChannel.send({
         type: 'broadcast',

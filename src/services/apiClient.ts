@@ -19,13 +19,10 @@ const processQueue = (error: Error | null, token: string | null = null) => {
   failedQueue = [];
 };
 
-export async function fetchWithAuth(url: string, options: RequestInit = {}) {
+export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
   const token = useAuthStore.getState().token;
 
-  const headers: HeadersInit = {
-    ...options.headers,
-    Authorization: `Bearer ${token}`,
-  };
+  const headers: HeadersInit = { ...options.headers };
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -35,52 +32,14 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
     headers["Content-Type"] = "application/json";
   }
 
-  let response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: "include", // Para enviar/receber cookies
-  });
+  const response = await fetch(url, { ...options, headers });
 
-  if (response.status !== 401) {
-    return response;
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({
+      message: `Erro na requisição: ${response.statusText}`,
+    }));
+    throw new APIError(errorData.message || "Ocorreu um erro na sua requisição.");
   }
 
-  if (isRefreshing) {
-    return new Promise((resolve, reject) => {
-      failedQueue.push({ resolve, reject });
-    }).then((newToken) => {
-      headers["Authorization"] = `Bearer ${newToken}`;
-      return fetch(url, { 
-        ...options, 
-        headers,
-        credentials: "include"
-      });
-    });
-  }
-
-  isRefreshing = true;
-
-  try {
-    const { token } = await authService.refreshToken();
-
-    useAuthStore.getState().setToken(token);
-
-    processQueue(null, token);
-
-    headers["Authorization"] = `Bearer ${token}`;
-    return fetch(url, {
-      ...options,
-      headers,
-      credentials: "include",
-    });
-  } catch (error: any) {
-    processQueue(error, null);
-    useAuthStore.getState().logout();
-    console.error("Falha CRÍTICA na renovação do token:", error);
-    throw new APIError(
-      "A sua sessão expirou. Por favor, faça login novamente."
-    );
-  } finally {
-    isRefreshing = false;
-  }
+  return response;
 }

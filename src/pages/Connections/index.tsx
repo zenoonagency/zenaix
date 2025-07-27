@@ -39,7 +39,7 @@ export function Connections() {
     if (token && user?.organization_id && instances.length === 0 && !isLoading) {
       fetchAllInstances(token, user.organization_id);
     }
-  }, [token, user?.organization_id, instances.length, isLoading, fetchAllInstances]);
+  }, [token, user?.organization_id, instances.length, isLoading]); // Remover fetchAllInstances das dependências
 
   const handleDeleteInstance = async (instanceId: string) => {
     if (!token || !user?.organization_id) return;

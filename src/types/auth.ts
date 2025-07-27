@@ -1,6 +1,13 @@
 import { RealtimeChannel, Session } from "@supabase/supabase-js";
 import { OrganizationOutput } from "./organization";
 
+export interface RegisterApiResponse {
+  message: string;
+  data: User;
+  session: Session;
+}
+
+
 export interface User {
   id: string;
   email: string;
