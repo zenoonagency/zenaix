@@ -141,13 +141,11 @@ export function Dashboard() {
       lastFilters.startDate !== filters.startDate || 
       lastFilters.endDate !== filters.endDate;
 
-    if (!filtersChanged) {
-      console.log("[Dashboard] 🔄 Filtros não mudaram, pulando busca");
-      return;
-    }
+          if (!filtersChanged) {
+        return;
+      }
 
-    console.log("[Dashboard] 🔄 Buscando transações com novos filtros");
-    setLoadingOperation("dashboardTransactions", true);
+      setLoadingOperation("dashboardTransactions", true);
 
     const { fetchDashboardTransactions, fetchDashboardSummary } =
       useDashboardTransactionStore.getState();
@@ -172,7 +170,6 @@ export function Dashboard() {
       const hasExistingSummary = currentStore.summary !== null;
 
       if (hasExistingData && hasExistingSummary) {
-        console.log("[Dashboard] 📊 Dados já existem, pulando fetch inicial");
         setInitialTransactionsFetched(true);
         return;
       }
@@ -182,7 +179,6 @@ export function Dashboard() {
         endDate: format(endDate, "yyyy-MM-dd"),
       };
 
-      console.log("[Dashboard] 🚀 Iniciando fetch inicial de dados");
       setLoadingOperation("dashboardTransactions", true);
 
       const { fetchDashboardTransactions, fetchDashboardSummary } =
@@ -199,7 +195,6 @@ export function Dashboard() {
       ]).finally(() => {
         setLoadingOperation("dashboardTransactions", false);
         setInitialTransactionsFetched(true);
-        console.log("[Dashboard] ✅ Fetch inicial concluído");
       });
     }
   }, [user?.organization_id, initialTransactionsFetched]); // Removido startDate e endDate das dependências

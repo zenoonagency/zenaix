@@ -8,13 +8,10 @@ import { userService } from "../services/user/user.service";
 
 // Função para limpar todas as stores de dados do usuário
 const cleanAllUserDataStores = () => {
-  console.log("[AuthStore] 🧹 Limpando todas as stores de dados do usuário");
-  
   try {
     // Verificar se está fazendo logout para evitar chamadas desnecessárias
     const { isLoggingOut } = useAuthStore.getState();
     if (isLoggingOut()) {
-      console.log("[AuthStore] ⏸️ Logout em andamento, pulando limpeza de stores");
       return;
     }
 
@@ -79,14 +76,10 @@ const cleanAllUserDataStores = () => {
     ];
 
     // Executar limpeza de forma assíncrona e silenciosa
-    Promise.allSettled(stores.map(store => store())).then(() => {
-      console.log("[AuthStore] ✅ Limpeza de stores concluída");
-    }).catch(error => {
-      console.warn("[AuthStore] ⚠️ Alguns erros durante limpeza de stores:", error);
-    });
+    Promise.allSettled(stores.map(store => store()));
 
   } catch (error) {
-    console.warn("[AuthStore] ⚠️ Erro geral ao limpar stores:", error);
+    // Silenciar erros de limpeza
   }
 };
 
@@ -163,13 +156,7 @@ export const useAuthStore = create<AuthState>()(
           organization: mappedOrganization,
         });
 
-        console.log("[AuthStore] Sessão definida:", {
-          hasOrganization: !!mappedOrganization,
-          organization: mappedOrganization,
-          userRole: supabaseUser.user_metadata?.role,
-          hasDocument: !!mappedOrganization?.document,
-          subscriptionStatus: mappedOrganization?.subscription_status
-        });
+
 
         // Só buscar dados adicionais se não tivermos a organização completa
         if (!mappedOrganization) {
@@ -197,8 +184,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        console.log("[AuthStore] 🚪 Iniciando logout...");
-        
         // Marcar que está fazendo logout para evitar chamadas de API
         set({ _isLoggingOut: true });
         
@@ -207,7 +192,6 @@ export const useAuthStore = create<AuthState>()(
         
         // Fazer logout do Supabase
         supabase.auth.signOut().then(() => {
-          console.log("[AuthStore] ✅ Logout do Supabase concluído");
           set({ _isLoggingOut: false });
         }).catch((error) => {
           console.error("[AuthStore] ❌ Erro no logout do Supabase:", error);
@@ -216,8 +200,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       clearAuth: () => {
-        console.log("[AuthStore] 🧹 Limpando dados de autenticação...");
-        
         // Limpar estado primeiro
         set({
           isAuthenticated: false,
@@ -254,12 +236,6 @@ export const useAuthStore = create<AuthState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state._hasHydrated = true;
-          console.log("[AuthStore] Estado reidratado:", {
-            isAuthenticated: state.isAuthenticated,
-            hasUser: !!state.user,
-            hasOrganization: !!state.organization,
-            organization: state.organization
-          });
         }
       },
     }

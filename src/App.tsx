@@ -24,15 +24,12 @@ export function App() {
   const hasInitialized = useRef(false);
 
   useEffect(() => {
-    console.log("[App] Configurando listener de autenticação (onAuthStateChange)...");
-
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async  (event, session) => {
         const { connect, disconnect } = useRealtimeStore.getState();
         const { setSession, clearAuth, fetchAndSetDeepUserData } = useAuthStore.getState();
 
         if (session && !hasInitialized.current) {
-          console.log(`[App] ✅ Evento '${event}' com sessão válida. Inicializando aplicação...`);
           hasInitialized.current = true;
           
           setSession(session);
@@ -67,7 +64,6 @@ export function App() {
           }
         }
         else if (event === "SIGNED_OUT") {
-          console.log("[App] ❌ Evento SIGNED_OUT. Desconectando e limpando...");
           hasInitialized.current = false;
           
           // Primeiro desconectar do realtime

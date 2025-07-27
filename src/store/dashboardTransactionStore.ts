@@ -167,8 +167,6 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
 
       fetchDashboardSummary: async (token, organizationId, filters) => {
         try {
-          console.log("[DashboardTransactionStore] 🔍 Buscando summary:", { organizationId, filters });
-          
           // Para o summary, vamos usar apenas o mês da startDate por simplicidade
           // ou o mês atual se não há filtros
           let apiFilters: any = {};
@@ -187,15 +185,12 @@ export const useDashboardTransactionStore = create<DashboardTransactionState>()(
             };
           }
 
-          console.log("[DashboardTransactionStore] 📊 Filtros para summary:", apiFilters);
-
           const fetchedSummary = await transactionService.getSummary(
             token,
             organizationId,
             apiFilters
           );
 
-          console.log("[DashboardTransactionStore] ✅ Summary obtido:", fetchedSummary);
           set({ summary: fetchedSummary });
         } catch (err: any) {
           console.error(

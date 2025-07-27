@@ -621,7 +621,6 @@ export const useBoardStore = create<BoardState>()(
         });
       },
       cleanUserData: () => {
-        console.log("[BoardStore] 🧹 Limpando dados do usuário");
         set({
           boards: [],
           isLoading: false,
