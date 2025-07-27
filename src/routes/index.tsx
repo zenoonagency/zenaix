@@ -9,7 +9,6 @@ import { Contracts } from "../pages/Contracts";
 import { Messaging } from "../pages/Messaging";
 import { Team } from "../pages/Team";
 import { Plans } from "../pages/Plans";
-import { Profile } from "../pages/Profile";
 import { Calendar } from "../pages/Calendar";
 import { EmbedPages } from "../pages/EmbedPages";
 import { Settings } from "../pages/Settings";
@@ -185,14 +184,6 @@ export const router = createBrowserRouter([
                 element: (
                   <PageTransition>
                     <Plans />
-                  </PageTransition>
-                ),
-              },
-              {
-                path: "profile",
-                element: (
-                  <PageTransition>
-                    <Profile />
                   </PageTransition>
                 ),
               },
