@@ -59,6 +59,7 @@ export interface RealtimeEventPayload {
     | "WHATSAPP_INSTANCE_CREATED"
     | "WHATSAPP_INSTANCE_UPDATED"
     | "WHATSAPP_INSTANCE_DELETED"
-    | "WHATSAPP_QR_CODE";
+    | "WHATSAPP_QR_CODE"
+    | "test";
   data: any;
 }

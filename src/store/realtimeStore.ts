@@ -20,17 +20,19 @@ interface RealtimeState {
   connect: (userId: string, organizationId?: string | null) => void;
   disconnect: () => void;
   heartbeatInterval: NodeJS.Timeout | null;
+  testConnection: () => void;
 }
 
 const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
-
+  console.log("[RealtimeStore] 📨 Evento recebido:", payload.event, payload.data);
 
   switch (payload.event) {
 
     case "USER_UPDATED_IN_ORGANIZATION":
     case "USER_PROFILE_UPDATED":
     case "USER_REMOVED_FROM_ORG":
-      useAuthStore.getState().fetchAndSyncUser();
+      console.log("[RealtimeStore] 🔄 Evento de usuário recebido, atualizando dados...");
+      // TODO: Implementar sincronização de usuário se necessário
       break;
 
     case "ORGANIZATION_UPDATED":
@@ -110,6 +112,8 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
     case "WHATSAPP_QR_CODE":
       useWhatsAppInstanceStore.getState().updateQrCode(payload.data.instance_id, payload.data.qrCode);
       break;
+    case "test":
+      break;
     default:
       break;
   }
@@ -121,7 +125,6 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
   heartbeatInterval: null,
 
   connect: (userId, organizationId) => {
-    console.log("[RealtimeStore] 🔌 Iniciando conexão realtime...");
     const { userChannel, orgChannel, heartbeatInterval } = get();
 
     if (heartbeatInterval) clearInterval(heartbeatInterval);
@@ -132,30 +135,28 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
     }
     
     if (!userChannel || userChannel.state === 'closed') {
-      console.log("[RealtimeStore] Criando canal do usuário...");
       const newUserChannel = supabase.channel(`user-updates-${userId}`);
       newUserChannel
-        .on("broadcast", { event: "message" }, (message) => handleRealtimeEvent(message.payload))
+        .on("broadcast", { event: "message" }, (message) => {
+          handleRealtimeEvent(message.payload);
+        })
         .subscribe((status) => {
-          if (status === "SUBSCRIBED") {
-            console.log(`[RealtimeStore] ✅ Canal do usuário conectado`);
-          } else if (status === "CHANNEL_ERROR") {
-            console.error(`[RealtimeStore] Erro ao conectar no canal do usuário.`);
+          if (status === "CHANNEL_ERROR") {
+            console.error(`[RealtimeStore] ❌ Erro ao conectar no canal do usuário.`);
           }
         });
       set({ userChannel: newUserChannel });
     }
 
     if (organizationId && (!orgChannel || orgChannel.state === 'closed')) {
-      console.log("[RealtimeStore] Criando canal da organização...");
       const newOrgChannel = supabase.channel(`org-updates-${organizationId}`);
       newOrgChannel
-        .on("broadcast", { event: "message" }, (message) => handleRealtimeEvent(message.payload))
+        .on("broadcast", { event: "message" }, (message) => {
+          handleRealtimeEvent(message.payload);
+        })
         .subscribe((status) => {
-          if (status === "SUBSCRIBED") {
-            console.log(`[RealtimeStore] ✅ Canal da organização conectado`);
-          } else if (status === "CHANNEL_ERROR") {
-            console.error(`[RealtimeStore] Erro ao conectar no canal da organização.`);
+          if (status === "CHANNEL_ERROR") {
+            console.error(`[RealtimeStore] ❌ Erro ao conectar no canal da organização.`);
           }
         });
       set({ orgChannel: newOrgChannel });
@@ -163,7 +164,7 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
 
     const newHeartbeatInterval = setInterval(() => {
       if (!supabase.realtime.isConnected()) {
-        console.warn("[Realtime] Conexão principal perdida. Tentando reconectar...");
+        console.warn("[RealtimeStore] ⚠️ Conexão principal perdida. Tentando reconectar...");
         supabase.realtime.connect();
       }
     }, 30000);
@@ -171,7 +172,6 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
   },
 
   disconnect: () => {
-    console.log("[RealtimeStore] 🔌 Desconectando do realtime...");
     const { userChannel, orgChannel, heartbeatInterval } = get();
 
     if (heartbeatInterval) {
@@ -184,5 +184,18 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
     });
     
     set({ userChannel: null, orgChannel: null, heartbeatInterval: null });
+  },
+
+  testConnection: () => {
+    const { userChannel, orgChannel } = get();
+    
+    // Testar envio de mensagem
+    if (userChannel && userChannel.state === 'joined') {
+      userChannel.send({
+        type: 'broadcast',
+        event: 'test',
+        payload: { message: 'Teste de conexão realtime', timestamp: new Date().toISOString() }
+      });
+    }
   },
 }));
