@@ -29,9 +29,31 @@ export function ResetPassword() {
       : "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-DARK.png";
 
   useEffect(() => {
+    // Habilita se o evento for disparado OU se a URL indicar fluxo de recuperação
+    const checkRecovery = () => {
+      const hash = window.location.hash;
+      if (hash.includes('type=recovery') || hash.includes('access_token')) {
+        setCanReset(true);
+      }
+
+      // Forçar sessão de recuperação se os tokens estiverem na URL
+      const params = new URLSearchParams(hash.replace('#', ''));
+      const access_token = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
+      const type = params.get('type');
+      if (type === 'recovery' && access_token && refresh_token) {
+        supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        });
+      }
+    };
+
+    checkRecovery();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === "PASSWORD_RECOVERY") {
-        setCanReset(true); // Libera o formulário para o usuário digitar a nova senha.
+        setCanReset(true);
       }
     });
 
@@ -66,7 +88,7 @@ export function ResetPassword() {
       showToast("Senha redefinida com sucesso!", "success");
 
     } catch (error: any) {
-      const message = "O link de recuperação pode ter expirado. Por favor, solicite um novo.";
+      const message = error?.message || "O link de recuperação pode ter expirado. Por favor, solicite um novo.";
       setError(message);
       showToast(message, "error");
     } finally {
