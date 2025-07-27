@@ -65,8 +65,15 @@ export function App() {
         else if (event === "SIGNED_OUT") {
           console.log("[App] ❌ Evento SIGNED_OUT. Desconectando e limpando...");
           hasInitialized.current = false;
+          
+          // Primeiro desconectar do realtime
           disconnect();
-          clearAuth(); 
+          
+          // Limpar auth de forma síncrona para evitar piscadas
+          clearAuth();
+          
+          // Limpar localStorage para garantir limpeza completa
+          localStorage.removeItem("auth-storage");
         }
       }
     );

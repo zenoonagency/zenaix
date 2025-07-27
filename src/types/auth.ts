@@ -18,6 +18,7 @@ export interface User {
   plan?: string;
   phone_number?: string;
   permissions: string[];
+  email_verified?: boolean;
 }
 
 export interface RegisterData {
@@ -49,11 +50,13 @@ export interface AuthState {
   organization: OrganizationOutput | null;
   permissions: string[];
   _hasHydrated: boolean;
+  _isLoggingOut: boolean;
 
   setSession: (session: Session) => void;
   logout: () => void;
   clearAuth: () => void; 
   setOrganization: (organization: OrganizationOutput) => void;
-  fetchAndSetDeepUserData: () => void
+  fetchAndSetDeepUserData: () => void;
+  isLoggingOut: () => boolean;
 
 }

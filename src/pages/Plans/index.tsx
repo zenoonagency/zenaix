@@ -616,9 +616,9 @@ export function Plans() {
                 <input
                   type="text"
                   required
-                  disabled={organization && organization.document.length > 0}
+                  disabled={organization && organization.document && organization.document.length > 0}
                   value={
-                    organization ? organization.document : orgForm.document
+                    organization && organization.document ? organization.document : orgForm.document
                   }
                   onChange={(e) =>
                     setOrgForm((f) => ({ ...f, document: e.target.value }))
