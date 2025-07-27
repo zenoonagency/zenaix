@@ -19,6 +19,19 @@ const processQueue = (error: Error | null, token: string | null = null) => {
   failedQueue = [];
 };
 
+let lastToken: string | null = null;
+
+// Listener para detectar troca de token e forçar reload
+const unsub = useAuthStore.subscribe((state) => {
+  if (state.token && state.token !== lastToken) {
+    if (lastToken !== null) {
+      // Só força reload se não for o primeiro token
+      window.location.reload();
+    }
+    lastToken = state.token;
+  }
+});
+
 // Função para tratar erros globais
 function handleApiError(error: any) {
   if (error?.status === 401 || error?.status === 403 || error?.message?.includes('token is expired')) {
@@ -31,7 +44,11 @@ function handleApiError(error: any) {
 // Exemplo de uso em fetch genérico:
 export async function apiFetch(url: string, options: RequestInit = {}) {
   try {
-    const response = await fetch(url, options);
+    const token = useAuthStore.getState().token;
+    const headers: HeadersInit = { ...options.headers };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (!(options.body instanceof FormData)) headers["Content-Type"] = "application/json";
+    const response = await fetch(url, { ...options, headers });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       handleApiError({ status: response.status, ...errorData });
@@ -44,25 +61,15 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
   const token = useAuthStore.getState().token;
-
   const headers: HeadersInit = { ...options.headers };
-
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  if (!(options.body instanceof FormData)) {
-    headers["Content-Type"] = "application/json";
-  }
-
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (!(options.body instanceof FormData)) headers["Content-Type"] = "application/json";
   const response = await fetch(url, { ...options, headers });
-
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({
       message: `Erro na requisição: ${response.statusText}`,
     }));
     throw new APIError(errorData.message || "Ocorreu um erro na sua requisição.");
   }
-
   return response;
 }
