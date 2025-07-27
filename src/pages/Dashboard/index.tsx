@@ -129,11 +129,24 @@ export function Dashboard() {
       return;
     }
 
+    const currentStore = useDashboardTransactionStore.getState();
     const filters = {
       startDate: format(startDate, "yyyy-MM-dd"),
       endDate: format(endDate, "yyyy-MM-dd"),
     };
 
+    // Verificar se os filtros mudaram para evitar chamadas desnecessárias
+    const lastFilters = currentStore.lastFilters;
+    const filtersChanged = !lastFilters || 
+      lastFilters.startDate !== filters.startDate || 
+      lastFilters.endDate !== filters.endDate;
+
+    if (!filtersChanged) {
+      console.log("[Dashboard] 🔄 Filtros não mudaram, pulando busca");
+      return;
+    }
+
+    console.log("[Dashboard] 🔄 Buscando transações com novos filtros");
     setLoadingOperation("dashboardTransactions", true);
 
     const { fetchDashboardTransactions, fetchDashboardSummary } =
@@ -156,8 +169,10 @@ export function Dashboard() {
     if (user?.organization_id && !initialTransactionsFetched) {
       const currentStore = useDashboardTransactionStore.getState();
       const hasExistingData = currentStore.transactions.length > 0;
+      const hasExistingSummary = currentStore.summary !== null;
 
-      if (hasExistingData) {
+      if (hasExistingData && hasExistingSummary) {
+        console.log("[Dashboard] 📊 Dados já existem, pulando fetch inicial");
         setInitialTransactionsFetched(true);
         return;
       }
@@ -167,6 +182,7 @@ export function Dashboard() {
         endDate: format(endDate, "yyyy-MM-dd"),
       };
 
+      console.log("[Dashboard] 🚀 Iniciando fetch inicial de dados");
       setLoadingOperation("dashboardTransactions", true);
 
       const { fetchDashboardTransactions, fetchDashboardSummary } =
@@ -183,9 +199,10 @@ export function Dashboard() {
       ]).finally(() => {
         setLoadingOperation("dashboardTransactions", false);
         setInitialTransactionsFetched(true);
+        console.log("[Dashboard] ✅ Fetch inicial concluído");
       });
     }
-  }, [user?.organization_id, initialTransactionsFetched, startDate, endDate]);
+  }, [user?.organization_id, initialTransactionsFetched]); // Removido startDate e endDate das dependências
 
   const handleExport = () => {
     try {

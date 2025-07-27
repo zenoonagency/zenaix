@@ -47,17 +47,21 @@ export function App() {
           const organizationId = user?.organization_id;
 
           if (token && user) {
-            usePlanStore.getState().fetchAllPlans(token);
+            // Buscar dados básicos da aplicação
             usePlanStore.getState().fetchAllPlans(session.access_token);
+            
             if (organizationId) {
+              // Buscar dados específicos da organização
               useEmbedPagesStore.getState().fetchAllEmbedPages(session.access_token, organizationId);
               useTagStore.getState().fetchAllTags(session.access_token, organizationId);
               useContractStore.getState().fetchAllContracts(session.access_token, organizationId);
-              useTransactionStore.getState().fetchAllTransactions(session.access_token, organizationId);
               useTeamMembersStore.getState().fetchAllMembers(session.access_token, organizationId);
               useBoardStore.getState().fetchAllBoards(session.access_token, organizationId);
               useWhatsAppInstanceStore.getState().fetchAllInstances(session.access_token, organizationId);
               useCalendarStore.getState().fetchEvents();
+              
+              // Não buscar transações aqui - deixar o Dashboard fazer isso quando necessário
+              // useTransactionStore.getState().fetchAllTransactions(session.access_token, organizationId);
             }
             connect(user.id, organizationId);
           }
