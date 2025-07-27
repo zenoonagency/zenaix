@@ -9,6 +9,7 @@ import { CreateInstanceModal } from './components/CreateInstanceModal';
 import { EditInstanceModal } from './components/EditInstanceModal';
 import { QRCodeRenderer } from '../../components/QRCodeRenderer';
 import { useWhatsAppInstanceStore } from '../../store/whatsAppInstanceStore';
+import { supabase } from '../../lib/supabaseClient';
 
 export function Connections() {
   const { theme } = useThemeStore();
@@ -23,6 +24,7 @@ export function Connections() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingInstance, setEditingInstance] = useState<WhatsAppInstanceOutput | null>(null);
   
+  const setSession = useAuthStore((state) => state.setSession);
 
   const deleteInstance = useCallback(async (token: string, organizationId: string, instanceId: string) => {
     await whatsappInstanceService.delete(token, organizationId, instanceId);
@@ -44,6 +46,20 @@ export function Connections() {
       fetchAllInstances(token, user.organization_id);
     }
   }, [token, user?.organization_id ]);
+
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("[Supabase Auth] Evento:", event, session);
+        if (event === 'SIGNED_IN') {
+          setSession(session);
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null);
+        }
+      }
+    );
+    return () => authListener.subscription.unsubscribe();
+  }, [setSession]);
 
   const handleDeleteInstance = async (instanceId: string) => {
     if (!token || !user?.organization_id) return;
@@ -286,7 +302,14 @@ export function Connections() {
                     Configurar
                   </button>
                   {instance.status === 'CONNECTED' ? (
-                    <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
+                    <button 
+                      onClick={() => {
+                        // Salvar a instância ativa no localStorage e redirecionar para conversas
+                        localStorage.setItem('zenaix_active_whatsapp_instance', instance.id);
+                        window.location.href = '/dashboard/conversations';
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                    >
                       <ExternalLink className="w-4 h-4" />
                       Acessar
                     </button>

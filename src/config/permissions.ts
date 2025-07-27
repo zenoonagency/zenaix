@@ -35,6 +35,12 @@ export const PERMISSIONS = {
   DISPATCH_SEND: "dispatch:send",
   DISPATCH_READ: "dispatch:read",
   DISPATCH_DELETE: "dispatch:delete",
+
+  WHATSAPP_CREATE: "whatsapp:create",
+  WHATSAPP_READ: "whatsapp:read",
+  WHATSAPP_UPDATE: "whatsapp:update",
+  WHATSAPP_DELETE: "whatsapp:delete",
+  WHATSAPP_VIEW: "whatsapp:view",
 };
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

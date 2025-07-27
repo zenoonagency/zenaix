@@ -109,10 +109,6 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
       useWhatsAppInstanceStore.getState().updateQrCode(payload.data.instance_id, payload.data.qrCode);
       break;
     case "WHATSAPP_INSTANCE_CONNECTED": {
-
-      console.log('fui chamado')
-      console.log(payload.data)
-
       const store = useWhatsAppInstanceStore.getState();
       const oldInstance = store.instances.find(i => i.id === payload.data.instance_id);
       if (oldInstance) {
