@@ -106,8 +106,9 @@ export const useAuthStore = create<AuthState>()(
         // Extrair organização diretamente dos metadados do usuário
         const organizationFromMetadata = supabaseUser.user_metadata?.organization;
         
-        // Mapear a organização com todos os campos disponíveis
-        const mappedOrganization = organizationFromMetadata ? {
+        // Mapear a organização diretamente dos metadados do usuário
+        const prevOrganization = get().organization;
+        let mappedOrganization = organizationFromMetadata ? {
           id: organizationFromMetadata.id,
           name: organizationFromMetadata.name,
           document: organizationFromMetadata.document,
@@ -126,7 +127,11 @@ export const useAuthStore = create<AuthState>()(
           subscription_ends_at: organizationFromMetadata.subscription_ends_at,
           created_at: organizationFromMetadata.created_at,
           updated_at: organizationFromMetadata.updated_at,
-        } : null;
+        } : prevOrganization;
+        // Sempre manter o plano já persistido, se existir
+        if (prevOrganization?.plan) {
+          mappedOrganization = { ...mappedOrganization, plan: prevOrganization.plan };
+        }
         
         const mappedUser: User = {
           id: supabaseUser.id,
@@ -155,12 +160,8 @@ export const useAuthStore = create<AuthState>()(
           organization: mappedOrganization,
         });
 
-
-
-        // Só buscar dados adicionais se não tivermos a organização completa
-        if (!mappedOrganization) {
-          get().fetchAndSetDeepUserData();
-        }
+        // Sempre buscar dados completos do backend após login/refresh
+        get().fetchAndSetDeepUserData();
       },
 
       fetchAndSetDeepUserData: async () => {

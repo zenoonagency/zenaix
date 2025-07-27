@@ -17,6 +17,7 @@ interface RealtimeState {
   disconnect: () => void;
   heartbeatInterval: NodeJS.Timeout | null;
   testConnection: () => void;
+  simulateDisconnect: () => void;
 }
 
 const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
@@ -144,7 +145,13 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       if (status === "SUBSCRIBED") {
         console.log(`[RealtimeStore] ✅ Canal ${channelName} conectado com sucesso.`);
       } else if (status === "CHANNEL_ERROR") {
-        console.error(`[RealtimeStore] ❌ Erro ao conectar no canal ${channelName}.`);
+        console.error(`[RealtimeStore] ❌ Erro ao conectar no canal ${channelName}. Tentando reconectar em 2s...`);
+        setTimeout(() => {
+          // Tenta reconectar automaticamente
+          const { user } = useAuthStore.getState();
+          const orgId = user?.organization_id;
+          if (user?.id) get().connect(user.id, orgId);
+        }, 2000);
       }
     };
 
@@ -207,5 +214,11 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
         payload: { message: 'Teste de conexão realtime', timestamp: new Date().toISOString() }
       });
     }
+  },
+
+  // Adiciona função para simular queda manual
+  simulateDisconnect: () => {
+    console.warn('[RealtimeStore] 🔌 Simulando queda manual da conexão realtime!');
+    supabase.realtime.disconnect();
   },
 }));

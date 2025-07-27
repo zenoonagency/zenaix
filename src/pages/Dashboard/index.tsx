@@ -16,6 +16,7 @@ import {
   ExportModal,
 } from "./components";
 import { format } from "date-fns";
+import { useRealtimeStore } from '../../store/realtimeStore';
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center h-full">
@@ -86,6 +87,8 @@ export function Dashboard() {
     "area"
   );
   const [theme, setTheme] = useState("light");
+
+  const simulateDisconnect = useRealtimeStore((state) => state.simulateDisconnect);
 
   useEffect(() => {
     const anyModalOpen =
@@ -426,6 +429,9 @@ export function Dashboard() {
             onExportOptionsChange={setExportOptions}
             onExport={handleExport}
           />
+          <button onClick={simulateDisconnect} className="px-4 py-2 bg-red-600 text-white rounded-lg mt-4">
+            Simular Queda da Conexão Realtime
+          </button>
         </div>
       </Suspense>
     </ErrorBoundary>
