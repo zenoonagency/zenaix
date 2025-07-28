@@ -253,16 +253,7 @@ export function Conversations() {
     : [];
   const activeInstance = instances.find((i) => i.id === activeInstanceId) || null;
 
-  // Debug: Log das mensagens quando mudam
-  useEffect(() => {
-    if (contactMessages.length > 0) {
-      console.log('Mensagens carregadas:', contactMessages);
-      console.log('Mensagens por direção:', {
-        outgoing: contactMessages.filter(m => m.direction === 'OUTGOING'),
-        incoming: contactMessages.filter(m => m.direction === 'INCOMING')
-      });
-    }
-  }, [contactMessages]);
+
 
   if (isLoadingInstances && instances.length === 0) {
     return (

@@ -9,6 +9,8 @@ import { useTransactionStore } from "./transactionStore";
 import { useTeamMembersStore } from "./teamMembersStore";
 import { useBoardStore } from "./boardStore";
 import { useWhatsAppInstanceStore } from "./whatsAppInstanceStore";
+import { useWhatsappMessageStore } from "./whatsapp/whatsappMessageStore";
+import { useWhatsappContactStore } from "./whatsapp/whatsappContactStore";
 
 interface RealtimeState {
   userChannel: RealtimeChannel | null;
@@ -118,6 +120,78 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
           phone_number: payload.data.phoneNumber, // corrigido para snake_case
           status: payload.data.status,
         });
+      }
+      break;
+    }
+    case "NEW_WHATSAPP_MESSAGE": {
+      console.log("[RealtimeStore] 📱 Nova mensagem WhatsApp recebida:", payload.data);
+      
+      const messageStore = useWhatsappMessageStore.getState();
+      const contactStore = useWhatsappContactStore.getState();
+      
+      // Extrair informações da mensagem
+      const { 
+        id, 
+        body, 
+        from, 
+        to, 
+        timestamp, 
+        media_url, 
+        media_type, 
+        file_name, 
+        file_size_bytes, 
+        media_duration_sec, 
+        whatsapp_instance_id, 
+        organization_id, 
+        whatsapp_contact_id,
+        created_at,
+        read,
+        wa_message_id
+      } = payload.data;
+
+      // Determinar a direção da mensagem
+      const instance = useWhatsAppInstanceStore.getState().instances.find(i => i.id === whatsapp_instance_id);
+      const instanceNumber = instance?.phone_number;
+      const direction: 'INCOMING' | 'OUTGOING' = from === `${instanceNumber}@c.us` ? 'OUTGOING' : 'INCOMING';
+
+      // Criar objeto da mensagem no formato correto
+      const message = {
+        id,
+        wa_message_id,
+        from,
+        to,
+        body,
+        media_url,
+        media_type,
+        timestamp,
+        read,
+        file_name,
+        file_size_bytes,
+        media_duration_sec,
+        whatsapp_instance_id,
+        organization_id,
+        whatsapp_contact_id,
+        created_at,
+        direction
+      };
+
+      // Se temos o contact_id, adicionar a mensagem diretamente
+      if (whatsapp_contact_id) {
+        messageStore.addMessage(whatsapp_instance_id, whatsapp_contact_id, message);
+      } else {
+        // Se não temos contact_id, tentar encontrar o contato pelo número
+        const contacts = contactStore.contacts[whatsapp_instance_id] || [];
+        const contactNumber = direction === 'INCOMING' 
+          ? from.replace('@c.us', '') 
+          : to.replace('@c.us', '');
+        
+        const contact = contacts.find(c => c.phone === contactNumber);
+        if (contact) {
+          messageStore.addMessage(whatsapp_instance_id, contact.id, message);
+          console.log("[RealtimeStore] ✅ Mensagem adicionada para contato encontrado:", contact.id);
+        } else {
+          console.log("[RealtimeStore] ⚠️ Contato não encontrado para mensagem:", contactNumber);
+        }
       }
       break;
     }
