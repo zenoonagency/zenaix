@@ -76,12 +76,12 @@ export function ContactOptionsMenu({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !contact) return null;
 
   return (
     <div
       ref={menuRef}
-      className="absolute z-50 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[160px]"
+      className="fixed z-[9999] bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[160px]"
       style={{
         top: position.top,
         left: position.left,

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { MoreVertical, Wifi, WifiOff, QrCode, MessageCircle, WifiIcon } from "lucide-react";
+import { MoreVertical, Wifi, WifiOff, QrCode, MessageCircle, WifiIcon, Send, Mic, Paperclip } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { useWhatsAppInstanceStore } from "../../store/whatsAppInstanceStore";
 import { useWhatsappContactStore } from '../../store/whatsapp/whatsappContactStore';
@@ -65,7 +65,7 @@ function processWhatsAppImageUrl(url: string): string {
 export function Conversations() {
   const { user, token, hasPermission } = useAuthStore();
   const { instances, isLoading: isLoadingInstances, fetchAllInstances, lastActiveInstanceId, setLastActiveInstance } = useWhatsAppInstanceStore();
-  const { contacts, isLoading: isLoadingContacts, fetchAllContacts } = useWhatsappContactStore();
+  const { contacts, isLoading: isLoadingContacts, fetchAllContacts, updateContactInStore, deleteContactFromStore } = useWhatsappContactStore();
   const { messages, isLoading: isLoadingMessages, fetchAllMessages } = useWhatsappMessageStore();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -76,6 +76,16 @@ export function Conversations() {
   const [showInstanceMenu, setShowInstanceMenu] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const tabRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  // Estados para menu de contatos
+  const [showContactMenu, setShowContactMenu] = useState<string | null>(null);
+  const [contactMenuPosition, setContactMenuPosition] = useState({ top: 0, left: 0 });
+  const [editingContact, setEditingContact] = useState<WhatsappContact | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  // Estados para envio de mensagens
+  const [newMessage, setNewMessage] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   // Atualizar instância ativa quando a store mudar
   useEffect(() => {
@@ -125,6 +135,8 @@ export function Conversations() {
     }
   }, [token, user?.organization_id, activeInstanceId, selectedContactId, fetchAllMessages]);
 
+
+
   // Fechar menu quando clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -160,11 +172,97 @@ export function Conversations() {
     setShowInstanceMenu(instanceId);
   };
 
+  const handleContactMenuClick = (e: React.MouseEvent, contactId: string) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setContactMenuPosition({
+      top: rect.bottom + 5,
+      left: rect.left
+    });
+    setShowContactMenu(showContactMenu === contactId ? null : contactId);
+  };
+
+  const handleEditContact = (contact: WhatsappContact) => {
+    setEditingContact(contact);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateContact = (updatedContact: WhatsappContact) => {
+    if (activeInstanceId) {
+      updateContactInStore(activeInstanceId, updatedContact.id, updatedContact);
+    }
+  };
+
+  const handleDeleteContact = (contactId: string) => {
+    if (activeInstanceId) {
+      deleteContactFromStore(activeInstanceId, contactId);
+      if (selectedContactId === contactId) {
+        setSelectedContactId(null);
+      }
+    }
+  };
+
+  // Função para enviar mensagem
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedContactId || !activeInstanceId || !token || !user?.organization_id) {
+      return;
+    }
+
+    const selectedContact = instanceContacts.find(c => c.id === selectedContactId);
+    if (!selectedContact) {
+      showToast('Contato não encontrado', 'error');
+      return;
+    }
+
+    setIsSendingMessage(true);
+    try {
+      // Importar o serviço dinamicamente para evitar dependência circular
+      const { whatsappMessageService } = await import('../../services/whatsapp/whatsappMessage.service');
+      
+      await whatsappMessageService.send(token, user.organization_id, activeInstanceId, {
+        phone: selectedContact.phone,
+        message: newMessage.trim()
+      });
+
+      // Limpar o campo de mensagem
+      setNewMessage('');
+      
+      // Recarregar mensagens para mostrar a nova mensagem
+      await fetchAllMessages(token, user.organization_id, activeInstanceId, selectedContactId);
+      
+      showToast('Mensagem enviada com sucesso!', 'success');
+    } catch (error: any) {
+      console.error('Erro ao enviar mensagem:', error);
+      showToast(error.message || 'Erro ao enviar mensagem', 'error');
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  // Função para enviar mensagem com Enter
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
   const instanceContacts: WhatsappContact[] = activeInstanceId ? (contacts[activeInstanceId] || []) : [];
   const contactMessages = (activeInstanceId && selectedContactId)
     ? (messages[activeInstanceId]?.[selectedContactId] || [])
     : [];
   const activeInstance = instances.find((i) => i.id === activeInstanceId) || null;
+
+  // Debug: Log das mensagens quando mudam
+  useEffect(() => {
+    if (contactMessages.length > 0) {
+      console.log('Mensagens carregadas:', contactMessages);
+      console.log('Mensagens por direção:', {
+        outgoing: contactMessages.filter(m => m.direction === 'OUTGOING'),
+        incoming: contactMessages.filter(m => m.direction === 'INCOMING')
+      });
+    }
+  }, [contactMessages]);
 
   if (isLoadingInstances && instances.length === 0) {
     return (
@@ -285,43 +383,56 @@ export function Conversations() {
                   <div className="p-4 text-center text-gray-400">Nenhum contato encontrado</div>
                 ) : (
                   instanceContacts.map((contact) => (
-                    <button
+                    <div
                       key={contact.id}
-                      className={`w-full flex items-center gap-3 px-4 py-3 border-b hover:bg-[#f5f5ff] dark:hover:bg-[#23233a] ${selectedContactId === contact.id ? 'bg-[#f5f5ff] dark:bg-[#23233a]' : ''}`}
-                      onClick={() => setSelectedContactId(contact.id)}
+                      className={`relative flex items-center gap-3 px-4 py-3 border-b hover:bg-[#f5f5ff] dark:hover:bg-[#23233a] ${selectedContactId === contact.id ? 'bg-[#f5f5ff] dark:bg-[#23233a]' : ''}`}
                     >
-                      {contact.avatar_url ? (
-                        <img
-                          src={processWhatsAppImageUrl(contact.avatar_url)}
-                          alt={contact.name}
-                          className="w-10 h-10 rounded-full object-cover"
-                          onError={(e) => {
-                            // Fallback para inicial se a imagem falhar
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const fallback = target.nextElementSibling as HTMLElement;
-                            if (fallback) {
-                              fallback.classList.remove('hidden');
-                            }
-                          }}
-                          onLoad={(e) => {
-                            // Se a imagem carregar com sucesso, esconder o fallback
-                            const target = e.target as HTMLImageElement;
-                            const fallback = target.nextElementSibling as HTMLElement;
-                            if (fallback) {
-                              fallback.classList.add('hidden');
-                            }
-                          }}
-                        />
-                      ) : null}
-                      <div className={`w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-lg uppercase ${contact.avatar_url ? 'hidden' : ''}`}>
-                        {contact.name?.[0] || contact.phone?.slice(-2) || '?'}
-                      </div>
-                      <div className="flex-1 text-left">
-                        <div className="font-medium text-gray-900 dark:text-white">{contact.name}</div>
-                        <div className="text-xs text-gray-500">{contact.phone}</div>
-                      </div>
-                    </button>
+                      <button
+                        className="flex items-center gap-3 flex-1"
+                        onClick={() => setSelectedContactId(contact.id)}
+                      >
+                        {contact.avatar_url ? (
+                          <img
+                            src={processWhatsAppImageUrl(contact.avatar_url)}
+                            alt={contact.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                            onError={(e) => {
+                              // Fallback para inicial se a imagem falhar
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const fallback = target.nextElementSibling as HTMLElement;
+                              if (fallback) {
+                                fallback.classList.remove('hidden');
+                              }
+                            }}
+                            onLoad={(e) => {
+                              // Se a imagem carregar com sucesso, esconder o fallback
+                              const target = e.target as HTMLImageElement;
+                              const fallback = target.nextElementSibling as HTMLElement;
+                              if (fallback) {
+                                fallback.classList.add('hidden');
+                              }
+                            }}
+                          />
+                        ) : null}
+                        <div className={`w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-lg uppercase ${contact.avatar_url ? 'hidden' : ''}`}>
+                          {contact.name?.[0] || contact.phone?.slice(-2) || '?'}
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="font-medium text-gray-900 dark:text-white">{contact.name}</div>
+                          <div className="text-xs text-gray-500">{contact.phone}</div>
+                        </div>
+                      </button>
+                      
+                      {/* Botão de menu */}
+                      <button
+                        onClick={(e) => handleContactMenuClick(e, contact.id)}
+                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full transition-colors"
+                        title="Opções"
+                      >
+                        <MoreVertical className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      </button>
+                    </div>
                   ))
                 )}
               </div>
@@ -329,31 +440,139 @@ export function Conversations() {
             {/* Área de mensagens */}
             <div className="flex-1 relative bg-white dark:bg-dark-900 flex flex-col">
               {selectedContactId ? (
-                <div className="flex-1 overflow-y-auto relative" style={{ backgroundImage: `url(${LOGO_URL})`, backgroundRepeat: 'repeat', backgroundSize: '200px', opacity: 0.15 }}>
-                  {/* Mensagens */}
-                  <div className="absolute inset-0 z-10 flex flex-col justify-end p-6" style={{ opacity: 1 }}>
+                <>
+                  {/* Cabeçalho do contato */}
+                  <div className="bg-gray-50 dark:bg-dark-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
+                    {(() => {
+                      const selectedContact = instanceContacts.find(c => c.id === selectedContactId);
+                      return selectedContact ? (
+                        <>
+                          {selectedContact.avatar_url ? (
+                            <img
+                              src={processWhatsAppImageUrl(selectedContact.avatar_url)}
+                              alt={selectedContact.name}
+                              className="w-10 h-10 rounded-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.classList.remove('hidden');
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-lg uppercase ${selectedContact.avatar_url ? 'hidden' : ''}`}>
+                            {selectedContact.name?.[0] || selectedContact.phone?.slice(-2) || '?'}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 dark:text-white">{selectedContact.name}</div>
+                            <div className="text-xs text-gray-500">{selectedContact.phone}</div>
+                          </div>
+                        </>
+                      ) : null;
+                    })()}
+                  </div>
+
+                  {/* Área de mensagens */}
+                  <div className="flex-1 overflow-y-auto relative">
+                    {/* Background com logo */}
+                    <div className="absolute inset-0" style={{ backgroundImage: `url(${LOGO_URL})`, backgroundRepeat: 'repeat', backgroundSize: '200px', opacity: 0.15 }}></div>
+                    {/* Mensagens */}
+                    <div className="relative z-10 flex flex-col justify-end p-6 h-full">
                     {isLoadingMessages ? (
                       <div className="text-center text-gray-500">Carregando mensagens...</div>
                     ) : contactMessages.length === 0 ? (
                       <div className="text-center text-gray-400">Nenhuma mensagem encontrada</div>
                     ) : (
-                      contactMessages.map((msg) => (
-                        <div key={msg.id} className={`mb-2 flex ${msg.direction === 'OUTGOING' ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`rounded-lg px-4 py-2 max-w-xs ${msg.direction === 'OUTGOING' ? 'bg-[#7f00ff] text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'}`}>
-                            {msg.body || <span className="italic text-xs text-gray-400">[Mídia]</span>}
-                            {msg.media_url && (
-                              <div className="mt-1"><a href={msg.media_url} target="_blank" rel="noopener noreferrer" className="underline text-xs">Ver mídia</a></div>
+                                             contactMessages
+                         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+                         .map((msg) => (
+                        <div key={msg.id} className={`mb-3 flex ${msg.direction === 'OUTGOING' ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`rounded-2xl px-4 py-2 max-w-xs lg:max-w-md ${msg.direction === 'OUTGOING' ? 'bg-[#7f00ff] text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'}`}>
+                            {msg.body ? (
+                              <div className="text-sm">{msg.body}</div>
+                            ) : (
+                              <span className="italic text-xs text-gray-400">[Mídia]</span>
                             )}
+                            {msg.media_url && (
+                              <div className="mt-2">
+                                <a 
+                                  href={msg.media_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className={`text-xs underline ${msg.direction === 'OUTGOING' ? 'text-blue-200' : 'text-blue-600'}`}
+                                >
+                                  Ver mídia
+                                </a>
+                              </div>
+                            )}
+                            <div className={`text-xs mt-1 ${msg.direction === 'OUTGOING' ? 'text-blue-200' : 'text-gray-500'}`}>
+                              {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </div>
                           </div>
                         </div>
                       ))
                     )}
                   </div>
                 </div>
+
+                {/* Barra de envio de mensagens */}
+                <div className="bg-gray-50 dark:bg-dark-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    {/* Botão de áudio (desabilitado) */}
+                    <button
+                      className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-not-allowed"
+                      title="Gravar áudio (em breve)"
+                      disabled
+                    >
+                      <Mic className="w-5 h-5" />
+                    </button>
+
+                    {/* Botão de anexo (desabilitado) */}
+                    <button
+                      className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-not-allowed"
+                      title="Anexar arquivo (em breve)"
+                      disabled
+                    >
+                      <Paperclip className="w-5 h-5" />
+                    </button>
+
+                    {/* Campo de mensagem */}
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder="Digite uma mensagem..."
+                        className="w-full px-4 py-2 bg-white dark:bg-dark-900 border border-gray-300 dark:border-gray-600 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        disabled={isSendingMessage}
+                      />
+                    </div>
+
+                    {/* Botão de enviar */}
+                    <button
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim() || isSendingMessage}
+                      className={`p-2 rounded-full transition-colors ${
+                        newMessage.trim() && !isSendingMessage
+                          ? 'bg-purple-600 text-white hover:bg-purple-700'
+                          : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                      }`}
+                      title="Enviar mensagem"
+                    >
+                      <Send className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+              </>
               ) : (
                 <div className="flex-1 flex items-center justify-center relative">
-                  {/* Camada de logos como marca d'água */}
-                  <div className="absolute inset-0 pointer-events-none" style={{ 
+                  {/* Background com logo */}
+                  <div className="absolute inset-0" style={{ 
                     backgroundImage: `url(${LOGO_URL})`, 
                     backgroundRepeat: 'repeat', 
                     backgroundSize: '200px', 
@@ -455,6 +674,34 @@ export function Conversations() {
           })()}
         </div>
       )}
+
+      {/* Menu de opções de contato */}
+      {showContactMenu && (() => {
+        const contact = instanceContacts.find(c => c.id === showContactMenu);
+        return contact ? (
+          <ContactOptionsMenu
+            contact={contact}
+            instanceId={activeInstanceId!}
+            onEdit={handleEditContact}
+            onDelete={handleDeleteContact}
+            isOpen={true}
+            onToggle={() => setShowContactMenu(null)}
+            position={contactMenuPosition}
+          />
+        ) : null;
+      })()}
+
+      {/* Modal de edição de contato */}
+      <EditContactModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingContact(null);
+        }}
+        contact={editingContact}
+        instanceId={activeInstanceId!}
+        onUpdate={handleUpdateContact}
+      />
     </div>
   );
 } 

@@ -17,7 +17,7 @@ export function HelpButton() {
       onClick={handleClick}
       className={`
         fixed 
-        bottom-6 
+        bottom-20 
         right-6 
         flex 
         items-center 

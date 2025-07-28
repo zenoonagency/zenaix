@@ -37,7 +37,7 @@ export const whatsappMessageService = {
       if (cursor) url.searchParams.append('cursor', cursor);
       
       const response = await fetchWithAuth(url.toString(), {
-        method: 'POST',
+        method: 'GET',
         headers: getAuthHeaders(token),
       });
       const responseData: WhatsappMessageListResponse = await response.json();

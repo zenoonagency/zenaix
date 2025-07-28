@@ -1,17 +1,18 @@
 import { create } from 'zustand';
 import { whatsappMessageService } from '../../services/whatsapp/whatsappMessage.service';
-import { WhatsappMessage, InputSendMessageDTO } from '../../types/whatsapp';
+import { WhatsappMessage, InputSendMessageDTO, WhatsappContact } from '../../types/whatsapp';
 import { APIError } from '../../services/errors/api.errors';
+import { useWhatsappContactStore } from './whatsappContactStore';
 
 interface WhatsappMessageStoreState {
-  messages: { [instanceId: string]: { [contact: string]: WhatsappMessage[] } };
+  messages: { [instanceId: string]: { [contactId: string]: WhatsappMessage[] } };
   isLoading: boolean;
   error: string | null;
   lastFetched: number | null;
-  setMessages: (instanceId: string, contact: string, messages: WhatsappMessage[]) => void;
-  addMessage: (instanceId: string, contact: string, message: WhatsappMessage) => void;
+  setMessages: (instanceId: string, contactId: string, messages: WhatsappMessage[]) => void;
+  addMessage: (instanceId: string, contactId: string, message: WhatsappMessage) => void;
   cleanUserData: () => void;
-  fetchAllMessages: (token: string, organizationId: string, instanceId: string, contact: string, limit?: number, cursor?: string) => Promise<void>;
+  fetchAllMessages: (token: string, organizationId: string, instanceId: string, contactId: string, limit?: number, cursor?: string) => Promise<void>;
 }
 
 export const useWhatsappMessageStore = create<WhatsappMessageStoreState>()((set, get) => ({
@@ -20,26 +21,26 @@ export const useWhatsappMessageStore = create<WhatsappMessageStoreState>()((set,
   error: null,
   lastFetched: null,
 
-  setMessages: (instanceId, contact, messages) => {
+  setMessages: (instanceId, contactId, messages) => {
     set((state) => ({
       messages: {
         ...state.messages,
         [instanceId]: {
           ...(state.messages[instanceId] || {}),
-          [contact]: messages,
+          [contactId]: messages,
         },
       },
     }));
   },
 
-  addMessage: (instanceId, contact, message) => {
+  addMessage: (instanceId, contactId, message) => {
     set((state) => ({
       messages: {
         ...state.messages,
         [instanceId]: {
           ...(state.messages[instanceId] || {}),
-          [contact]: [
-            ...(state.messages[instanceId]?.[contact] || []),
+          [contactId]: [
+            ...(state.messages[instanceId]?.[contactId] || []),
             message,
           ],
         },
@@ -51,16 +52,25 @@ export const useWhatsappMessageStore = create<WhatsappMessageStoreState>()((set,
     set({ messages: {}, isLoading: false, error: null, lastFetched: null });
   },
 
-  fetchAllMessages: async (token, organizationId, instanceId, contact, limit = 20, cursor) => {
+  fetchAllMessages: async (token, organizationId, instanceId, contactId, limit = 20, cursor) => {
     set({ isLoading: true, error: null });
     try {
-      const messages = await whatsappMessageService.list(token, organizationId, instanceId, contact, limit, cursor);
+      // Buscar o contato para obter o phone
+      const contactStore = useWhatsappContactStore.getState();
+      const contacts = contactStore.contacts[instanceId] || [];
+      const contact = contacts.find(c => c.id === contactId);
+      
+      if (!contact) {
+        throw new APIError('Contato não encontrado.');
+      }
+      
+      const messages = await whatsappMessageService.list(token, organizationId, instanceId, contact.phone, limit, cursor);
       set((state) => ({
         messages: {
           ...state.messages,
           [instanceId]: {
             ...(state.messages[instanceId] || {}),
-            [contact]: messages,
+            [contactId]: messages,
           },
         },
         isLoading: false,

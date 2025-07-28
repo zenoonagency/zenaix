@@ -40,14 +40,22 @@ export type WhatsappMessageDirection = 'INCOMING' | 'OUTGOING';
 
 export interface WhatsappMessage {
   id: string;
+  wa_message_id: string;
+  from: string;
+  to: string;
   body: string | null;
-  direction: WhatsappMessageDirection;
-  timestamp: string; // ISO
   media_url: string | null;
   media_type: string | null;
+  timestamp: string; // ISO
+  read: boolean;
   file_name: string | null;
   file_size_bytes: number | null;
   media_duration_sec: number | null;
+  whatsapp_instance_id: string;
+  organization_id: string;
+  whatsapp_contact_id: string;
+  created_at: string;
+  direction: WhatsappMessageDirection;
 }
 
 export interface InputSendMessageDTO {
