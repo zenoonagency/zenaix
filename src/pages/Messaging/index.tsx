@@ -7,6 +7,7 @@ import { generateId } from "../../utils/generateId";
 import { useContactsStore } from "../../store/contactsStore";
 import { useTagStore } from "../../store/tagStore";
 import { useAuthStore } from "../../store/authStore";
+import { handleSupabaseError } from "../../utils/supabaseErrorTranslator";
 import {
   Send,
   History,
@@ -76,7 +77,7 @@ export function Messaging() {
       } catch (storageError) {
         console.error(
           "Erro crítico de armazenamento, não foi possível limpar:",
-          storageError
+          handleSupabaseError(storageError, "Erro crítico de armazenamento")
         );
       }
     }
@@ -260,7 +261,7 @@ export function Messaging() {
       } catch (storageError) {
         console.warn(
           "Aviso: Histórico desativado devido a limites de armazenamento",
-          storageError
+          handleSupabaseError(storageError, "Erro de armazenamento")
         );
       }
 

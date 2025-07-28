@@ -3,6 +3,7 @@ import { fetchWithAuth } from "./apiClient";
 import { formatApiError } from "../utils/formatters";
 import { RegisterApiResponse, RegisterData } from "../types/auth";
 import { APIError } from "./errors/api.errors";
+import { supabase } from "../lib/supabaseClient";
 
 interface ChangePasswordData {
   currentPassword: string;
@@ -71,5 +72,23 @@ export const authService = {
       body: JSON.stringify(data),
     });
     return response.json();
+  },
+
+  async loginWithOAuth(provider: string): Promise<void> {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: provider as any,
+        options: {
+          redirectTo: `${window.location.origin}/oauth/callback`,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error("OAuth login error:", error);
+      throw error;
+    }
   },
 };

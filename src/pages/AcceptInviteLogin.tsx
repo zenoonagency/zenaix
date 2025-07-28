@@ -10,6 +10,7 @@ import { useToast } from "../hooks/useToast";
 import { inviteService } from "../services/invite/invite.service";
 import { OAuthButtonsInvite } from "../components/auth/OAuthButtonsInvite";
 import { supabase } from "../lib/supabaseClient";
+import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
 
 export function AcceptInviteLogin() {
   const [searchParams] = useSearchParams();
@@ -55,7 +56,7 @@ export function AcceptInviteLogin() {
       showToast("Convite aceito com sucesso!", "success");
       navigate("/dashboard");
     } catch (error: any) {
-      const message = error.message || "Erro ao fazer login";
+      const message = handleSupabaseError(error, "Erro ao fazer login");
       if (
         message.includes("Convite não pode ser aceito. Status atual: ACCEPTED.")
       ) {

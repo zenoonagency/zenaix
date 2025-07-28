@@ -6,7 +6,8 @@ import { Input } from "../components/ui/Input";
 import { useThemeStore } from "../store/themeStore";
 import { ParticlesEffect } from "../components/effects/ParticlesEffect";
 import { useToast } from "../hooks/useToast";
-import { supabase } from "../lib/supabaseClient"; 
+import { supabase } from "../lib/supabaseClient";
+import { handleSupabaseError } from "../utils/supabaseErrorTranslator"; 
 
 export function ResetPassword() {
   const navigate = useNavigate();
@@ -88,7 +89,7 @@ export function ResetPassword() {
       showToast("Senha redefinida com sucesso!", "success");
 
     } catch (error: any) {
-      const message = error?.message || "O link de recuperação pode ter expirado. Por favor, solicite um novo.";
+      const message = handleSupabaseError(error, "O link de recuperação pode ter expirado. Por favor, solicite um novo.");
       setError(message);
       showToast(message, "error");
     } finally {

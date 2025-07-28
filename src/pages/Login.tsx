@@ -9,6 +9,7 @@ import { ParticlesEffect } from "../components/effects/ParticlesEffect";
 import { useToast } from "../hooks/useToast";
 import { OAuthButtons } from "../components/auth/OAuthButtons";
 import { supabase } from "../lib/supabaseClient"; // ✅ Importar o Supabase client
+import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
 
 export function Login() {
   const [email, setEmail] = useState("");
@@ -60,9 +61,9 @@ export function Login() {
 
 
     } catch (error: any) {
-      const message = error.message || "Erro ao fazer login";
+      const message = handleSupabaseError(error, "Erro ao fazer login");
       setError(message);
-      showToast("Email ou senha inválidos.", "error");
+      showToast(message, "error");
     } finally {
       setLoading(false);
     }

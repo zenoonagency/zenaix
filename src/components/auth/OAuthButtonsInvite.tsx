@@ -2,6 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { authService } from "../../services/authService";
 import { useToast } from "../../hooks/useToast";
+import { handleSupabaseError } from "../../utils/supabaseErrorTranslator";
 
 interface OAuthButtonsInviteProps {
   className?: string;
@@ -26,8 +27,7 @@ export function OAuthButtonsInvite({
 
       await authService.loginWithOAuth(provider);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Erro no login social";
+      const message = handleSupabaseError(error, "Erro no login social");
       showToast(message, "error");
     }
   };

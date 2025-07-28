@@ -22,6 +22,7 @@ import { useThemeStore } from "../store/themeStore";
 import { ParticlesEffect } from "../components/effects/ParticlesEffect";
 import { compressImage } from "../utils/imageCompression";
 import { supabase } from "../lib/supabaseClient"; // ✅ Usado para setSession
+import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
 
 export function Register() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -145,7 +146,7 @@ export function Register() {
       // quando o estado 'isAuthenticated' for atualizado pela store.
 
     } catch (error: any) {
-      const message = error.message || "Erro ao registrar usuário";
+      const message = handleSupabaseError(error, "Erro ao registrar usuário");
       setError(message);
       showToast(message, "error");
     } finally {

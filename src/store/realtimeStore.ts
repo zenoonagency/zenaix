@@ -174,13 +174,21 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
 
     // --- Heartbeat ---
     const newHeartbeatInterval = setInterval(() => {
-      if (!supabase.realtime.isConnected()) {
-        console.warn("[RealtimeStore] ⚠️ Conexão principal perdida. Tentando reconectar...");
+      const isConnected = supabase.realtime.isConnected();
+      console.log(`[RealtimeStore][HEARTBEAT] Estado da conexão: ${isConnected ? 'CONECTADO' : 'DESCONECTADO'}`);
+      if (!isConnected) {
         supabase.realtime.connect();
+        // Após reconectar, reestabelece os canais
+        setTimeout(() => {
+          const { user } = useAuthStore.getState();
+          const orgId = user?.organization_id;
+          if (user?.id) {
+            get().connect(user.id, orgId);
+          } 
+        }, 1000); 
       }
-    }, 30000);
+    }, 5000); 
 
-    // ✅ PASSO 2: Atualiza o estado uma única vez com os novos canais e o heartbeat.
     set({
       userChannel: newUserChannel,
       orgChannel: newOrgChannel,
@@ -198,7 +206,6 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
     const channelsToRemove = [userChannel, orgChannel].filter(Boolean) as RealtimeChannel[];
     if (channelsToRemove.length > 0) {
       console.log(`[RealtimeStore] 🔌 Removendo ${channelsToRemove.length} canais...`);
-      // O Supabase recomenda usar removeChannel em um loop para garantir a remoção
       channelsToRemove.forEach(ch => supabase.removeChannel(ch));
     }
 

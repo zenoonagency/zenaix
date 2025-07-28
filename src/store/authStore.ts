@@ -5,6 +5,7 @@ import { User, AuthState } from "../types/auth"; // Seus tipos customizados
 import { OrganizationOutput } from "../types/organization";
 import { supabase } from "../lib/supabaseClient";
 import { userService } from "../services/user/user.service";
+import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
 
 // Função para limpar todas as stores de dados do usuário
 const cleanAllUserDataStores = () => {
@@ -194,7 +195,7 @@ export const useAuthStore = create<AuthState>()(
         supabase.auth.signOut().then(() => {
           set({ _isLoggingOut: false });
         }).catch((error) => {
-          console.error("[AuthStore] ❌ Erro no logout do Supabase:", error);
+          console.error("[AuthStore] ❌ Erro no logout do Supabase:", handleSupabaseError(error, "Erro no logout"));
           set({ _isLoggingOut: false });
         });
       },

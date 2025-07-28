@@ -3,12 +3,13 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { authService } from "../services/authService";
 import { useToast } from "../hooks/useToast";
+import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
 import { Loader2 } from "lucide-react";
 
 export function OAuthCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const login = useAuthStore((state) => state.login);
+  // const login = useAuthStore((state) => state.login);
   const { showToast } = useToast();
   const [isProcessing, setIsProcessing] = useState(true);
   const hasProcessed = useRef(false);
@@ -62,7 +63,7 @@ export function OAuthCallback() {
                   permissions: data.data.permissions || [],
                 };
 
-                login(authData);
+                // login(authData);
                 navigate("/dashboard");
                 return;
               } else {
@@ -97,12 +98,12 @@ export function OAuthCallback() {
         // Verificar se há parâmetros de sucesso OAuth (nosso sistema legado)
         if (searchParams.get("oauth_success")) {
           console.log("Parâmetros oauth_success encontrados");
-          const authData = await authService.handleOAuthCallback(searchParams);
-          if (authData) {
-            login(authData);
-            navigate("/dashboard");
-            return;
-          }
+          // const authData = await authService.handleOAuthCallback(searchParams);
+          // if (authData) {
+          //   login(authData);
+          //   navigate("/dashboard");
+          //   return;
+          // }
         }
 
         // Verificar se há parâmetros de erro OAuth
@@ -123,8 +124,7 @@ export function OAuthCallback() {
         }, 1500);
       } catch (error) {
         console.error("OAuth Callback Error:", error);
-        const message =
-          error instanceof Error ? error.message : "Erro no login social";
+        const message = handleSupabaseError(error, "Erro no login social");
         showToast(message, "error");
         setTimeout(() => {
           navigate("/login");

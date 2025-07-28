@@ -23,6 +23,7 @@ import { userService } from "../services/user/user.service";
 import { compressImage } from "../utils/imageCompression";
 import { OAuthButtonsInvite } from "../components/auth/OAuthButtonsInvite";
 import { supabase } from "../lib/supabaseClient";
+import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
 
 export function AcceptInviteRegister() {
   const [searchParams] = useSearchParams();
@@ -173,7 +174,7 @@ export function AcceptInviteRegister() {
       showToast("Convite aceito com sucesso!", "success");
       navigate("/dashboard");
     } catch (error: any) {
-      const message = error.message || "Erro ao registrar";
+      const message = handleSupabaseError(error, "Erro ao registrar");
       setError(message);
 
       if (message.toLowerCase().includes("já existe") || message.toLowerCase().includes("already registered")) {
