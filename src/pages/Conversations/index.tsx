@@ -5,7 +5,7 @@ import { useWhatsAppInstanceStore } from "../../store/whatsAppInstanceStore";
 import { useWhatsappContactStore } from '../../store/whatsapp/whatsappContactStore';
 import { useWhatsappMessageStore } from '../../store/whatsapp/whatsappMessageStore';
 import { WhatsAppInstanceOutput } from "../../types/whatsappInstance";
-import { WhatsappContact } from '../../types/whatsapp';
+import { WhatsappContact, WhatsappMessage } from '../../types/whatsapp';
 import { useToast } from "../../hooks/useToast";
 import { PERMISSIONS } from "../../config/permissions";
 import { useNavigate } from "react-router-dom";
@@ -214,6 +214,37 @@ export function Conversations() {
       return;
     }
 
+    const messageText = newMessage.trim();
+    
+    // Limpar o campo de mensagem imediatamente
+    setNewMessage('');
+    
+    // Criar mensagem temporária para mostrar na tela
+    const tempMessage: WhatsappMessage = {
+      id: `temp_${Date.now()}_${Math.random()}`,
+      wa_message_id: '',
+      from: `${activeInstance?.phone_number}@c.us`,
+      to: `${selectedContact.phone}@c.us`,
+      body: messageText,
+      media_url: null,
+      media_type: null,
+      timestamp: new Date().toISOString(),
+      read: false,
+      file_name: null,
+      file_size_bytes: null,
+      media_duration_sec: null,
+      whatsapp_instance_id: activeInstanceId,
+      organization_id: user.organization_id,
+      whatsapp_contact_id: selectedContactId,
+      created_at: new Date().toISOString(),
+      direction: 'OUTGOING',
+      status: 'sending'
+    };
+
+    // Adicionar mensagem temporária na store
+    const messageStore = useWhatsappMessageStore.getState();
+    messageStore.addTemporaryMessage(activeInstanceId, selectedContactId, tempMessage);
+
     setIsSendingMessage(true);
     try {
       // Importar o serviço dinamicamente para evitar dependência circular
@@ -221,19 +252,19 @@ export function Conversations() {
       
       await whatsappMessageService.send(token, user.organization_id, activeInstanceId, {
         phone: selectedContact.phone,
-        message: newMessage.trim()
+        message: messageText
       });
 
-      // Limpar o campo de mensagem
-      setNewMessage('');
-      
-      // Recarregar mensagens para mostrar a nova mensagem
-      await fetchAllMessages(token, user.organization_id, activeInstanceId, selectedContactId);
-      
+      // Não precisamos mais recarregar as mensagens, o realtime vai atualizar
       showToast('Mensagem enviada com sucesso!', 'success');
     } catch (error: any) {
       console.error('Erro ao enviar mensagem:', error);
       showToast(error.message || 'Erro ao enviar mensagem', 'error');
+      
+      // Remover mensagem temporária em caso de erro
+      const currentMessages = messageStore.messages[activeInstanceId]?.[selectedContactId] || [];
+      const filteredMessages = currentMessages.filter(msg => msg.id !== tempMessage.id);
+      messageStore.setMessages(activeInstanceId, selectedContactId, filteredMessages);
     } finally {
       setIsSendingMessage(false);
     }
@@ -252,6 +283,16 @@ export function Conversations() {
     ? (messages[activeInstanceId]?.[selectedContactId] || [])
     : [];
   const activeInstance = instances.find((i) => i.id === activeInstanceId) || null;
+
+  // Ref para o container de mensagens
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll automático para mensagens mais recentes
+  useEffect(() => {
+    if (messagesContainerRef.current && contactMessages.length > 0) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [contactMessages.length]);
 
 
 
@@ -464,11 +505,9 @@ export function Conversations() {
                   </div>
 
                   {/* Área de mensagens */}
-                  <div className="flex-1 overflow-y-auto relative">
-                    {/* Background com logo */}
-                    <div className="absolute inset-0" style={{ backgroundImage: `url(${LOGO_URL})`, backgroundRepeat: 'repeat', backgroundSize: '200px', opacity: 0.15 }}></div>
+                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto relative" style={{ backgroundImage: `url(${LOGO_URL})`, backgroundRepeat: 'repeat', backgroundSize: '200px', backgroundAttachment: 'local' }}>
                     {/* Mensagens */}
-                    <div className="relative z-10 flex flex-col justify-end p-6 h-full">
+                    <div className="relative z-10 flex flex-col p-6 min-h-full bg-white/85 dark:bg-dark-900/85">
                     {isLoadingMessages ? (
                       <div className="text-center text-gray-500">Carregando mensagens...</div>
                     ) : contactMessages.length === 0 ? (
@@ -479,28 +518,69 @@ export function Conversations() {
                          .map((msg) => (
                         <div key={msg.id} className={`mb-3 flex ${msg.direction === 'OUTGOING' ? 'justify-end' : 'justify-start'}`}>
                           <div className={`rounded-2xl px-4 py-2 max-w-xs lg:max-w-md ${msg.direction === 'OUTGOING' ? 'bg-[#7f00ff] text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'}`}>
-                            {msg.body ? (
+                            {msg.body && (
                               <div className="text-sm">{msg.body}</div>
-                            ) : (
-                              <span className="italic text-xs text-gray-400">[Mídia]</span>
                             )}
                             {msg.media_url && (
                               <div className="mt-2">
-                                <a 
-                                  href={msg.media_url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className={`text-xs underline ${msg.direction === 'OUTGOING' ? 'text-blue-200' : 'text-blue-600'}`}
-                                >
-                                  Ver mídia
-                                </a>
+                                {msg.media_type?.startsWith('image/') ? (
+                                  <img 
+                                    src={msg.media_url} 
+                                    alt="Mídia da mensagem"
+                                    className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                    onClick={() => window.open(msg.media_url, '_blank')}
+                                  />
+                                ) : msg.media_type?.startsWith('video/') ? (
+                                  <video 
+                                    src={msg.media_url} 
+                                    controls
+                                    className="max-w-full h-auto rounded-lg"
+                                  />
+                                ) : msg.media_type?.startsWith('audio/') ? (
+                                  <audio 
+                                    src={msg.media_url} 
+                                    controls
+                                    className="w-full"
+                                  />
+                                ) : (
+                                  <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                    <Paperclip className="w-4 h-4" />
+                                    <span className="text-sm">{msg.file_name || 'Arquivo'}</span>
+                                    <a 
+                                      href={msg.media_url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      className={`text-xs underline ${msg.direction === 'OUTGOING' ? 'text-blue-200' : 'text-blue-600'}`}
+                                    >
+                                      Baixar
+                                    </a>
+                                  </div>
+                                )}
                               </div>
                             )}
-                            <div className={`text-xs mt-1 ${msg.direction === 'OUTGOING' ? 'text-blue-200' : 'text-gray-500'}`}>
-                              {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              })}
+                            <div className={`text-xs mt-1 flex items-center justify-between ${msg.direction === 'OUTGOING' ? 'text-blue-200' : 'text-gray-500'}`}>
+                              <span>
+                                {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}
+                              </span>
+                              {msg.direction === 'OUTGOING' && (
+                                <span className="ml-2">
+                                  {msg.status === 'sending' && (
+                                    <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
+                                  )}
+                                  {msg.status === 'sent' && (
+                                    <span>✓</span>
+                                  )}
+                                  {msg.status === 'delivered' && (
+                                    <span>✓✓</span>
+                                  )}
+                                  {msg.status === 'read' && (
+                                    <span className="text-blue-400">✓✓</span>
+                                  )}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>

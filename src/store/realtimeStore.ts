@@ -177,7 +177,26 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
 
       // Se temos o contact_id, adicionar a mensagem diretamente
       if (whatsapp_contact_id) {
-        messageStore.addMessage(whatsapp_instance_id, whatsapp_contact_id, message);
+        // Verificar se já existe uma mensagem temporária com o mesmo conteúdo
+        const existingMessages = messageStore.messages[whatsapp_instance_id]?.[whatsapp_contact_id] || [];
+        const tempMessage = existingMessages.find(msg => 
+          msg.id.startsWith('temp_') && 
+          msg.body === body && 
+          msg.direction === 'OUTGOING'
+        );
+        
+        if (tempMessage) {
+          // Atualizar a mensagem temporária com o ID real e status 'sent'
+          messageStore.updateMessageStatus(whatsapp_instance_id, whatsapp_contact_id, tempMessage.id, 'sent');
+          // Substituir o ID temporário pelo real
+          const updatedMessages = existingMessages.map(msg => 
+            msg.id === tempMessage.id ? { ...message, status: 'sent' as const } : msg
+          );
+          messageStore.setMessages(whatsapp_instance_id, whatsapp_contact_id, updatedMessages);
+        } else {
+          // Adicionar nova mensagem (incoming)
+          messageStore.addMessage(whatsapp_instance_id, whatsapp_contact_id, { ...message, status: 'delivered' });
+        }
       } else {
         // Se não temos contact_id, tentar encontrar o contato pelo número
         const contacts = contactStore.contacts[whatsapp_instance_id] || [];
@@ -187,8 +206,26 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         
         const contact = contacts.find(c => c.phone === contactNumber);
         if (contact) {
-          messageStore.addMessage(whatsapp_instance_id, contact.id, message);
-          console.log("[RealtimeStore] ✅ Mensagem adicionada para contato encontrado:", contact.id);
+          // Verificar se já existe uma mensagem temporária com o mesmo conteúdo
+          const existingMessages = messageStore.messages[whatsapp_instance_id]?.[contact.id] || [];
+          const tempMessage = existingMessages.find(msg => 
+            msg.id.startsWith('temp_') && 
+            msg.body === body && 
+            msg.direction === 'OUTGOING'
+          );
+          
+          if (tempMessage) {
+            // Atualizar a mensagem temporária com o ID real e status 'sent'
+            messageStore.updateMessageStatus(whatsapp_instance_id, contact.id, tempMessage.id, 'sent');
+            // Substituir o ID temporário pelo real
+            const updatedMessages = existingMessages.map(msg => 
+              msg.id === tempMessage.id ? { ...message, status: 'sent' as const } : msg
+            );
+            messageStore.setMessages(whatsapp_instance_id, contact.id, updatedMessages);
+          } else {
+            // Adicionar nova mensagem (incoming)
+            messageStore.addMessage(whatsapp_instance_id, contact.id, { ...message, status: 'delivered' });
+          }
         } else {
           console.log("[RealtimeStore] ⚠️ Contato não encontrado para mensagem:", contactNumber);
         }

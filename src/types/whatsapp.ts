@@ -56,6 +56,7 @@ export interface WhatsappMessage {
   whatsapp_contact_id: string;
   created_at: string;
   direction: WhatsappMessageDirection;
+  status?: 'sending' | 'sent' | 'delivered' | 'read';
 }
 
 export interface InputSendMessageDTO {

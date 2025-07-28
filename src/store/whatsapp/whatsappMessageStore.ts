@@ -11,6 +11,8 @@ interface WhatsappMessageStoreState {
   lastFetched: number | null;
   setMessages: (instanceId: string, contactId: string, messages: WhatsappMessage[]) => void;
   addMessage: (instanceId: string, contactId: string, message: WhatsappMessage) => void;
+  addTemporaryMessage: (instanceId: string, contactId: string, message: WhatsappMessage) => void;
+  updateMessageStatus: (instanceId: string, contactId: string, messageId: string, status: 'sending' | 'sent' | 'delivered' | 'read') => void;
   cleanUserData: () => void;
   fetchAllMessages: (token: string, organizationId: string, instanceId: string, contactId: string, limit?: number, cursor?: string) => Promise<void>;
 }
@@ -46,6 +48,47 @@ export const useWhatsappMessageStore = create<WhatsappMessageStoreState>()((set,
         },
       },
     }));
+  },
+
+  addTemporaryMessage: (instanceId, contactId, message) => {
+    // Adiciona uma mensagem temporária com status 'sending'
+    const tempMessage = {
+      ...message,
+      id: `temp_${Date.now()}_${Math.random()}`, // ID temporário único
+      status: 'sending' as const
+    };
+    
+    set((state) => ({
+      messages: {
+        ...state.messages,
+        [instanceId]: {
+          ...(state.messages[instanceId] || {}),
+          [contactId]: [
+            ...(state.messages[instanceId]?.[contactId] || []),
+            tempMessage,
+          ],
+        },
+      },
+    }));
+  },
+
+  updateMessageStatus: (instanceId, contactId, messageId, status) => {
+    set((state) => {
+      const currentMessages = state.messages[instanceId]?.[contactId] || [];
+      const updatedMessages = currentMessages.map(msg => 
+        msg.id === messageId ? { ...msg, status } : msg
+      );
+      
+      return {
+        messages: {
+          ...state.messages,
+          [instanceId]: {
+            ...(state.messages[instanceId] || {}),
+            [contactId]: updatedMessages,
+          },
+        },
+      };
+    });
   },
 
   cleanUserData: () => {
