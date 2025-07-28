@@ -26,22 +26,27 @@ export function App() {
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async  (event, session) => {
+      async (event, session) => {
         const { connect, disconnect } = useRealtimeStore.getState();
         const { setSession, clearAuth, fetchAndSetDeepUserData } = useAuthStore.getState();
 
-        if (session && !hasInitialized.current) {
-          hasInitialized.current = true;
-          
+        console.log("[App] Auth state change:", event, session?.access_token ? "Token presente" : "Sem token");
+
+        if (session) {
+          // Sempre atualizar a sessão quando houver mudança (incluindo refresh de token)
           setSession(session);
 
-          // Sempre buscar dados adicionais para garantir permissões atualizadas
-          await fetchAndSetDeepUserData();
+          // Se for a primeira inicialização, buscar dados completos
+          if (!hasInitialized.current) {
+            hasInitialized.current = true;
+            
+            // Sempre buscar dados adicionais para garantir permissões atualizadas
+            await fetchAndSetDeepUserData();
 
-          const { token, user } = useAuthStore.getState();
-          const organizationId = user?.organization_id;
+            const { token, user } = useAuthStore.getState();
+            const organizationId = user?.organization_id;
 
-                      if (token && user) {
+            if (token && user) {
               // Buscar dados básicos da aplicação
               usePlanStore.getState().fetchAllPlans(session.access_token);
               useSystemPermissionsStore.getState().fetchAllSystemPermissions(session.access_token);
@@ -60,9 +65,13 @@ export function App() {
                 // useTransactionStore.getState().fetchAllTransactions(session.access_token, organizationId);
               }
               connect(user.id, organizationId);
+            }
+          } else {
+            // Se não for primeira inicialização, apenas atualizar dados do usuário
+            // para garantir que o token atualizado seja usado
+            await fetchAndSetDeepUserData();
           }
-        }
-        else if (event === "SIGNED_OUT") {
+        } else if (event === "SIGNED_OUT") {
           hasInitialized.current = false;
           
           // Primeiro desconectar do realtime

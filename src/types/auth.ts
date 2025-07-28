@@ -60,10 +60,11 @@ export interface AuthState {
   _isLoggingOut: boolean;
 
   setSession: (session: Session) => void;
+  updateToken: (newToken: string) => void;
+  fetchAndSetDeepUserData: () => Promise<void>;
   logout: () => void;
-  clearAuth: () => void; 
-  setOrganization: (organization: OrganizationOutput) => void;
-  fetchAndSetDeepUserData: () => void;
+  clearAuth: () => void;
+  setOrganization: (organizationData: OrganizationOutput) => void;
   isLoggingOut: () => boolean;
   hasPermission: (permission: string) => boolean;
   updateUser: (userData: Partial<User>) => void;
