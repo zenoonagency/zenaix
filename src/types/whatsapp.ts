@@ -6,7 +6,10 @@ export interface WhatsappContact {
   id: string;
   name: string;
   phone: string;
-  instance_id: string;
+  avatar_url?: string | null;
+  whatsapp_instance_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface InputCreateWhatsappContactDTO {

@@ -41,6 +41,7 @@ export interface WhatsAppInstanceState {
   isLoading: boolean;
   error: string | null;
   lastFetched: number | null;
+  lastActiveInstanceId: string | null;
 
   setInstances: (instances: WhatsAppInstanceOutput[]) => void;
   addInstance: (instance: WhatsAppInstanceOutput) => void;
@@ -48,6 +49,7 @@ export interface WhatsAppInstanceState {
   deleteInstance: (instanceId: string) => void;
   updateQrCode: (instanceId: string, qrCode: string) => void;
   fetchAllInstances: (token: string, organizationId: string) => Promise<void>;
+  setLastActiveInstance: (instanceId: string) => void;
   
   cleanUserData: () => void;
 } 

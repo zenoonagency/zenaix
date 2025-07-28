@@ -163,15 +163,11 @@ export const useAuthStore = create<AuthState>()(
           organization: mappedOrganization,
         });
 
-        console.log("[AuthStore] Token atualizado na store:", session.access_token ? "sim" : "não");
 
-        // Sempre buscar dados completos do backend após login/refresh
         get().fetchAndSetDeepUserData();
       },
 
-      // Função para atualizar apenas o token (útil para refresh)
       updateToken: (newToken: string) => {
-        console.log("[AuthStore] updateToken chamado com novo token");
         set({ token: newToken });
       },
 
