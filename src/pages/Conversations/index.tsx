@@ -124,7 +124,10 @@ export function Conversations() {
   const {
     messages,
     isLoading: isLoadingMessages,
+    isLoadingMore,
+    hasMoreMessages,
     fetchAllMessages,
+    fetchMoreMessages,
   } = useWhatsappMessageStore();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -389,6 +392,28 @@ export function Conversations() {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  // Função para detectar scroll e carregar mais mensagens
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    const scrollTop = target.scrollTop;
+
+    // Se chegou no topo (ou próximo) e há mais mensagens para carregar
+    if (
+      scrollTop <= 100 &&
+      activeInstanceId &&
+      selectedContactId &&
+      hasMoreMessages[activeInstanceId]?.[selectedContactId] &&
+      !isLoadingMore[activeInstanceId]?.[selectedContactId]
+    ) {
+      fetchMoreMessages(
+        token!,
+        user!.organization_id,
+        activeInstanceId,
+        selectedContactId
+      );
     }
   };
 
@@ -671,6 +696,7 @@ export function Conversations() {
                       backgroundSize: "200px",
                       backgroundAttachment: "local",
                     }}
+                    onScroll={handleScroll}
                   >
                     {/* Mensagens */}
                     <div className="relative z-10 flex flex-col p-6 min-h-full bg-white/85 dark:bg-dark-900/85">
@@ -683,114 +709,133 @@ export function Conversations() {
                           Nenhuma mensagem encontrada
                         </div>
                       ) : (
-                        contactMessages
-                          .sort(
-                            (a, b) =>
-                              new Date(a.timestamp).getTime() -
-                              new Date(b.timestamp).getTime()
-                          )
-                          .map((msg) => (
-                            <div
-                              key={msg.id}
-                              className={`mb-3 flex ${
-                                msg.direction === "OUTGOING"
-                                  ? "justify-end"
-                                  : "justify-start"
-                              }`}
-                            >
-                              <div
-                                className={`rounded-2xl px-4 py-2 max-w-xs lg:max-w-md ${
-                                  msg.direction === "OUTGOING"
-                                    ? "bg-[#7f00ff] text-white"
-                                    : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                }`}
-                              >
-                                {msg.body && (
-                                  <div className="text-sm whitespace-pre-wrap">
-                                    {msg.body}
-                                  </div>
-                                )}
-                                {msg.media_url && (
-                                  <div className="mt-2">
-                                    {msg.media_type?.startsWith("image/") ? (
-                                      <img
-                                        src={msg.media_url}
-                                        alt="Mídia da mensagem"
-                                        className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                        onClick={() =>
-                                          window.open(msg.media_url, "_blank")
-                                        }
-                                      />
-                                    ) : msg.media_type?.startsWith("video/") ? (
-                                      <video
-                                        src={msg.media_url}
-                                        controls
-                                        className="max-w-full h-auto rounded-lg"
-                                      />
-                                    ) : msg.media_type?.startsWith("audio/") ? (
-                                      <audio
-                                        src={msg.media_url}
-                                        controls
-                                        className="w-full"
-                                      />
-                                    ) : (
-                                      <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                                        <Paperclip className="w-4 h-4" />
-                                        <span className="text-sm">
-                                          {msg.file_name || "Arquivo"}
-                                        </span>
-                                        <a
-                                          href={msg.media_url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className={`text-xs underline ${
-                                            msg.direction === "OUTGOING"
-                                              ? "text-blue-200"
-                                              : "text-blue-600"
-                                          }`}
-                                        >
-                                          Baixar
-                                        </a>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                                <div
-                                  className={`text-xs mt-1 flex items-center justify-between ${
-                                    msg.direction === "OUTGOING"
-                                      ? "text-blue-200"
-                                      : "text-gray-500"
-                                  }`}
-                                >
-                                  <span>
-                                    {new Date(msg.timestamp).toLocaleTimeString(
-                                      "pt-BR",
-                                      {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      }
-                                    )}
-                                  </span>
-                                  {msg.direction === "OUTGOING" && (
-                                    <span className="ml-2">
-                                      {msg.status === "sending" && (
-                                        <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
-                                      )}
-                                      {msg.status === "sent" && <span>✓</span>}
-                                      {msg.status === "delivered" && (
-                                        <span>✓✓</span>
-                                      )}
-                                      {msg.status === "read" && (
-                                        <span className="text-blue-400">
-                                          ✓✓
-                                        </span>
-                                      )}
-                                    </span>
-                                  )}
-                                </div>
+                        <>
+                          {/* Indicador de loading para mais mensagens */}
+                          {isLoadingMore[activeInstanceId]?.[
+                            selectedContactId
+                          ] && (
+                            <div className="flex justify-center mb-4">
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <div className="w-4 h-4 border-2 border-gray-300 border-t-purple-600 rounded-full animate-spin"></div>
+                                Carregando mais mensagens...
                               </div>
                             </div>
-                          ))
+                          )}
+
+                          {contactMessages
+                            .sort(
+                              (a, b) =>
+                                new Date(a.timestamp).getTime() -
+                                new Date(b.timestamp).getTime()
+                            )
+                            .map((msg) => (
+                              <div
+                                key={msg.id}
+                                className={`mb-3 flex ${
+                                  msg.direction === "OUTGOING"
+                                    ? "justify-end"
+                                    : "justify-start"
+                                }`}
+                              >
+                                <div
+                                  className={`rounded-2xl px-4 py-2 max-w-xs lg:max-w-md ${
+                                    msg.direction === "OUTGOING"
+                                      ? "bg-[#7f00ff] text-white"
+                                      : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                  }`}
+                                >
+                                  {msg.body && (
+                                    <div className="text-sm whitespace-pre-wrap">
+                                      {msg.body}
+                                    </div>
+                                  )}
+                                  {msg.media_url && (
+                                    <div className="mt-2">
+                                      {msg.media_type?.startsWith("image/") ? (
+                                        <img
+                                          src={msg.media_url}
+                                          alt="Mídia da mensagem"
+                                          className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                          onClick={() =>
+                                            window.open(msg.media_url, "_blank")
+                                          }
+                                        />
+                                      ) : msg.media_type?.startsWith(
+                                          "video/"
+                                        ) ? (
+                                        <video
+                                          src={msg.media_url}
+                                          controls
+                                          className="max-w-full h-auto rounded-lg"
+                                        />
+                                      ) : msg.media_type?.startsWith(
+                                          "audio/"
+                                        ) ? (
+                                        <audio
+                                          src={msg.media_url}
+                                          controls
+                                          className="w-full"
+                                        />
+                                      ) : (
+                                        <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                          <Paperclip className="w-4 h-4" />
+                                          <span className="text-sm">
+                                            {msg.file_name || "Arquivo"}
+                                          </span>
+                                          <a
+                                            href={msg.media_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={`text-xs underline ${
+                                              msg.direction === "OUTGOING"
+                                                ? "text-blue-200"
+                                                : "text-blue-600"
+                                            }`}
+                                          >
+                                            Baixar
+                                          </a>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  <div
+                                    className={`text-xs mt-1 flex items-center justify-between ${
+                                      msg.direction === "OUTGOING"
+                                        ? "text-blue-200"
+                                        : "text-gray-500"
+                                    }`}
+                                  >
+                                    <span>
+                                      {new Date(
+                                        msg.timestamp
+                                      ).toLocaleTimeString("pt-BR", {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })}
+                                    </span>
+                                    {msg.direction === "OUTGOING" && (
+                                      <span className="ml-2">
+                                        {msg.status === "sending" && (
+                                          <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
+                                        )}
+                                        {msg.status === "sent" && (
+                                          <span>✓</span>
+                                        )}
+                                        {msg.status === "delivered" && (
+                                          <span>✓✓</span>
+                                        )}
+                                        {msg.status === "read" && (
+                                          <span className="text-blue-400">
+                                            ✓✓
+                                          </span>
+                                        )}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </>
                       )}
                     </div>
                   </div>
