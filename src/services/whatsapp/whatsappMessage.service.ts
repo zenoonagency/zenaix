@@ -58,12 +58,12 @@ export const whatsappMessageService = {
         formData.append("caption", dto.caption);
       }
 
+      const headers = getAuthHeaders(token);
+      delete headers["Content-Type"];
+
       const response = await fetchWithAuth(url, {
         method: "POST",
-        headers: {
-          ...getAuthHeaders(token),
-          // Removemos o Content-Type para que o browser defina automaticamente com boundary para multipart/form-data
-        },
+        headers,
         body: formData,
       });
 

@@ -6,9 +6,19 @@ import React, {
   useMemo,
 } from "react";
 import {
-  MoreVertical,  Wifi,  WifiOff,  QrCode,  MessageCircle,  Send,  Mic,
-  Paperclip,  Pin,  X,  Download,
+  MoreVertical,
+  Wifi,
+  WifiOff,
+  QrCode,
+  MessageCircle,
+  Send,
+  Mic,
+  Paperclip,
+  Pin,
+  X,
+  Download,
 } from "lucide-react";
+import { AudioRecorderModal } from "../../components/AudioRecorderModal";
 import { useAuthStore } from "../../store/authStore";
 import { useWhatsAppInstanceStore } from "../../store/whatsAppInstanceStore";
 import { useWhatsappContactStore } from "../../store/whatsapp/whatsappContactStore";
@@ -252,6 +262,10 @@ export function Conversations() {
   const [showFileModal, setShowFileModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Estados para gravação de áudio
+  const [showAudioModal, setShowAudioModal] = useState(false);
+  const [isSendingAudio, setIsSendingAudio] = useState(false);
+
   // --- Refs para controle de Scroll ---
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -411,11 +425,10 @@ export function Conversations() {
 
       if (!hasInitialScrollRef.current || isNewOutgoingMessage) {
         container.scrollTop = container.scrollHeight;
-        hasInitialScrollRef.current = true; 
+        hasInitialScrollRef.current = true;
       }
     }
   }, [contactMessages]);
-
 
   const handleSendMessage = async () => {
     if (
@@ -527,6 +540,12 @@ export function Conversations() {
       "audio/wav",
       "application/pdf",
       "text/plain",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ];
 
     if (!allowedTypes.includes(file.type)) {
@@ -542,7 +561,7 @@ export function Conversations() {
 
     try {
       const compressionResult = await compressFile(file, {
-        maxSizeKB: 10240, 
+        maxSizeKB: 10240,
         quality: 0.8,
       });
 
@@ -618,6 +637,74 @@ export function Conversations() {
     setSelectedFile(null);
     setFileCaption("");
     setShowFileModal(false);
+  };
+
+  // Função para enviar áudio
+  const handleSendAudio = async (audioBlob: Blob) => {
+    if (
+      !selectedContactId ||
+      !activeInstanceId ||
+      !token ||
+      !user?.organization_id
+    ) {
+      showToast("Dados insuficientes para enviar áudio", "error");
+      return;
+    }
+
+    // Verificar se a instância está conectada
+    if (activeInstance?.status !== "CONNECTED") {
+      showToast("Instância não está conectada", "error");
+      return;
+    }
+
+    setIsSendingAudio(true);
+
+    try {
+      const contact = instanceContacts.find((c) => c.id === selectedContactId);
+      if (!contact) {
+        showToast("Contato não encontrado", "error");
+        return;
+      }
+
+      // Converter Blob para File e processar formato
+      const audioFile = new File([audioBlob], `audio_${Date.now()}.ogg`, {
+        type: "audio/ogg",
+      });
+
+      // Verificar se o arquivo de áudio é válido
+      if (audioFile.size === 0) {
+        showToast("Arquivo de áudio inválido", "error");
+        return;
+      }
+
+      // Comprimir e converter formato se necessário
+      const compressionResult = await compressFile(audioFile);
+      if (!compressionResult.success) {
+        showToast(
+          compressionResult.error || "Erro ao processar áudio",
+          "error"
+        );
+        return;
+      }
+
+      await whatsappMessageService.sendMedia(
+        token,
+        user.organization_id,
+        activeInstanceId,
+        {
+          media: compressionResult.file!,
+          recipient: contact.phone,
+        }
+      );
+
+      showToast("Áudio enviado com sucesso!", "success");
+      setShowAudioModal(false);
+    } catch (error: any) {
+      console.error("Erro ao enviar áudio:", error);
+      showToast(error.message || "Erro ao enviar áudio", "error");
+    } finally {
+      setIsSendingAudio(false);
+    }
   };
 
   const fileUrl = useMemo(() => {
@@ -1134,9 +1221,38 @@ export function Conversations() {
                     <div className="flex items-center gap-2">
                       {/* Botão de áudio */}
                       <button
-                        className="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
-                        title="Gravar áudio (em breve)"
-                        disabled
+                        onClick={() => {
+                          if (!selectedContactId) {
+                            showToast(
+                              "Selecione um contato para gravar áudio",
+                              "error"
+                            );
+                            return;
+                          }
+                          if (activeInstance?.status !== "CONNECTED") {
+                            showToast("Instância não está conectada", "error");
+                            return;
+                          }
+                          setShowAudioModal(true);
+                        }}
+                        disabled={
+                          !selectedContactId ||
+                          (activeInstance &&
+                            activeInstance.status !== "CONNECTED")
+                        }
+                        className={`p-2 transition-colors ${
+                          selectedContactId &&
+                          activeInstance?.status === "CONNECTED"
+                            ? "text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100"
+                            : "text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                        }`}
+                        title={
+                          !selectedContactId
+                            ? "Selecione um contato"
+                            : activeInstance?.status !== "CONNECTED"
+                            ? "Instância não conectada"
+                            : "Gravar áudio"
+                        }
                       >
                         <Mic className="w-5 h-5" />
                       </button>
@@ -1526,6 +1642,18 @@ export function Conversations() {
           </div>
         </div>
       )}
+
+      {/* Modal de gravação de áudio */}
+      <AudioRecorderModal
+        isOpen={
+          showAudioModal &&
+          selectedContactId &&
+          activeInstance?.status === "CONNECTED"
+        }
+        onClose={() => setShowAudioModal(false)}
+        onSend={handleSendAudio}
+        isSending={isSendingAudio}
+      />
     </div>
   );
 }

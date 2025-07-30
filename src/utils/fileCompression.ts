@@ -159,13 +159,22 @@ export async function compressAudio(
       return { success: false, error: "Arquivo não é um áudio válido" };
     }
 
+    // Verificar se o formato é aceito pelo backend
+    const acceptedTypes = ["audio/ogg", "audio/mp4"];
+    let processedFile = file;
+
+    // Se o formato não for aceito, converter para audio/ogg
+    if (!acceptedTypes.includes(file.type)) {
+      processedFile = new File([file], file.name, { type: "audio/ogg" });
+    }
+
     // Se o arquivo já é pequeno, retornar como está
-    if (file.size <= maxSizeKB * 1024) {
-      return { success: true, file };
+    if (processedFile.size <= maxSizeKB * 1024) {
+      return { success: true, file: processedFile };
     }
 
     // Para áudios, vamos apenas verificar o tamanho
-    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+    const sizeMB = (processedFile.size / (1024 * 1024)).toFixed(2);
 
     return {
       success: false,
@@ -175,6 +184,49 @@ export async function compressAudio(
     };
   } catch (error) {
     return { success: false, error: "Erro inesperado ao processar áudio" };
+  }
+}
+
+// Função para processar documentos (PDF, texto, etc.)
+export async function processDocument(
+  file: File,
+  options: CompressionOptions = {}
+): Promise<CompressionResult> {
+  const { maxSizeKB = 10240 } = options; // 10MB para documentos
+
+  try {
+    // Verificar se é um documento
+    const documentTypes = [
+      "application/pdf",
+      "text/plain",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ];
+
+    if (!documentTypes.includes(file.type)) {
+      return { success: false, error: "Tipo de documento não suportado" };
+    }
+
+    // Se o arquivo já é pequeno, retornar como está
+    if (file.size <= maxSizeKB * 1024) {
+      return { success: true, file };
+    }
+
+    // Para documentos, vamos apenas verificar o tamanho
+    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+
+    return {
+      success: false,
+      error: `Documento muito grande (${sizeMB}MB). O tamanho máximo é ${(
+        maxSizeKB / 1024
+      ).toFixed(1)}MB.`,
+    };
+  } catch (error) {
+    return { success: false, error: "Erro inesperado ao processar documento" };
   }
 }
 
@@ -189,6 +241,11 @@ export async function compressFile(
     return compressVideo(file, options);
   } else if (file.type.startsWith("audio/")) {
     return compressAudio(file, options);
+  } else if (
+    file.type.startsWith("application/") ||
+    file.type.startsWith("text/")
+  ) {
+    return processDocument(file, options);
   } else {
     // Para outros tipos de arquivo, retornar como está
     return { success: true, file };
