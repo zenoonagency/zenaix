@@ -39,6 +39,12 @@ interface WhatsappMessageStoreState {
     messageId: string,
     status: "sending" | "sent" | "delivered" | "read"
   ) => void;
+  updateMessageAck: (
+    instanceId: string,
+    contactId: string,
+    waMessageId: string,
+    ack: number
+  ) => void;
   cleanUserData: () => void;
   fetchAllMessages: (
     token: string,
@@ -121,6 +127,25 @@ export const useWhatsappMessageStore = create<WhatsappMessageStoreState>()(
         const currentMessages = state.messages[instanceId]?.[contactId] || [];
         const updatedMessages = currentMessages.map((msg) =>
           msg.id === messageId ? { ...msg, status } : msg
+        );
+
+        return {
+          messages: {
+            ...state.messages,
+            [instanceId]: {
+              ...(state.messages[instanceId] || {}),
+              [contactId]: updatedMessages,
+            },
+          },
+        };
+      });
+    },
+
+    updateMessageAck: (instanceId, contactId, waMessageId, ack) => {
+      set((state) => {
+        const currentMessages = state.messages[instanceId]?.[contactId] || [];
+        const updatedMessages = currentMessages.map((msg) =>
+          msg.wa_message_id === waMessageId ? { ...msg, ack } : msg
         );
 
         return {

@@ -36,7 +36,7 @@ export interface WhatsappContactListResponse {
 
 // ========== MENSAGENS ========== //
 
-export type WhatsappMessageDirection = 'INCOMING' | 'OUTGOING';
+export type WhatsappMessageDirection = "INCOMING" | "OUTGOING";
 
 export interface WhatsappMessage {
   id: string;
@@ -46,8 +46,10 @@ export interface WhatsappMessage {
   body: string | null;
   media_url: string | null;
   media_type: string | null;
+  message_type: string | null;
   timestamp: string; // ISO
   read: boolean;
+  ack: number;
   file_name: string | null;
   file_size_bytes: number | null;
   media_duration_sec: number | null;
@@ -56,7 +58,7 @@ export interface WhatsappMessage {
   whatsapp_contact_id: string;
   created_at: string;
   direction: WhatsappMessageDirection;
-  status?: 'sending' | 'sent' | 'delivered' | 'read';
+  status?: "sending" | "sent" | "delivered" | "read";
 }
 
 export interface InputSendMessageDTO {
@@ -84,4 +86,4 @@ export interface WhatsappMessageState {
   isLoading: boolean;
   error: string | null;
   lastFetched: number | null;
-} 
+}

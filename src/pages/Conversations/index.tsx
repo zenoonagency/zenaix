@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useLayoutEffect  } from "react";
+import React, { useEffect, useState, useRef, useLayoutEffect } from "react";
 import {
   MoreVertical,
   Wifi,
@@ -341,63 +341,65 @@ export function Conversations() {
     hasInitialScrollRef.current = false;
     setFixedDate(null);
     if (messagesContainerRef.current) {
-        messagesContainerRef.current.scrollTop = 0;
+      messagesContainerRef.current.scrollTop = 0;
     }
-}, [selectedContactId]);
+  }, [selectedContactId]);
 
-const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-  const target = e.target as HTMLDivElement;
-  const scrollTop = target.scrollTop;
-  
-  const grouped = groupMessagesByDate(contactMessages);
-  const currentDate = getCurrentDateFromScroll(target, grouped);
-  if(currentDate) setFixedDate(currentDate);
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    const scrollTop = target.scrollTop;
 
-  if (
+    const grouped = groupMessagesByDate(contactMessages);
+    const currentDate = getCurrentDateFromScroll(target, grouped);
+    if (currentDate) setFixedDate(currentDate);
+
+    if (
       scrollTop <= 100 &&
       activeInstanceId &&
       selectedContactId &&
       hasMoreMessages[activeInstanceId]?.[selectedContactId] &&
       !isLoadingMore[activeInstanceId]?.[selectedContactId]
-  ) {
+    ) {
       previousHeightRef.current = target.scrollHeight;
       fetchMoreMessages(
-          token!,
-          user!.organization_id,
-          activeInstanceId,
-          selectedContactId
+        token!,
+        user!.organization_id,
+        activeInstanceId,
+        selectedContactId
       );
-  }
-};
+    }
+  };
 
-// EFEITO 2: Gerencia o scroll APÓS a renderização.
-// TROCAMOS useEffect por useLayoutEffect para garantir que o scroll aconteça no momento certo.
-useLayoutEffect(() => {
-  const container = messagesContainerRef.current;
-  if (container && contactMessages.length > 0) {
-
+  // EFEITO 2: Gerencia o scroll APÓS a renderização.
+  // TROCAMOS useEffect por useLayoutEffect para garantir que o scroll aconteça no momento certo.
+  useLayoutEffect(() => {
+    const container = messagesContainerRef.current;
+    if (container && contactMessages.length > 0) {
       // CASO A: Mantém a posição do scroll ao carregar mensagens antigas.
       // Se `previousHeightRef` tem um valor, significa que acabamos de carregar mensagens no topo.
       if (previousHeightRef.current > 0) {
-          const heightDifference = container.scrollHeight - previousHeightRef.current;
-          container.scrollTop = heightDifference;
-          previousHeightRef.current = 0; // Reseta para o próximo ciclo.
-          return; // Impede que o código abaixo execute.
+        const heightDifference =
+          container.scrollHeight - previousHeightRef.current;
+        container.scrollTop = heightDifference;
+        previousHeightRef.current = 0; // Reseta para o próximo ciclo.
+        return; // Impede que o código abaixo execute.
       }
 
       // CASO B: Rola para o final.
       // Isso acontece no primeiro carregamento de um contato (`hasInitialScrollRef` é false)
       // ou quando a última mensagem é uma nova mensagem de saída.
       const lastMessage = contactMessages[contactMessages.length - 1];
-      const isNewOutgoingMessage = lastMessage?.direction === "OUTGOING" && lastMessage.id.startsWith("temp_");
+      const isNewOutgoingMessage =
+        lastMessage?.direction === "OUTGOING" &&
+        lastMessage.id.startsWith("temp_");
 
       // Se for o scroll inicial OU uma nova mensagem foi enviada, role para o final.
       if (!hasInitialScrollRef.current || isNewOutgoingMessage) {
-          container.scrollTop = container.scrollHeight;
-          hasInitialScrollRef.current = true; // Marca que o scroll inicial já foi feito.
+        container.scrollTop = container.scrollHeight;
+        hasInitialScrollRef.current = true; // Marca que o scroll inicial já foi feito.
       }
-  }
-}, [contactMessages]); 
+    }
+  }, [contactMessages]);
 
   // ==================================================================
   // ========= FIM DA LÓGICA DE SCROLL REFINADA ========================
@@ -432,8 +434,10 @@ useLayoutEffect(() => {
       body: messageText,
       media_url: null,
       media_type: null,
+      message_type: null,
       timestamp: new Date().toISOString(),
       read: false,
+      ack: 0,
       file_name: null,
       file_size_bytes: null,
       media_duration_sec: null,
@@ -928,16 +932,32 @@ useLayoutEffect(() => {
                                               "sending" && (
                                               <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
                                             )}
-                                            {item.message.status === "sent" && (
+                                            {/* Priorizar ACK sobre status quando disponível */}
+                                            {item.message.ack === 1 && (
                                               <span>✓</span>
                                             )}
-                                            {item.message.status ===
-                                              "delivered" && <span>✓✓</span>}
-                                            {item.message.status === "read" && (
+                                            {item.message.ack === 2 && (
+                                              <span>✓✓</span>
+                                            )}
+                                            {item.message.ack === 3 && (
                                               <span className="text-blue-400">
                                                 ✓✓
                                               </span>
                                             )}
+                                            {/* Fallback para status quando ACK não está disponível */}
+                                            {!item.message.ack &&
+                                              item.message.status ===
+                                                "sent" && <span>✓</span>}
+                                            {!item.message.ack &&
+                                              item.message.status ===
+                                                "delivered" && <span>✓✓</span>}
+                                            {!item.message.ack &&
+                                              item.message.status ===
+                                                "read" && (
+                                                <span className="text-blue-400">
+                                                  ✓✓
+                                                </span>
+                                              )}
                                           </span>
                                         )}
                                       </div>

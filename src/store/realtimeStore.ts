@@ -23,14 +23,19 @@ interface RealtimeState {
 }
 
 const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
-  console.log("[RealtimeStore] 📨 Evento recebido:", payload.event, payload.data);
+  console.log(
+    "[RealtimeStore] 📨 Evento recebido:",
+    payload.event,
+    payload.data
+  );
 
   switch (payload.event) {
-
     case "USER_UPDATED_IN_ORGANIZATION":
     case "USER_PROFILE_UPDATED":
     case "USER_REMOVED_FROM_ORG":
-      console.log("[RealtimeStore] 🔄 Evento de usuário recebido, atualizando dados...");
+      console.log(
+        "[RealtimeStore] 🔄 Evento de usuário recebido, atualizando dados..."
+      );
       // TODO: Implementar sincronização de usuário se necessário
       break;
 
@@ -97,7 +102,9 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
       useBoardStore.getState().updateCardInActiveBoard(payload.data);
       break;
     case "CARD_DELETED":
-      useBoardStore.getState().removeCardFromActiveBoard(payload.data.id, payload.data.list_id);
+      useBoardStore
+        .getState()
+        .removeCardFromActiveBoard(payload.data.id, payload.data.list_id);
       break;
     case "WHATSAPP_INSTANCE_CREATED":
       useWhatsAppInstanceStore.getState().addInstance(payload.data);
@@ -106,14 +113,20 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
       useWhatsAppInstanceStore.getState().updateInstance(payload.data);
       break;
     case "WHATSAPP_INSTANCE_DELETED":
-      useWhatsAppInstanceStore.getState().deleteInstance(payload.data.instance_id);
+      useWhatsAppInstanceStore
+        .getState()
+        .deleteInstance(payload.data.instance_id);
       break;
     case "WHATSAPP_QR_CODE":
-      useWhatsAppInstanceStore.getState().updateQrCode(payload.data.instance_id, payload.data.qrCode);
+      useWhatsAppInstanceStore
+        .getState()
+        .updateQrCode(payload.data.instance_id, payload.data.qrCode);
       break;
     case "WHATSAPP_INSTANCE_CONNECTED": {
       const store = useWhatsAppInstanceStore.getState();
-      const oldInstance = store.instances.find(i => i.id === payload.data.instance_id);
+      const oldInstance = store.instances.find(
+        (i) => i.id === payload.data.instance_id
+      );
       if (oldInstance) {
         store.updateInstance({
           ...oldInstance,
@@ -124,35 +137,43 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
       break;
     }
     case "NEW_WHATSAPP_MESSAGE": {
-      console.log("[RealtimeStore] 📱 Nova mensagem WhatsApp recebida:", payload.data);
-      
+      console.log(
+        "[RealtimeStore] 📱 Nova mensagem WhatsApp recebida:",
+        payload.data
+      );
+
       const messageStore = useWhatsappMessageStore.getState();
       const contactStore = useWhatsappContactStore.getState();
-      
+
       // Extrair informações da mensagem
-      const { 
-        id, 
-        body, 
-        from, 
-        to, 
-        timestamp, 
-        media_url, 
-        media_type, 
-        file_name, 
-        file_size_bytes, 
-        media_duration_sec, 
-        whatsapp_instance_id, 
-        organization_id, 
+      const {
+        id,
+        body,
+        from,
+        to,
+        timestamp,
+        media_url,
+        media_type,
+        message_type,
+        file_name,
+        file_size_bytes,
+        media_duration_sec,
+        whatsapp_instance_id,
+        organization_id,
         whatsapp_contact_id,
         created_at,
         read,
-        wa_message_id
+        ack,
+        wa_message_id,
       } = payload.data;
 
       // Determinar a direção da mensagem
-      const instance = useWhatsAppInstanceStore.getState().instances.find(i => i.id === whatsapp_instance_id);
+      const instance = useWhatsAppInstanceStore
+        .getState()
+        .instances.find((i) => i.id === whatsapp_instance_id);
       const instanceNumber = instance?.phone_number;
-      const direction: 'INCOMING' | 'OUTGOING' = from === `${instanceNumber}@c.us` ? 'OUTGOING' : 'INCOMING';
+      const direction: "INCOMING" | "OUTGOING" =
+        from === `${instanceNumber}@c.us` ? "OUTGOING" : "INCOMING";
 
       // Criar objeto da mensagem no formato correto
       const message = {
@@ -163,8 +184,10 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         body,
         media_url,
         media_type,
+        message_type,
         timestamp,
         read,
+        ack,
         file_name,
         file_size_bytes,
         media_duration_sec,
@@ -172,62 +195,132 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         organization_id,
         whatsapp_contact_id,
         created_at,
-        direction
+        direction,
       };
 
       // Se temos o contact_id, adicionar a mensagem diretamente
       if (whatsapp_contact_id) {
         // Verificar se já existe uma mensagem temporária com o mesmo conteúdo
-        const existingMessages = messageStore.messages[whatsapp_instance_id]?.[whatsapp_contact_id] || [];
-        const tempMessage = existingMessages.find(msg => 
-          msg.id.startsWith('temp_') && 
-          msg.body === body && 
-          msg.direction === 'OUTGOING'
+        const existingMessages =
+          messageStore.messages[whatsapp_instance_id]?.[whatsapp_contact_id] ||
+          [];
+        const tempMessage = existingMessages.find(
+          (msg) =>
+            msg.id.startsWith("temp_") &&
+            msg.body === body &&
+            msg.direction === "OUTGOING"
         );
-        
+
         if (tempMessage) {
           // Atualizar a mensagem temporária com o ID real e status 'sent'
-          messageStore.updateMessageStatus(whatsapp_instance_id, whatsapp_contact_id, tempMessage.id, 'sent');
-          // Substituir o ID temporário pelo real
-          const updatedMessages = existingMessages.map(msg => 
-            msg.id === tempMessage.id ? { ...message, status: 'sent' as const } : msg
+          messageStore.updateMessageStatus(
+            whatsapp_instance_id,
+            whatsapp_contact_id,
+            tempMessage.id,
+            "sent"
           );
-          messageStore.setMessages(whatsapp_instance_id, whatsapp_contact_id, updatedMessages);
+          // Substituir o ID temporário pelo real
+          const updatedMessages = existingMessages.map((msg) =>
+            msg.id === tempMessage.id
+              ? { ...message, status: "sent" as const }
+              : msg
+          );
+          messageStore.setMessages(
+            whatsapp_instance_id,
+            whatsapp_contact_id,
+            updatedMessages
+          );
         } else {
           // Adicionar nova mensagem (incoming)
-          messageStore.addMessage(whatsapp_instance_id, whatsapp_contact_id, { ...message, status: 'delivered' });
+          messageStore.addMessage(whatsapp_instance_id, whatsapp_contact_id, {
+            ...message,
+            status: "delivered",
+          });
         }
       } else {
         // Se não temos contact_id, tentar encontrar o contato pelo número
         const contacts = contactStore.contacts[whatsapp_instance_id] || [];
-        const contactNumber = direction === 'INCOMING' 
-          ? from.replace('@c.us', '') 
-          : to.replace('@c.us', '');
-        
-        const contact = contacts.find(c => c.phone === contactNumber);
+        const contactNumber =
+          direction === "INCOMING"
+            ? from.replace("@c.us", "")
+            : to.replace("@c.us", "");
+
+        const contact = contacts.find((c) => c.phone === contactNumber);
         if (contact) {
           // Verificar se já existe uma mensagem temporária com o mesmo conteúdo
-          const existingMessages = messageStore.messages[whatsapp_instance_id]?.[contact.id] || [];
-          const tempMessage = existingMessages.find(msg => 
-            msg.id.startsWith('temp_') && 
-            msg.body === body && 
-            msg.direction === 'OUTGOING'
+          const existingMessages =
+            messageStore.messages[whatsapp_instance_id]?.[contact.id] || [];
+          const tempMessage = existingMessages.find(
+            (msg) =>
+              msg.id.startsWith("temp_") &&
+              msg.body === body &&
+              msg.direction === "OUTGOING"
           );
-          
+
           if (tempMessage) {
             // Atualizar a mensagem temporária com o ID real e status 'sent'
-            messageStore.updateMessageStatus(whatsapp_instance_id, contact.id, tempMessage.id, 'sent');
-            // Substituir o ID temporário pelo real
-            const updatedMessages = existingMessages.map(msg => 
-              msg.id === tempMessage.id ? { ...message, status: 'sent' as const } : msg
+            messageStore.updateMessageStatus(
+              whatsapp_instance_id,
+              contact.id,
+              tempMessage.id,
+              "sent"
             );
-            messageStore.setMessages(whatsapp_instance_id, contact.id, updatedMessages);
+            // Substituir o ID temporário pelo real
+            const updatedMessages = existingMessages.map((msg) =>
+              msg.id === tempMessage.id
+                ? { ...message, status: "sent" as const }
+                : msg
+            );
+            messageStore.setMessages(
+              whatsapp_instance_id,
+              contact.id,
+              updatedMessages
+            );
           } else {
             // Adicionar nova mensagem (incoming)
-            messageStore.addMessage(whatsapp_instance_id, contact.id, { ...message, status: 'delivered' });
+            messageStore.addMessage(whatsapp_instance_id, contact.id, {
+              ...message,
+              status: "delivered",
+            });
           }
         } else {
-          console.log("[RealtimeStore] ⚠️ Contato não encontrado para mensagem:", contactNumber);
+          console.log(
+            "[RealtimeStore] ⚠️ Contato não encontrado para mensagem:",
+            contactNumber
+          );
+        }
+      }
+      break;
+    }
+    case "WHATSAPP_MESSAGE_ACK_UPDATED": {
+      console.log(
+        "[RealtimeStore] ✅ Atualização de ACK recebida:",
+        payload.data
+      );
+
+      const { ack, contact_phone, wa_message_id } = payload.data;
+      const messageStore = useWhatsappMessageStore.getState();
+      const contactStore = useWhatsappContactStore.getState();
+
+      // Encontrar a instância e contato baseado no número do telefone
+      const instances = useWhatsAppInstanceStore.getState().instances;
+
+      for (const instance of instances) {
+        const contacts = contactStore.contacts[instance.id] || [];
+        const contact = contacts.find((c) => c.phone === contact_phone);
+
+        if (contact) {
+          // Atualizar o ack da mensagem
+          messageStore.updateMessageAck(
+            instance.id,
+            contact.id,
+            wa_message_id,
+            ack
+          );
+          console.log(
+            `[RealtimeStore] ✅ ACK atualizado para mensagem ${wa_message_id} no contato ${contact_phone}`
+          );
+          break;
         }
       }
       break;
@@ -254,9 +347,13 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
 
     const handleSubscription = (status: string, channelName: string) => {
       if (status === "SUBSCRIBED") {
-        console.log(`[RealtimeStore] ✅ Canal ${channelName} conectado com sucesso.`);
+        console.log(
+          `[RealtimeStore] ✅ Canal ${channelName} conectado com sucesso.`
+        );
       } else if (status === "CHANNEL_ERROR") {
-        console.error(`[RealtimeStore] ❌ Erro ao conectar no canal ${channelName}. Tentando reconectar em 2s...`);
+        console.error(
+          `[RealtimeStore] ❌ Erro ao conectar no canal ${channelName}. Tentando reconectar em 2s...`
+        );
         setTimeout(() => {
           // Tenta reconectar automaticamente
           const { user } = useAuthStore.getState();
@@ -270,7 +367,9 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
     const userChannelName = `user-updates-${userId}`;
     const newUserChannel = supabase.channel(userChannelName);
     newUserChannel
-      .on("broadcast", { event: "message" }, (message) => handleRealtimeEvent(message.payload))
+      .on("broadcast", { event: "message" }, (message) =>
+        handleRealtimeEvent(message.payload)
+      )
       .subscribe((status) => handleSubscription(status, userChannelName));
 
     // --- Canal da Organização ---
@@ -279,14 +378,20 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       const orgChannelName = `org-updates-${organizationId}`;
       newOrgChannel = supabase.channel(orgChannelName);
       newOrgChannel
-        .on("broadcast", { event: "message" }, (message) => handleRealtimeEvent(message.payload))
+        .on("broadcast", { event: "message" }, (message) =>
+          handleRealtimeEvent(message.payload)
+        )
         .subscribe((status) => handleSubscription(status, orgChannelName));
     }
 
     // --- Heartbeat ---
     const newHeartbeatInterval = setInterval(() => {
       const isConnected = supabase.realtime.isConnected();
-      console.log(`[RealtimeStore][HEARTBEAT] Estado da conexão: ${isConnected ? 'CONECTADO' : 'DESCONECTADO'}`);
+      console.log(
+        `[RealtimeStore][HEARTBEAT] Estado da conexão: ${
+          isConnected ? "CONECTADO" : "DESCONECTADO"
+        }`
+      );
       if (!isConnected) {
         supabase.realtime.connect();
         // Após reconectar, reestabelece os canais
@@ -295,10 +400,10 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
           const orgId = user?.organization_id;
           if (user?.id) {
             get().connect(user.id, orgId);
-          } 
-        }, 1000); 
+          }
+        }, 1000);
       }
-    }, 5000); 
+    }, 5000);
 
     set({
       userChannel: newUserChannel,
@@ -314,10 +419,14 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       clearInterval(heartbeatInterval);
     }
 
-    const channelsToRemove = [userChannel, orgChannel].filter(Boolean) as RealtimeChannel[];
+    const channelsToRemove = [userChannel, orgChannel].filter(
+      Boolean
+    ) as RealtimeChannel[];
     if (channelsToRemove.length > 0) {
-      console.log(`[RealtimeStore] 🔌 Removendo ${channelsToRemove.length} canais...`);
-      channelsToRemove.forEach(ch => supabase.removeChannel(ch));
+      console.log(
+        `[RealtimeStore] 🔌 Removendo ${channelsToRemove.length} canais...`
+      );
+      channelsToRemove.forEach((ch) => supabase.removeChannel(ch));
     }
 
     set({ userChannel: null, orgChannel: null, heartbeatInterval: null });
@@ -325,18 +434,23 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
 
   testConnection: () => {
     const { userChannel } = get();
-    if (userChannel && userChannel.state === 'joined') {
+    if (userChannel && userChannel.state === "joined") {
       userChannel.send({
-        type: 'broadcast',
-        event: 'test',
-        payload: { message: 'Teste de conexão realtime', timestamp: new Date().toISOString() }
+        type: "broadcast",
+        event: "test",
+        payload: {
+          message: "Teste de conexão realtime",
+          timestamp: new Date().toISOString(),
+        },
       });
     }
   },
 
   // Adiciona função para simular queda manual
   simulateDisconnect: () => {
-    console.warn('[RealtimeStore] 🔌 Simulando queda manual da conexão realtime!');
+    console.warn(
+      "[RealtimeStore] 🔌 Simulando queda manual da conexão realtime!"
+    );
     supabase.realtime.disconnect();
   },
 }));
