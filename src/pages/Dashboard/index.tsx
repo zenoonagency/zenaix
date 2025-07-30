@@ -17,6 +17,7 @@ import {
 } from "./components";
 import { format } from "date-fns";
 import { useRealtimeStore } from '../../store/realtimeStore';
+import { useContractStore } from "../../store/contractStore";
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center h-full">
@@ -343,6 +344,9 @@ export function Dashboard() {
     setShowEventDetails(true);
   };
 
+  const contractStore = useContractStore();
+  const isContractsLoading = contractStore.isLoading;
+
   return (
     <ErrorBoundary
       FallbackComponent={({ error }) => (
@@ -395,7 +399,7 @@ export function Dashboard() {
               formatCurrency={formatCurrency}
             />
 
-            <ContractChart contracts={contracts} theme={theme} />
+            <ContractChart contracts={contracts} theme={theme} isLoading={isContractsLoading} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">

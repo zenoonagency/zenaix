@@ -23,6 +23,7 @@ import { useSystemPermissionsStore } from "./store/systemPermissionsStore";
 
 export function App() {
   const hasInitialized = useRef(false);
+  const hasFetchedGlobals = useRef(false);
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -47,6 +48,7 @@ export function App() {
           if (needsFetch) {
             try {
               await fetchAndSetDeepUserData();
+              hasFetchedGlobals.current = false; // Permite fetch global após reload/login
               console.log("[App] fetchAndSetDeepUserData executado por reload de página");
             } catch (error) {
               console.error("[App] Erro ao buscar dados completos:", error);
@@ -55,13 +57,21 @@ export function App() {
             console.log("[App] Dados já presentes na store, não faz fetchAndSetDeepUserData");
           }
 
-          // Buscar dados globais em background (não await)
-          const { token, user: u, organization: org } = useAuthStore.getState();
-          const organizationId = u?.organization_id;
-          if (token && u && org) {
-            usePlanStore.getState().fetchAllPlans(session.access_token);
-            useSystemPermissionsStore.getState().fetchAllSystemPermissions(session.access_token);
-            if (organizationId) {
+          // Buscar dados globais em background (não await) SÓ UMA VEZ por login/reload
+          if (!hasFetchedGlobals.current) {
+            hasFetchedGlobals.current = true;
+            const { token, user: u, organization: org } = useAuthStore.getState();
+            let organizationId = u?.organization_id;
+            // Polling até organizationId estar pronto (máx 1s)
+            let tries = 0;
+            while (!organizationId && tries < 10) {
+              await new Promise((res) => setTimeout(res, 100));
+              organizationId = useAuthStore.getState().user?.organization_id;
+              tries++;
+            }
+            if (token && u && org && organizationId) {
+              usePlanStore.getState().fetchAllPlans(session.access_token);
+              useSystemPermissionsStore.getState().fetchAllSystemPermissions(session.access_token);
               useEmbedPagesStore.getState().fetchAllEmbedPages(session.access_token, organizationId);
               useTagStore.getState().fetchAllTags(session.access_token, organizationId);
               useContractStore.getState().fetchAllContracts(session.access_token, organizationId);
@@ -69,10 +79,13 @@ export function App() {
               useBoardStore.getState().fetchAllBoards(session.access_token, organizationId);
               useWhatsAppInstanceStore.getState().fetchAllInstances(session.access_token, organizationId);
               useCalendarStore.getState().fetchEvents();
+              connect(u.id, organizationId);
+            } else {
+              console.warn("[App] Dados globais não carregados: token, user ou organizationId ausentes");
             }
-            connect(u.id, organizationId);
           }
         } else if (event === "SIGNED_OUT") {
+          hasFetchedGlobals.current = false;
           hasInitialized.current = false;
 
           // Primeiro desconectar do realtime

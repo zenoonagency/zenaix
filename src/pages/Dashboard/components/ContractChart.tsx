@@ -4,9 +4,10 @@ import ReactApexChart from "react-apexcharts";
 interface ContractChartProps {
   contracts: any[];
   theme: string;
+  isLoading?: boolean;
 }
 
-export function ContractChart({ contracts, theme }: ContractChartProps) {
+export function ContractChart({ contracts, theme, isLoading }: ContractChartProps) {
   const contractChartOptions = useMemo(
     () => ({
       chart: {
@@ -60,6 +61,14 @@ export function ContractChart({ contracts, theme }: ContractChartProps) {
     ],
     [contracts]
   );
+
+  if (isLoading) {
+    return (
+      <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm flex items-center justify-center h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7f00ff]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm">

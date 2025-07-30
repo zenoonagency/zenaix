@@ -40,8 +40,6 @@ export function Financial() {
     isLoading,
     fetchAllTransactions,
     fetchSummary,
-    setTransactions,
-    setSummary,
   } = useTransactionStore();
 
   useEffect(() => {
@@ -91,7 +89,6 @@ export function Financial() {
     filterDate,
     viewMode,
     transactions.length,
-    summary,
   ]);
 
   const formatLastUpdated = (dateString: string | null) => {
