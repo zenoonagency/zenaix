@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RouterProvider } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { Toaster } from "react-hot-toast";
@@ -28,58 +28,89 @@ export function App() {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         const { connect, disconnect } = useRealtimeStore.getState();
-        const { setSession, clearAuth, fetchAndSetDeepUserData } = useAuthStore.getState();
+        const { setSession, clearAuth, fetchAndSetDeepUserData } =
+          useAuthStore.getState();
 
-        console.log("[App] Auth state change:", event, session?.access_token ? "Token presente" : "Sem token");
+        console.log(
+          "[App] Auth state change:",
+          event,
+          session?.access_token ? "Token presente" : "Sem token"
+        );
 
         if (session) {
-          // Sempre atualizar a sessão quando houver mudança (incluindo refresh de token)
+          // Sempre definir a sessão primeiro (dados básicos do Supabase)
           setSession(session);
 
-          // Se for a primeira inicialização, buscar dados completos
+          // Se é a primeira inicialização, buscar dados completos
           if (!hasInitialized.current) {
             hasInitialized.current = true;
-            
-            // Sempre buscar dados adicionais para garantir permissões atualizadas
-            await fetchAndSetDeepUserData();
 
-            const { token, user } = useAuthStore.getState();
-            const organizationId = user?.organization_id;
+            try {
+              console.log(
+                "[App] Primeira inicialização - buscando dados completos"
+              );
+              await fetchAndSetDeepUserData();
 
-            if (token && user) {
-              // Buscar dados básicos da aplicação
-              usePlanStore.getState().fetchAllPlans(session.access_token);
-              useSystemPermissionsStore.getState().fetchAllSystemPermissions(session.access_token);
-              
-              if (organizationId) {
-                // Buscar dados específicos da organização
-                useEmbedPagesStore.getState().fetchAllEmbedPages(session.access_token, organizationId);
-                useTagStore.getState().fetchAllTags(session.access_token, organizationId);
-                useContractStore.getState().fetchAllContracts(session.access_token, organizationId);
-                useTeamMembersStore.getState().fetchAllMembers(session.access_token, organizationId);
-                useBoardStore.getState().fetchAllBoards(session.access_token, organizationId);
-                useWhatsAppInstanceStore.getState().fetchAllInstances(session.access_token, organizationId);
-                useCalendarStore.getState().fetchEvents();
-                
-                // Não buscar transações aqui - deixar o Dashboard fazer isso quando necessário
-                // useTransactionStore.getState().fetchAllTransactions(session.access_token, organizationId);
+              const { token, user, organization } = useAuthStore.getState();
+              const organizationId = user?.organization_id;
+
+              if (token && user && organization) {
+                console.log(
+                  "[App] Dados completos carregados, buscando dados da aplicação"
+                );
+
+                // Buscar dados básicos da aplicação
+                usePlanStore.getState().fetchAllPlans(session.access_token);
+                useSystemPermissionsStore
+                  .getState()
+                  .fetchAllSystemPermissions(session.access_token);
+
+                if (organizationId) {
+                  // Buscar dados específicos da organização
+                  useEmbedPagesStore
+                    .getState()
+                    .fetchAllEmbedPages(session.access_token, organizationId);
+                  useTagStore
+                    .getState()
+                    .fetchAllTags(session.access_token, organizationId);
+                  useContractStore
+                    .getState()
+                    .fetchAllContracts(session.access_token, organizationId);
+                  useTeamMembersStore
+                    .getState()
+                    .fetchAllMembers(session.access_token, organizationId);
+                  useBoardStore
+                    .getState()
+                    .fetchAllBoards(session.access_token, organizationId);
+                  useWhatsAppInstanceStore
+                    .getState()
+                    .fetchAllInstances(session.access_token, organizationId);
+                  useCalendarStore.getState().fetchEvents();
+                }
+                connect(user.id, organizationId);
               }
-              connect(user.id, organizationId);
+            } catch (error) {
+              console.error("[App] Erro ao carregar dados completos:", error);
             }
           } else {
-            // Se não for primeira inicialização, apenas atualizar dados do usuário
-            // para garantir que o token atualizado seja usado
-            await fetchAndSetDeepUserData();
+            // Se não é primeira inicialização, apenas atualizar em segundo plano
+            console.log("[App] Atualização em segundo plano");
+            fetchAndSetDeepUserData().catch((error) => {
+              console.warn(
+                "[App] Erro ao atualizar dados em segundo plano:",
+                error
+              );
+            });
           }
         } else if (event === "SIGNED_OUT") {
           hasInitialized.current = false;
-          
+
           // Primeiro desconectar do realtime
           disconnect();
-          
+
           // Limpar auth de forma síncrona para evitar piscadas
           clearAuth();
-          
+
           // Limpar localStorage para garantir limpeza completa
           localStorage.removeItem("auth-storage");
         }
@@ -87,7 +118,9 @@ export function App() {
     );
 
     return () => {
-      console.log("[App] Desmontando componente. Removendo listener de autenticação.");
+      console.log(
+        "[App] Desmontando componente. Removendo listener de autenticação."
+      );
       authListener.subscription.unsubscribe();
     };
   }, []); // O array vazio [] garante que isso rode apenas uma vez na vida do componente.

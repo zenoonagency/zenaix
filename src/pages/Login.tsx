@@ -59,7 +59,27 @@ export function Login() {
         throw signInError;
       }
 
+      // Aguardar um pouco para que o setSession seja processado
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
+      // Verificar se os dados completos foram carregados
+      const { user, organization, permissions } = useAuthStore.getState();
+
+      // Se não temos dados completos, aguardar o fetchAndSetDeepUserData
+      if (!user || !organization || permissions.length === 0) {
+        console.log("[Login] Aguardando dados completos...");
+        await new Promise((resolve) => {
+          const checkData = () => {
+            const { user, organization, permissions } = useAuthStore.getState();
+            if (user && organization && permissions.length > 0) {
+              resolve(true);
+            } else {
+              setTimeout(checkData, 100);
+            }
+          };
+          checkData();
+        });
+      }
     } catch (error: any) {
       const message = handleSupabaseError(error, "Erro ao fazer login");
       setError(message);
@@ -170,7 +190,7 @@ export function Login() {
               {loading ? (
                 <span className="flex items-center justify-center">
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Autenticando...
+                  Carregando dados...
                 </span>
               ) : (
                 "Entrar"

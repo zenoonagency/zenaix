@@ -7,7 +7,6 @@ export interface RegisterApiResponse {
   session: Session;
 }
 
-
 export interface User {
   id: string;
   email: string;
@@ -16,7 +15,6 @@ export interface User {
   last_name?: string | null;
   role: string;
   organization_id?: string | null;
-  organization?: OrganizationOutput | null;
   language: string;
   timezone: string;
   created_at: string;
