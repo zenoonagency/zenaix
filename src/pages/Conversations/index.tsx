@@ -105,6 +105,129 @@ function processWhatsAppImageUrl(url: string): string {
   return url;
 }
 
+// Função para formatar a data do separador
+function formatDateSeparator(date: Date): string {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const messageDate = new Date(date);
+
+  // Resetar as horas para comparar apenas a data
+  const todayDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+  const yesterdayDate = new Date(
+    yesterday.getFullYear(),
+    yesterday.getMonth(),
+    yesterday.getDate()
+  );
+  const messageDateOnly = new Date(
+    messageDate.getFullYear(),
+    messageDate.getMonth(),
+    messageDate.getDate()
+  );
+
+  if (messageDateOnly.getTime() === todayDate.getTime()) {
+    return "Hoje";
+  } else if (messageDateOnly.getTime() === yesterdayDate.getTime()) {
+    return "Ontem";
+  } else {
+    return messageDate.toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
+}
+
+// Função para agrupar mensagens por data
+function groupMessagesByDate(messages: WhatsappMessage[]): Array<{
+  type: "separator" | "message";
+  date?: string;
+  message?: WhatsappMessage;
+  dateKey?: string;
+}> {
+  if (!messages.length) return [];
+
+  const sortedMessages = messages.sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+
+  const grouped: Array<{
+    type: "separator" | "message";
+    date?: string;
+    message?: WhatsappMessage;
+    dateKey?: string;
+  }> = [];
+
+  let currentDate = "";
+
+  sortedMessages.forEach((message) => {
+    const messageDate = new Date(message.timestamp);
+    const dateKey = messageDate.toDateString();
+
+    if (dateKey !== currentDate) {
+      currentDate = dateKey;
+      grouped.push({
+        type: "separator",
+        date: formatDateSeparator(messageDate),
+        dateKey,
+      });
+    }
+
+    grouped.push({
+      type: "message",
+      message,
+      dateKey,
+    });
+  });
+
+  return grouped;
+}
+
+// Função para obter a data atual baseada no scroll
+function getCurrentDateFromScroll(
+  container: HTMLDivElement,
+  groupedMessages: Array<{
+    type: "separator" | "message";
+    date?: string;
+    message?: WhatsappMessage;
+    dateKey?: string;
+  }>
+): string | null {
+  const containerRect = container.getBoundingClientRect();
+  const containerTop = containerRect.top;
+  const scrollTop = container.scrollTop;
+
+  // Encontrar o separador mais próximo do topo visível
+  let currentDate = null;
+  let minDistance = Infinity;
+
+  groupedMessages.forEach((item, index) => {
+    if (item.type === "separator") {
+      // Calcular a posição aproximada do separador
+      const separatorElement = container.querySelector(
+        `[data-separator-index="${index}"]`
+      );
+      if (separatorElement) {
+        const elementRect = separatorElement.getBoundingClientRect();
+        const distance = Math.abs(elementRect.top - containerTop);
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          currentDate = item.date;
+        }
+      }
+    }
+  });
+
+  return currentDate;
+}
+
 export function Conversations() {
   const { user, token, hasPermission } = useAuthStore();
   const {
@@ -158,6 +281,12 @@ export function Conversations() {
   const [newMessage, setNewMessage] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
+  // Estado para data fixa no topo
+  const [fixedDate, setFixedDate] = useState<string | null>(null);
+
+  // Ref para rastrear a altura anterior do container
+  const previousHeightRef = useRef<number>(0);
+
   // Atualizar instância ativa quando a store mudar
   useEffect(() => {
     if (lastActiveInstanceId && !activeInstanceId) {
@@ -205,6 +334,12 @@ export function Conversations() {
     setSelectedContactId(null);
   }, [activeInstanceId]);
 
+  // Resetar altura anterior quando mudar de contato
+  useEffect(() => {
+    previousHeightRef.current = 0;
+    setFixedDate(null); // Resetar data fixa ao mudar contato
+  }, [selectedContactId]);
+
   // Buscar mensagens do contato selecionado
   useEffect(() => {
     if (
@@ -227,6 +362,29 @@ export function Conversations() {
     selectedContactId,
     fetchAllMessages,
   ]);
+
+  const instanceContacts: WhatsappContact[] = activeInstanceId
+    ? contacts[activeInstanceId] || []
+    : [];
+  const contactMessages =
+    activeInstanceId && selectedContactId
+      ? messages[activeInstanceId]?.[selectedContactId] || []
+      : [];
+  const activeInstance =
+    instances.find((i) => i.id === activeInstanceId) || null;
+
+  // Definir data inicial quando mensagens carregam
+  useEffect(() => {
+    if (contactMessages.length > 0 && !fixedDate) {
+      const groupedMessages = groupMessagesByDate(contactMessages);
+      const firstSeparator = groupedMessages.find(
+        (item) => item.type === "separator"
+      );
+      if (firstSeparator) {
+        setFixedDate(firstSeparator.date || null);
+      }
+    }
+  }, [contactMessages.length, fixedDate]);
 
   // Fechar menu quando clicar fora
   useEffect(() => {
@@ -400,6 +558,11 @@ export function Conversations() {
     const target = e.target as HTMLDivElement;
     const scrollTop = target.scrollTop;
 
+    // Atualizar data fixa baseada no scroll
+    const groupedMessages = groupMessagesByDate(contactMessages);
+    const currentDate = getCurrentDateFromScroll(target, groupedMessages);
+    setFixedDate(currentDate);
+
     // Se chegou no topo (ou próximo) e há mais mensagens para carregar
     if (
       scrollTop <= 100 &&
@@ -408,6 +571,9 @@ export function Conversations() {
       hasMoreMessages[activeInstanceId]?.[selectedContactId] &&
       !isLoadingMore[activeInstanceId]?.[selectedContactId]
     ) {
+      // Salvar a altura atual antes de carregar mais mensagens
+      previousHeightRef.current = target.scrollHeight;
+
       fetchMoreMessages(
         token!,
         user!.organization_id,
@@ -417,24 +583,32 @@ export function Conversations() {
     }
   };
 
-  const instanceContacts: WhatsappContact[] = activeInstanceId
-    ? contacts[activeInstanceId] || []
-    : [];
-  const contactMessages =
-    activeInstanceId && selectedContactId
-      ? messages[activeInstanceId]?.[selectedContactId] || []
-      : [];
-  const activeInstance =
-    instances.find((i) => i.id === activeInstanceId) || null;
-
   // Ref para o container de mensagens
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Scroll automático para mensagens mais recentes
   useEffect(() => {
     if (messagesContainerRef.current && contactMessages.length > 0) {
-      messagesContainerRef.current.scrollTop =
-        messagesContainerRef.current.scrollHeight;
+      const container = messagesContainerRef.current;
+      const isNearBottom =
+        container.scrollTop + container.clientHeight >=
+        container.scrollHeight - 100;
+
+      // Se temos uma altura anterior salva (carregamento de mensagens antigas)
+      if (previousHeightRef.current > 0) {
+        const heightDifference =
+          container.scrollHeight - previousHeightRef.current;
+        // Ajustar a posição do scroll para compensar as novas mensagens no topo
+        container.scrollTop = heightDifference;
+        previousHeightRef.current = 0; // Resetar
+        return; // Não executar mais nada
+      }
+
+      // Só faz scroll para baixo se o usuário já estiver próximo do final
+      // ou se for a primeira vez carregando as mensagens
+      if (isNearBottom || container.scrollTop === 0) {
+        container.scrollTop = container.scrollHeight;
+      }
     }
   }, [contactMessages.length]);
 
@@ -681,6 +855,13 @@ export function Conversations() {
                               {selectedContact.phone}
                             </div>
                           </div>
+
+                          {/* Separador de data fixo */}
+                          {fixedDate && (
+                            <div className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium">
+                              {fixedDate}
+                            </div>
+                          )}
                         </>
                       ) : null;
                     })()}
@@ -722,119 +903,137 @@ export function Conversations() {
                             </div>
                           )}
 
-                          {contactMessages
-                            .sort(
-                              (a, b) =>
-                                new Date(a.timestamp).getTime() -
-                                new Date(b.timestamp).getTime()
-                            )
-                            .map((msg) => (
-                              <div
-                                key={msg.id}
-                                className={`mb-3 flex ${
-                                  msg.direction === "OUTGOING"
-                                    ? "justify-end"
-                                    : "justify-start"
-                                }`}
-                              >
-                                <div
-                                  className={`rounded-2xl px-4 py-2 max-w-xs lg:max-w-md ${
-                                    msg.direction === "OUTGOING"
-                                      ? "bg-[#7f00ff] text-white"
-                                      : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                  }`}
-                                >
-                                  {msg.body && (
-                                    <div className="text-sm whitespace-pre-wrap">
-                                      {msg.body}
-                                    </div>
-                                  )}
-                                  {msg.media_url && (
-                                    <div className="mt-2">
-                                      {msg.media_type?.startsWith("image/") ? (
-                                        <img
-                                          src={msg.media_url}
-                                          alt="Mídia da mensagem"
-                                          className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                          onClick={() =>
-                                            window.open(msg.media_url, "_blank")
-                                          }
-                                        />
-                                      ) : msg.media_type?.startsWith(
-                                          "video/"
-                                        ) ? (
-                                        <video
-                                          src={msg.media_url}
-                                          controls
-                                          className="max-w-full h-auto rounded-lg"
-                                        />
-                                      ) : msg.media_type?.startsWith(
-                                          "audio/"
-                                        ) ? (
-                                        <audio
-                                          src={msg.media_url}
-                                          controls
-                                          className="w-full"
-                                        />
-                                      ) : (
-                                        <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                                          <Paperclip className="w-4 h-4" />
-                                          <span className="text-sm">
-                                            {msg.file_name || "Arquivo"}
-                                          </span>
-                                          <a
-                                            href={msg.media_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={`text-xs underline ${
-                                              msg.direction === "OUTGOING"
-                                                ? "text-blue-200"
-                                                : "text-blue-600"
-                                            }`}
-                                          >
-                                            Baixar
-                                          </a>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
+                          {groupMessagesByDate(contactMessages).map(
+                            (item, index) => (
+                              <div key={index}>
+                                {item.type === "separator" && (
                                   <div
-                                    className={`text-xs mt-1 flex items-center justify-between ${
-                                      msg.direction === "OUTGOING"
-                                        ? "text-blue-200"
-                                        : "text-gray-500"
+                                    className="flex justify-center my-4"
+                                    data-separator-index={index}
+                                  >
+                                    <div className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-medium">
+                                      {item.date}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {item.type === "message" && item.message && (
+                                  <div
+                                    className={`mb-3 flex ${
+                                      item.message.direction === "OUTGOING"
+                                        ? "justify-end"
+                                        : "justify-start"
                                     }`}
                                   >
-                                    <span>
-                                      {new Date(
-                                        msg.timestamp
-                                      ).toLocaleTimeString("pt-BR", {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      })}
-                                    </span>
-                                    {msg.direction === "OUTGOING" && (
-                                      <span className="ml-2">
-                                        {msg.status === "sending" && (
-                                          <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
-                                        )}
-                                        {msg.status === "sent" && (
-                                          <span>✓</span>
-                                        )}
-                                        {msg.status === "delivered" && (
-                                          <span>✓✓</span>
-                                        )}
-                                        {msg.status === "read" && (
-                                          <span className="text-blue-400">
-                                            ✓✓
+                                    <div
+                                      className={`rounded-2xl px-4 py-2 max-w-xs lg:max-w-md ${
+                                        item.message.direction === "OUTGOING"
+                                          ? "bg-[#7f00ff] text-white"
+                                          : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                      }`}
+                                    >
+                                      {item.message.body && (
+                                        <div className="text-sm whitespace-pre-wrap">
+                                          {item.message.body}
+                                        </div>
+                                      )}
+                                      {item.message.media_url && (
+                                        <div className="mt-2">
+                                          {item.message.media_type?.startsWith(
+                                            "image/"
+                                          ) ? (
+                                            <img
+                                              src={item.message.media_url}
+                                              alt="Mídia da mensagem"
+                                              className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                              onClick={() =>
+                                                window.open(
+                                                  item.message!.media_url,
+                                                  "_blank"
+                                                )
+                                              }
+                                            />
+                                          ) : item.message.media_type?.startsWith(
+                                              "video/"
+                                            ) ? (
+                                            <video
+                                              src={item.message.media_url}
+                                              controls
+                                              className="max-w-full h-auto rounded-lg"
+                                            />
+                                          ) : item.message.media_type?.startsWith(
+                                              "audio/"
+                                            ) ? (
+                                            <audio
+                                              src={item.message.media_url}
+                                              controls
+                                              className="w-full"
+                                            />
+                                          ) : (
+                                            <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                              <Paperclip className="w-4 h-4" />
+                                              <span className="text-sm">
+                                                {item.message.file_name ||
+                                                  "Arquivo"}
+                                              </span>
+                                              <a
+                                                href={item.message.media_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={`text-xs underline ${
+                                                  item.message.direction ===
+                                                  "OUTGOING"
+                                                    ? "text-blue-200"
+                                                    : "text-blue-600"
+                                                }`}
+                                              >
+                                                Baixar
+                                              </a>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                      <div
+                                        className={`text-xs mt-1 flex items-center justify-between ${
+                                          item.message.direction === "OUTGOING"
+                                            ? "text-blue-200"
+                                            : "text-gray-500"
+                                        }`}
+                                      >
+                                        <span>
+                                          {new Date(
+                                            item.message.timestamp
+                                          ).toLocaleTimeString("pt-BR", {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          })}
+                                        </span>
+                                        {item.message.direction ===
+                                          "OUTGOING" && (
+                                          <span className="ml-2">
+                                            {item.message.status ===
+                                              "sending" && (
+                                              <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
+                                            )}
+                                            {item.message.status === "sent" && (
+                                              <span>✓</span>
+                                            )}
+                                            {item.message.status ===
+                                              "delivered" && <span>✓✓</span>}
+                                            {item.message.status === "read" && (
+                                              <span className="text-blue-400">
+                                                ✓✓
+                                              </span>
+                                            )}
                                           </span>
                                         )}
-                                      </span>
-                                    )}
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
+                                )}
                               </div>
-                            ))}
+                            )
+                          )}
                         </>
                       )}
                     </div>
