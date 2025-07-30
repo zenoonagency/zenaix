@@ -8,6 +8,7 @@ export interface WhatsappContact {
   phone: string;
   avatar_url?: string | null;
   whatsapp_instance_id: string;
+  is_pinned: boolean;
   created_at: string;
   updated_at: string;
 }

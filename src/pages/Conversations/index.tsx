@@ -9,6 +9,9 @@ import {
   Send,
   Mic,
   Paperclip,
+  Pin,
+  X,
+  Download,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { useWhatsAppInstanceStore } from "../../store/whatsAppInstanceStore";
@@ -63,6 +66,21 @@ function processWhatsAppImageUrl(url: string): string {
     )}&w=100&h=100&fit=cover&output=webp`;
   }
   return url;
+}
+
+// Função para detectar se uma mensagem é uma figurinha (sticker)
+function isSticker(message: WhatsappMessage): boolean {
+  // Verificação direta para stickers
+  if (message.message_type === "sticker") {
+    return true;
+  }
+
+  // Verificação de segurança para casos específicos
+  if (message.message_type === "chat" && message.media_type === "image/webp") {
+    return true;
+  }
+
+  return false;
 }
 
 // Função para formatar a data do separador
@@ -240,6 +258,8 @@ export function Conversations() {
   const [newMessage, setNewMessage] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [fixedDate, setFixedDate] = useState<string | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // --- Refs para controle de Scroll ---
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -248,7 +268,13 @@ export function Conversations() {
   const hasInitialScrollRef = useRef<boolean>(false);
 
   const instanceContacts: WhatsappContact[] = activeInstanceId
-    ? contacts[activeInstanceId] || []
+    ? (contacts[activeInstanceId] || []).sort((a, b) => {
+        // Contatos fixados (pinned) ficam no topo
+        if (a.is_pinned && !b.is_pinned) return -1;
+        if (!a.is_pinned && b.is_pinned) return 1;
+        // Se ambos são fixados ou ambos não são fixados, mantém a ordem original
+        return 0;
+      })
     : [];
   const contactMessages =
     activeInstanceId && selectedContactId
@@ -329,6 +355,21 @@ export function Conversations() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showInstanceMenu]);
+
+  // Fechar modal de imagem com ESC
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && showImageModal) {
+        setShowImageModal(false);
+        setSelectedImage(null);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showImageModal]);
 
   // ==================================================================
   // ========= INÍCIO DA LÓGICA DE SCROLL REFINADA =====================
@@ -711,8 +752,13 @@ export function Conversations() {
                           {contact.name?.[0] || contact.phone?.slice(-2) || "?"}
                         </div>
                         <div className="flex-1 text-left">
-                          <div className="font-medium text-gray-900 dark:text-white">
+                          <div className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
                             {contact.name}
+                            {contact.is_pinned && (
+                              <div className="flex items-center justify-center w-4 h-4 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                                <Pin className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" />
+                              </div>
+                            )}
                           </div>
                           <div className="text-xs text-gray-500">
                             {contact.phone}
@@ -772,8 +818,13 @@ export function Conversations() {
                               "?"}
                           </div>
                           <div className="flex-1">
-                            <div className="font-medium text-gray-900 dark:text-white">
+                            <div className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
                               {selectedContact.name}
+                              {selectedContact.is_pinned && (
+                                <div className="flex items-center justify-center w-4 h-4 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                                  <Pin className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" />
+                                </div>
+                              )}
                             </div>
                             <div className="text-xs text-gray-500">
                               {selectedContact.phone}
@@ -862,13 +913,17 @@ export function Conversations() {
                                             <img
                                               src={item.message.media_url}
                                               alt="Mídia da mensagem"
-                                              className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                              onClick={() =>
-                                                window.open(
-                                                  item.message!.media_url,
-                                                  "_blank"
-                                                )
-                                              }
+                                              className={`rounded-lg cursor-pointer hover:opacity-90 transition-opacity ${
+                                                isSticker(item.message)
+                                                  ? "w-20 h-20 object-contain"
+                                                  : "max-w-full h-auto"
+                                              }`}
+                                              onClick={() => {
+                                                setSelectedImage(
+                                                  item.message.media_url
+                                                );
+                                                setShowImageModal(true);
+                                              }}
                                             />
                                           ) : item.message.media_type?.startsWith(
                                               "video/"
@@ -1178,6 +1233,68 @@ export function Conversations() {
         instanceId={activeInstanceId!}
         onUpdate={handleUpdateContact}
       />
+
+      {/* Modal de imagem */}
+      {showImageModal && selectedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => {
+            setShowImageModal(false);
+            setSelectedImage(null);
+          }}
+        >
+          <div className="relative max-w-6xl max-h-[95vh] overflow-hidden">
+            {/* Botões de ação - posicionados sobre a imagem */}
+            <div className="absolute top-4 right-4 flex gap-2 z-10">
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch(selectedImage);
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = `imagem_${Date.now()}.jpg`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                  } catch (error) {
+                    console.error("Erro ao baixar imagem:", error);
+                    // Fallback para o método anterior
+                    const link = document.createElement("a");
+                    link.href = selectedImage;
+                    link.download = `imagem_${Date.now()}.jpg`;
+                    link.click();
+                  }
+                }}
+                className="flex items-center justify-center w-10 h-10 bg-white/90 dark:bg-dark-800/90 hover:bg-white dark:hover:bg-dark-800 text-gray-700 dark:text-gray-300 rounded-full shadow-lg transition-all duration-200 backdrop-blur-sm"
+                title="Baixar imagem"
+              >
+                <Download className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => {
+                  setShowImageModal(false);
+                  setSelectedImage(null);
+                }}
+                className="flex items-center justify-center w-10 h-10 bg-white/90 dark:bg-dark-800/90 hover:bg-white dark:hover:bg-dark-800 text-gray-700 dark:text-gray-300 rounded-full shadow-lg transition-all duration-200 backdrop-blur-sm"
+                title="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Imagem */}
+            <img
+              src={selectedImage}
+              alt="Imagem da mensagem"
+              className="max-w-full max-h-[95vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
