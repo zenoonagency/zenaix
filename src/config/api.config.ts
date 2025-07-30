@@ -110,14 +110,26 @@ export const API_CONFIG = {
     getMessages: "/messages",
     // Novas rotas REST para contatos e mensagens
     contacts: {
-      findAll: (organizationId: string, instanceId: string) => `/organizations/${organizationId}/whatsapp/${instanceId}/contacts`,
-      create: (organizationId: string, instanceId: string) => `/organizations/${organizationId}/whatsapp/${instanceId}/contacts`,
-      update: (organizationId: string, instanceId: string, contactId: string) => `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}`,
-      delete: (organizationId: string, instanceId: string, contactId: string) => `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}`,
+      findAll: (organizationId: string, instanceId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/contacts`,
+      create: (organizationId: string, instanceId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/contacts`,
+      update: (organizationId: string, instanceId: string, contactId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}`,
+      delete: (organizationId: string, instanceId: string, contactId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}`,
     },
     messages: {
-      send: (organizationId: string, instanceId: string) => `/organizations/${organizationId}/whatsapp/${instanceId}/send`,
-      list: (organizationId: string, instanceId: string) => `/organizations/${organizationId}/whatsapp/${instanceId}/messages`,
+      send: (organizationId: string, instanceId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/send`,
+      list: (organizationId: string, instanceId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/messages`,
+      sendMedia: (organizationId: string, instanceId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/conversations/send-media`,
+    },
+    conversations: {
+      pin: (organizationId: string, instanceId: string, contactId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}/pin`,
     },
   },
   whatsappInstances: {

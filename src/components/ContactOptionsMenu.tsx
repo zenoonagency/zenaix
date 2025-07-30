@@ -1,9 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Edit2, Trash2, X } from 'lucide-react';
-import { WhatsappContact } from '../types/whatsapp';
-import { whatsappContactService } from '../services/whatsapp/whatsappContact.service';
-import { useToast } from '../hooks/useToast';
-import { useAuthStore } from '../store/authStore';
+import React, { useState, useRef, useEffect } from "react";
+import { MoreVertical, Edit2, Trash2, X, Pin } from "lucide-react";
+import { WhatsappContact } from "../types/whatsapp";
+import { whatsappContactService } from "../services/whatsapp/whatsappContact.service";
+import { whatsappMessageService } from "../services/whatsapp/whatsappMessage.service";
+import { useToast } from "../hooks/useToast";
+import { useAuthStore } from "../store/authStore";
+import { useWhatsappContactStore } from "../store/whatsapp/whatsappContactStore";
 
 interface ContactOptionsMenuProps {
   contact: WhatsappContact;
@@ -22,10 +24,11 @@ export function ContactOptionsMenu({
   onDelete,
   isOpen,
   onToggle,
-  position
+  position,
 }: ContactOptionsMenuProps) {
   const { token, user } = useAuthStore();
   const { showToast } = useToast();
+  const { updateContactInStore } = useWhatsappContactStore();
   const [isLoading, setIsLoading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -37,11 +40,11 @@ export function ContactOptionsMenu({
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen, onToggle]);
 
@@ -50,9 +53,50 @@ export function ContactOptionsMenu({
     onToggle();
   };
 
+  const handlePinContact = async () => {
+    if (!token || !user?.organization_id) {
+      showToast("Erro de autenticação", "error");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await whatsappMessageService.pinConversation(
+        token,
+        user.organization_id,
+        instanceId,
+        contact.id,
+        {
+          contact: contact.phone,
+          pin: !contact.is_pinned,
+        }
+      );
+
+      // Atualizar o contato na store
+      updateContactInStore(instanceId, contact.id, {
+        is_pinned: !contact.is_pinned,
+      });
+
+      showToast(
+        contact.is_pinned
+          ? "Contato desafixado com sucesso!"
+          : "Contato fixado com sucesso!",
+        "success"
+      );
+
+      // Fechar o menu após a ação
+      onToggle();
+    } catch (error: any) {
+      console.error("Erro ao fixar/desafixar contato:", error);
+      showToast(error.message || "Erro ao fixar/desafixar contato", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!token || !user?.organization_id) {
-      showToast('Erro de autenticação', 'error');
+      showToast("Erro de autenticação", "error");
       return;
     }
 
@@ -64,12 +108,17 @@ export function ContactOptionsMenu({
 
     setIsLoading(true);
     try {
-      await whatsappContactService.delete(token, user.organization_id, instanceId, contact.id);
+      await whatsappContactService.delete(
+        token,
+        user.organization_id,
+        instanceId,
+        contact.id
+      );
       onDelete(contact.id);
-      showToast('Contato excluído com sucesso!', 'success');
+      showToast("Contato excluído com sucesso!", "success");
     } catch (error: any) {
-      console.error('Erro ao excluir contato:', error);
-      showToast(error.message || 'Erro ao excluir contato', 'error');
+      console.error("Erro ao excluir contato:", error);
+      showToast(error.message || "Erro ao excluir contato", "error");
     } finally {
       setIsLoading(false);
       onToggle();
@@ -88,6 +137,19 @@ export function ContactOptionsMenu({
       }}
     >
       <button
+        onClick={handlePinContact}
+        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
+        disabled={isLoading}
+      >
+        <Pin className="w-4 h-4" />
+        {isLoading
+          ? "Processando..."
+          : contact.is_pinned
+          ? "Desfixar contato"
+          : "Fixar contato"}
+      </button>
+
+      <button
         onClick={handleEdit}
         className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
         disabled={isLoading}
@@ -95,15 +157,15 @@ export function ContactOptionsMenu({
         <Edit2 className="w-4 h-4" />
         Editar
       </button>
-      
+
       <button
         onClick={handleDelete}
         className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
         disabled={isLoading}
       >
         <Trash2 className="w-4 h-4" />
-        {isLoading ? 'Excluindo...' : 'Excluir'}
+        {isLoading ? "Excluindo..." : "Excluir"}
       </button>
     </div>
   );
-} 
+}

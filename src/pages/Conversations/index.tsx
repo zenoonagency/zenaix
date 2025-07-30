@@ -848,7 +848,7 @@ export function Conversations() {
                     onScroll={handleScroll}
                   >
                     {/* Mensagens */}
-                    <div className="relative z-10 flex flex-col p-6 min-h-full bg-white/85 dark:bg-dark-900/85">
+                    <div className="relative z-10 flex flex-col p-6 min-h-full bg-white/85 dark:bg-dark-900/85 justify-end">
                       {isLoadingMessages ? (
                         <div className="text-center text-gray-500">
                           Carregando mensagens...

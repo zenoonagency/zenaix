@@ -19,7 +19,6 @@ interface RealtimeState {
   disconnect: () => void;
   heartbeatInterval: NodeJS.Timeout | null;
   testConnection: () => void;
-  simulateDisconnect: () => void;
 }
 
 const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
@@ -134,6 +133,19 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
           status: payload.data.status,
         });
       }
+      break;
+    }
+    case "WHATSAPP_CONTACT_UPDATED": {
+      console.log(
+        "[RealtimeStore] 👤 Contato WhatsApp atualizado:",
+        payload.data
+      );
+
+      const contactStore = useWhatsappContactStore.getState();
+      const { whatsapp_instance_id, id } = payload.data;
+
+      // Atualizar o contato na store
+      contactStore.updateContactInStore(whatsapp_instance_id, id, payload.data);
       break;
     }
     case "NEW_WHATSAPP_MESSAGE": {
@@ -444,13 +456,5 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
         },
       });
     }
-  },
-
-  // Adiciona função para simular queda manual
-  simulateDisconnect: () => {
-    console.warn(
-      "[RealtimeStore] 🔌 Simulando queda manual da conexão realtime!"
-    );
-    supabase.realtime.disconnect();
   },
 }));

@@ -67,6 +67,30 @@ export interface InputSendMessageDTO {
   message: string;
 }
 
+export interface InputSendMediaDTO {
+  file: File;
+  recipient: string;
+  caption?: string;
+}
+
+export interface SendMediaResponse {
+  queueId: string;
+}
+
+export interface InputPinConversationDTO {
+  contact: string;
+  pin: boolean;
+}
+
+export interface PinConversationResponse {
+  message: string;
+  data: {
+    contact: string;
+    pin: boolean;
+  };
+  status: number;
+}
+
 export interface WhatsappMessageListResponse {
   message: string;
   data: WhatsappMessage[];
