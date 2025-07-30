@@ -24,6 +24,7 @@ import { compressImage } from "../utils/imageCompression";
 import { OAuthButtonsInvite } from "../components/auth/OAuthButtonsInvite";
 import { supabase } from "../lib/supabaseClient";
 import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
+import { authService } from "../services/authService";
 
 export function AcceptInviteRegister() {
   const [searchParams] = useSearchParams();
@@ -47,7 +48,7 @@ export function AcceptInviteRegister() {
   const { showToast } = useToast();
   const { theme } = useThemeStore();
   const navigate = useNavigate();
-
+  const { setUserDataFromMe, clearAuth } = useAuthStore.getState();
 
 
   const logoUrl =
@@ -117,45 +118,32 @@ export function AcceptInviteRegister() {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     try {
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            name: formData.name,
-            language: formData.language,
-            timezone: formData.timezone,
-          },
-        },
+      // 1. Registro via backend
+      const response = await authService.register(formData);
+      // 2. Ativar sessão no Supabase
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: response.session.access_token,
+        refresh_token: response.session.refresh_token,
       });
-
-      if (signUpError) throw signUpError;
-      if (!signUpData.user) throw new Error("Não foi possível criar o usuário.");
-
-      showToast("Conta criada com sucesso! Configurando o seu perfil...", "success");
-
+      if (sessionError) {
+        throw sessionError;
+      }
+      // 3. Upload do avatar (opcional)
       if (formData.avatar) {
         try {
           const fileExtension = formData.avatar.type.split("/")[1];
-          const filePath = `${signUpData.user.id}/avatar.${fileExtension}`;
-
+          const filePath = `${response.session.user.id}/avatar.${fileExtension}`;
           const { error: uploadError } = await supabase.storage
             .from("avatars")
             .upload(filePath, formData.avatar, { upsert: true });
-
-          if (uploadError) {
-            throw new Error("Sua conta foi criada, mas houve um erro ao enviar o avatar. Tente novamente no seu perfil.");
-          }
-
+          if (uploadError) throw uploadError;
           const { data: urlData } = supabase.storage
             .from("avatars")
             .getPublicUrl(filePath);
-
           await supabase.auth.updateUser({
-            data: {
-              avatar_url: urlData.publicUrl,
-            },
+            data: { avatar_url: urlData.publicUrl },
           });
         } catch (avatarError) {
           showToast(
@@ -164,20 +152,27 @@ export function AcceptInviteRegister() {
           );
         }
       }
-
-      // Chama a service de aceitar convite
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session && inviteToken) {
-        await inviteService.acceptInvite(session.access_token, { token: inviteToken });
+      // 4. Buscar getMe com access_token
+      const token = response.session.access_token;
+      const meResponse = await userService.getMe(token);
+      if (!meResponse) throw new Error("Erro ao buscar dados do usuário");
+      // 5. Salvar tudo na store
+      setUserDataFromMe(meResponse);
+      // 6. Aceitar convite
+      if (inviteToken) {
+        await inviteService.acceptInvite(token, { token: inviteToken });
       }
-
+      // 7. Redirecionar
       showToast("Convite aceito com sucesso!", "success");
       navigate("/dashboard");
     } catch (error: any) {
+      await supabase.auth.signOut();
       const message = handleSupabaseError(error, "Erro ao registrar");
       setError(message);
-
-      if (message.toLowerCase().includes("já existe") || message.toLowerCase().includes("already registered")) {
+      if (
+        message.toLowerCase().includes("já existe") ||
+        message.toLowerCase().includes("already registered")
+      ) {
         showToast(
           "Conta já existe, faça login para aceitar o convite.",
           "info"
@@ -191,12 +186,20 @@ export function AcceptInviteRegister() {
         );
         return;
       }
-
       showToast(message, "error");
+      clearAuth();
     } finally {
       setLoading(false);
     }
   };
+
+  React.useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
 
   const toggleShowPassword = () => setShowPassword(!showPassword);
   const toggleShowConfirmPassword = () =>

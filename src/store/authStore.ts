@@ -8,146 +8,6 @@ import { userService } from "../services/user/user.service";
 import { organizationService } from "../services/oganization/organization.service";
 import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
 
-// Função para limpar todas as stores de dados do usuário
-const cleanAllUserDataStores = () => {
-  try {
-    // Verificar se está fazendo logout para evitar chamadas desnecessárias
-    const { isLoggingOut } = useAuthStore.getState();
-    if (isLoggingOut()) {
-      return;
-    }
-
-    const stores = [
-      () =>
-        import("./boardStore").then((m) => {
-          try {
-            m.useBoardStore.getState().cleanUserData();
-          } catch (e) {
-            console.warn("[AuthStore] Erro ao limpar boardStore:", e);
-          }
-        }),
-      () =>
-        import("./cardStore").then((m) => {
-          try {
-            m.useCardStore.getState().cleanUserData();
-          } catch (e) {
-            console.warn("[AuthStore] Erro ao limpar cardStore:", e);
-          }
-        }),
-      () =>
-        import("./listStore").then((m) => {
-          try {
-            m.useListStore.getState().cleanUserData();
-          } catch (e) {
-            console.warn("[AuthStore] Erro ao limpar listStore:", e);
-          }
-        }),
-      () =>
-        import("./tagStore").then((m) => {
-          try {
-            m.useTagStore.getState().cleanUserData();
-          } catch (e) {
-            console.warn("[AuthStore] Erro ao limpar tagStore:", e);
-          }
-        }),
-      () =>
-        import("./contractStore").then((m) => {
-          try {
-            m.useContractStore.getState().cleanUserData();
-          } catch (e) {
-            console.warn("[AuthStore] Erro ao limpar contractStore:", e);
-          }
-        }),
-      () =>
-        import("./transactionStore").then((m) => {
-          try {
-            m.useTransactionStore.getState().cleanUserData();
-          } catch (e) {
-            console.warn("[AuthStore] Erro ao limpar transactionStore:", e);
-          }
-        }),
-      () =>
-        import("./teamMembersStore").then((m) => {
-          try {
-            m.useTeamMembersStore.getState().cleanUserData();
-          } catch (e) {
-            console.warn("[AuthStore] Erro ao limpar teamMembersStore:", e);
-          }
-        }),
-      () =>
-        import("./embedPagesStore").then((m) => {
-          try {
-            m.useEmbedPagesStore.getState().cleanUserData();
-          } catch (e) {
-            console.warn("[AuthStore] Erro ao limpar embedPagesStore:", e);
-          }
-        }),
-      () =>
-        import("./whatsAppInstanceStore").then((m) => {
-          try {
-            m.useWhatsAppInstanceStore.getState().cleanUserData();
-          } catch (e) {
-            console.warn(
-              "[AuthStore] Erro ao limpar whatsAppInstanceStore:",
-              e
-            );
-          }
-        }),
-      () =>
-        import("./inviteStore").then((m) => {
-          try {
-            m.useInviteStore.getState().cleanUserData();
-          } catch (e) {
-            console.warn("[AuthStore] Erro ao limpar inviteStore:", e);
-          }
-        }),
-      () =>
-        import("./dashboardStore").then((m) => {
-          try {
-            m.useDashboardStore.getState().cleanUserData();
-          } catch (e) {
-            console.warn("[AuthStore] Erro ao limpar dashboardStore:", e);
-          }
-        }),
-      () =>
-        import("./dashboardTransactionStore").then((m) => {
-          try {
-            m.useDashboardTransactionStore.getState().cleanUserData();
-          } catch (e) {
-            console.warn(
-              "[AuthStore] Erro ao limpar dashboardTransactionStore:",
-              e
-            );
-          }
-        }),
-      () =>
-        import("./dataTablesStore").then((m) => {
-          try {
-            m.useDataTablesStore.getState().cleanUserData();
-          } catch (e) {
-            console.warn("[AuthStore] Erro ao limpar dataTablesStore:", e);
-          }
-        }),
-      () =>
-        import("./systemPermissionsStore").then((m) => {
-          try {
-            m.useSystemPermissionsStore.getState().cleanUserData();
-          } catch (e) {
-            console.warn(
-              "[AuthStore] Erro ao limpar systemPermissionsStore:",
-              e
-            );
-          }
-        }),
-    ];
-
-    // Executar limpeza de forma assíncrona e silenciosa
-    Promise.allSettled(stores.map((store) => store()));
-  } catch (error) {
-    // Silenciar erros de limpeza
-  }
-};
-
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -171,7 +31,7 @@ export const useAuthStore = create<AuthState>()(
         );
 
         if (currentUser && currentUser.id !== supabaseUser.id) {
-          cleanAllUserDataStores();
+          // Remover tudo de cleanAllUserDataStores e o array stores, pois não são mais necessários com o novo logout seguro.
         }
 
         // Criar usuário básico apenas com dados do Supabase (sem organização)
@@ -219,7 +79,7 @@ export const useAuthStore = create<AuthState>()(
             "[AuthStore] Dados incompletos, definindo usuário básico"
           );
           set({
-            isAuthenticated: true,
+            isAuthenticated: false, // Só fica true após getMe
             token: session.access_token,
             user: basicUser,
             organization: null,
@@ -293,43 +153,43 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: () => {
-        // Marcar que está fazendo logout para evitar chamadas de API
+      logout: async () => {
         set({ _isLoggingOut: true });
 
-        // Limpar dados primeiro para evitar erros durante o logout
-        get().clearAuth();
+        // 1. Desconectar do Supabase
+        await supabase.auth.signOut();
 
-        // Fazer logout do Supabase
-        supabase.auth
-          .signOut()
-          .then(() => {
-            set({ _isLoggingOut: false });
-          })
-          .catch((error) => {
-            console.error(
-              "[AuthStore] ❌ Erro no logout do Supabase:",
-              handleSupabaseError(error, "Erro no logout")
-            );
-            set({ _isLoggingOut: false });
-          });
-      },
-
-      clearAuth: () => {
-        // Limpar estado primeiro
+        // 2. Limpar estado da store
         set({
           isAuthenticated: false,
           user: null,
           token: null,
           organization: null,
           permissions: [],
+          plan: null,
         });
 
-        // Limpar outras stores de forma assíncrona
-        setTimeout(() => {
-          cleanAllUserDataStores();
-        }, 0);
+        // 3. Limpar stores persistidas explicitamente
+        localStorage.removeItem("dashboard-store");
+        // (adicione outras chaves de stores persistidas se necessário)
+
+        // 4. Limpar TODO o localStorage do app
+        localStorage.clear();
+
+        // 5. Redirecionar para login e garantir memória limpa
+        window.location.href = "/login";
       },
+
+      setUserDataFromMe: (meData) => {
+        set({
+          user: meData,
+          organization: meData.organization,
+          permissions: meData.permissions,
+          plan: meData.plan,
+          isAuthenticated: true, // Só aqui fica true!
+        });
+      },
+      clearAuth: () => set({ user: null, organization: null, permissions: [], plan: null }),
 
       setOrganization: (organizationData: OrganizationOutput) => {
         set({ organization: organizationData });

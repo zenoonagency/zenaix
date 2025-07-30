@@ -10,6 +10,7 @@ import { useToast } from "../hooks/useToast";
 import { OAuthButtons } from "../components/auth/OAuthButtons";
 import { supabase } from "../lib/supabaseClient"; // ✅ Importar o Supabase client
 import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
+import { userService } from "../services/user/user.service";
 
 export function Login() {
   const [email, setEmail] = useState("");
@@ -22,12 +23,17 @@ export function Login() {
   const { showToast } = useToast();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const _hasHydrated = useAuthStore((state) => state._hasHydrated);
+  const { setUserDataFromMe, clearAuth } = useAuthStore.getState();
+  const user = useAuthStore((state) => state.user);
+  const organization = useAuthStore((state) => state.organization);
+  const permissions = useAuthStore((state) => state.permissions);
 
   React.useEffect(() => {
-    if (isAuthenticated) {
+    const isReady = isAuthenticated && user && organization && permissions.length > 0;
+    if (isReady) {
       navigate("/dashboard", { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, organization, permissions, navigate]);
 
   if (!_hasHydrated) {
     return (
@@ -50,40 +56,32 @@ export function Login() {
     setLoading(true);
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      // 1. Login Supabase
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (signInError) {
-        throw signInError;
+      if (signInError || !data.session) {
+        throw signInError || new Error("Sessão não encontrada");
       }
 
-      // Aguardar um pouco para que o setSession seja processado
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // 2. Buscar getMe com access_token
+      const token = data.session.access_token;
+      const meResponse = await userService.getMe(token);
+      if (!meResponse) throw new Error("Erro ao buscar dados do usuário");
 
-      // Verificar se os dados completos foram carregados
-      const { user, organization, permissions } = useAuthStore.getState();
+      // 3. Salvar tudo na store
+      setUserDataFromMe(meResponse);
 
-      // Se não temos dados completos, aguardar o fetchAndSetDeepUserData
-      if (!user || !organization || permissions.length === 0) {
-        console.log("[Login] Aguardando dados completos...");
-        await new Promise((resolve) => {
-          const checkData = () => {
-            const { user, organization, permissions } = useAuthStore.getState();
-            if (user && organization && permissions.length > 0) {
-              resolve(true);
-            } else {
-              setTimeout(checkData, 100);
-            }
-          };
-          checkData();
-        });
-      }
+      // 4. Redirecionar
+      navigate("/dashboard", { replace: true });
     } catch (error: any) {
+      await supabase.auth.signOut();
       const message = handleSupabaseError(error, "Erro ao fazer login");
       setError(message);
       showToast(message, "error");
+      clearAuth();
     } finally {
       setLoading(false);
     }

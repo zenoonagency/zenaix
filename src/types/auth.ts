@@ -56,6 +56,7 @@ export interface AuthState {
   permissions: string[];
   _hasHydrated: boolean;
   _isLoggingOut: boolean;
+  plan?: any;
 
   setSession: (session: Session) => void;
   updateToken: (newToken: string) => void;
@@ -66,4 +67,5 @@ export interface AuthState {
   isLoggingOut: () => boolean;
   hasPermission: (permission: string) => boolean;
   updateUser: (userData: Partial<User>) => void;
+  setUserDataFromMe: (meData: any) => void;
 }

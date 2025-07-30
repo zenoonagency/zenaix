@@ -23,6 +23,7 @@ import { ParticlesEffect } from "../components/effects/ParticlesEffect";
 import { compressImage } from "../utils/imageCompression";
 import { supabase } from "../lib/supabaseClient"; // ✅ Usado para setSession
 import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
+import { userService } from "../services/user/user.service"; // ✅ Usado para getMe
 
 export function Register() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -45,6 +46,7 @@ export function Register() {
   const _hasHydrated = useAuthStore((state) => state._hasHydrated);
   const { showToast } = useToast();
   const { theme } = useThemeStore();
+  const { setUserDataFromMe, clearAuth } = useAuthStore.getState();
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -123,32 +125,31 @@ export function Register() {
     setLoading(true);
 
     try {
-      // ✅ PASSO 1: Chama o seu back-end, que agora faz todo o trabalho pesado.
+      // 1. Registro via backend
       const response = await authService.register(formData);
-
-      // ✅ PASSO 2: O back-end retorna a sessão. Agora, "ativamos" ela no front-end.
-      // Isso é crucial para que a biblioteca do Supabase saiba que o usuário está logado.
+      // 2. Ativar sessão no Supabase
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: response.session.access_token,
         refresh_token: response.session.refresh_token,
       });
-
       if (sessionError) {
         throw sessionError;
       }
-
-      // ✅ PASSO 3: O 'setSession' acima vai disparar o onAuthStateChange no App.tsx,
-      // que vai logar o usuário na sua useAuthStore e buscar todos os dados.
-      
+      // 3. Buscar getMe com access_token
+      const token = response.session.access_token;
+      const meResponse = await userService.getMe(token);
+      if (!meResponse) throw new Error("Erro ao buscar dados do usuário");
+      // 4. Salvar tudo na store
+      setUserDataFromMe(meResponse);
+      // 5. Redirecionar
       showToast("Conta criada com sucesso!", "success");
-
-      // O useEffect no topo do componente cuidará do redirecionamento para o /dashboard
-      // quando o estado 'isAuthenticated' for atualizado pela store.
-
+      navigate("/dashboard", { replace: true });
     } catch (error: any) {
+      await supabase.auth.signOut();
       const message = handleSupabaseError(error, "Erro ao registrar usuário");
       setError(message);
       showToast(message, "error");
+      clearAuth();
     } finally {
       setLoading(false);
     }
@@ -161,6 +162,14 @@ export function Register() {
 
   const toggleShowPassword = () => setShowPassword(!showPassword);
   const toggleShowConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
+  
+  React.useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden">

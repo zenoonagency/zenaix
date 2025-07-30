@@ -11,6 +11,7 @@ import { inviteService } from "../services/invite/invite.service";
 import { OAuthButtonsInvite } from "../components/auth/OAuthButtonsInvite";
 import { supabase } from "../lib/supabaseClient";
 import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
+import { userService } from "../services/user/user.service";
 
 export function AcceptInviteLogin() {
   const [searchParams] = useSearchParams();
@@ -24,7 +25,7 @@ export function AcceptInviteLogin() {
   const { theme } = useThemeStore();
   const navigate = useNavigate();
   const { showToast } = useToast();
-
+  const { setUserDataFromMe, clearAuth } = useAuthStore.getState();
 
 
   const logoUrl =
@@ -38,24 +39,34 @@ export function AcceptInviteLogin() {
     setLoading(true);
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      // 1. Login Supabase
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (signInError) {
-        throw signInError;
+      if (signInError || !data.session) {
+        throw signInError || new Error("Sessão não encontrada");
       }
 
-      // Chama a service de aceitar convite
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session && inviteToken) {
-        await inviteService.acceptInvite(session.access_token, { token: inviteToken });
+      // 2. Buscar getMe com access_token
+      const token = data.session.access_token;
+      const meResponse = await userService.getMe(token);
+      if (!meResponse) throw new Error("Erro ao buscar dados do usuário");
+
+      // 3. Salvar tudo na store
+      setUserDataFromMe(meResponse);
+
+      // 4. Aceitar convite
+      if (inviteToken) {
+        await inviteService.acceptInvite(token, { token: inviteToken });
       }
 
+      // 5. Redirecionar
       showToast("Convite aceito com sucesso!", "success");
       navigate("/dashboard");
     } catch (error: any) {
+      await supabase.auth.signOut();
       const message = handleSupabaseError(error, "Erro ao fazer login");
       if (
         message.includes("Convite não pode ser aceito. Status atual: ACCEPTED.")
@@ -70,6 +81,7 @@ export function AcceptInviteLogin() {
       } else {
         setError(message);
         showToast(message, "error");
+        clearAuth();
       }
     } finally {
       setLoading(false);

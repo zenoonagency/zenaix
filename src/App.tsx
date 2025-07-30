@@ -38,69 +38,39 @@ export function App() {
         );
 
         if (session) {
-          // Sempre definir a sessão primeiro (dados básicos do Supabase)
           setSession(session);
 
-          // Se é a primeira inicialização, buscar dados completos
-          if (!hasInitialized.current) {
-            hasInitialized.current = true;
+          // Só buscar dados completos se user/organization/permissions estiverem realmente vazios
+          const { user, organization, permissions } = useAuthStore.getState();
+          const needsFetch = !user && !organization && (!permissions || permissions.length === 0);
 
+          if (needsFetch) {
             try {
-              console.log(
-                "[App] Primeira inicialização - buscando dados completos"
-              );
               await fetchAndSetDeepUserData();
-
-              const { token, user, organization } = useAuthStore.getState();
-              const organizationId = user?.organization_id;
-
-              if (token && user && organization) {
-                console.log(
-                  "[App] Dados completos carregados, buscando dados da aplicação"
-                );
-
-                // Buscar dados básicos da aplicação
-                usePlanStore.getState().fetchAllPlans(session.access_token);
-                useSystemPermissionsStore
-                  .getState()
-                  .fetchAllSystemPermissions(session.access_token);
-
-                if (organizationId) {
-                  // Buscar dados específicos da organização
-                  useEmbedPagesStore
-                    .getState()
-                    .fetchAllEmbedPages(session.access_token, organizationId);
-                  useTagStore
-                    .getState()
-                    .fetchAllTags(session.access_token, organizationId);
-                  useContractStore
-                    .getState()
-                    .fetchAllContracts(session.access_token, organizationId);
-                  useTeamMembersStore
-                    .getState()
-                    .fetchAllMembers(session.access_token, organizationId);
-                  useBoardStore
-                    .getState()
-                    .fetchAllBoards(session.access_token, organizationId);
-                  useWhatsAppInstanceStore
-                    .getState()
-                    .fetchAllInstances(session.access_token, organizationId);
-                  useCalendarStore.getState().fetchEvents();
-                }
-                connect(user.id, organizationId);
-              }
+              console.log("[App] fetchAndSetDeepUserData executado por reload de página");
             } catch (error) {
-              console.error("[App] Erro ao carregar dados completos:", error);
+              console.error("[App] Erro ao buscar dados completos:", error);
             }
           } else {
-            // Se não é primeira inicialização, apenas atualizar em segundo plano
-            console.log("[App] Atualização em segundo plano");
-            fetchAndSetDeepUserData().catch((error) => {
-              console.warn(
-                "[App] Erro ao atualizar dados em segundo plano:",
-                error
-              );
-            });
+            console.log("[App] Dados já presentes na store, não faz fetchAndSetDeepUserData");
+          }
+
+          // Buscar dados globais em background (não await)
+          const { token, user: u, organization: org } = useAuthStore.getState();
+          const organizationId = u?.organization_id;
+          if (token && u && org) {
+            usePlanStore.getState().fetchAllPlans(session.access_token);
+            useSystemPermissionsStore.getState().fetchAllSystemPermissions(session.access_token);
+            if (organizationId) {
+              useEmbedPagesStore.getState().fetchAllEmbedPages(session.access_token, organizationId);
+              useTagStore.getState().fetchAllTags(session.access_token, organizationId);
+              useContractStore.getState().fetchAllContracts(session.access_token, organizationId);
+              useTeamMembersStore.getState().fetchAllMembers(session.access_token, organizationId);
+              useBoardStore.getState().fetchAllBoards(session.access_token, organizationId);
+              useWhatsAppInstanceStore.getState().fetchAllInstances(session.access_token, organizationId);
+              useCalendarStore.getState().fetchEvents();
+            }
+            connect(u.id, organizationId);
           }
         } else if (event === "SIGNED_OUT") {
           hasInitialized.current = false;
