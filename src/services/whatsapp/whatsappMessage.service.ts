@@ -52,7 +52,7 @@ export const whatsappMessageService = {
       }${API_CONFIG.whatsapp.messages.sendMedia(organizationId, instanceId)}`;
 
       const formData = new FormData();
-      formData.append("file", dto.file);
+      formData.append("media", dto.media);
       formData.append("recipient", dto.recipient);
       if (dto.caption) {
         formData.append("caption", dto.caption);
@@ -88,7 +88,7 @@ export const whatsappMessageService = {
     dto: InputPinConversationDTO
   ): Promise<PinConversationResponse> {
     try {
-      const url = `${API_CONFIG.baseUrl}${API_CONFIG.whatsapp.conversations.pin(
+      const url = `${API_CONFIG.baseUrl}${API_CONFIG.whatsapp.contacts.pin(
         organizationId,
         instanceId,
         contactId

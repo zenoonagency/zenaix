@@ -118,6 +118,8 @@ export const API_CONFIG = {
         `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}`,
       delete: (organizationId: string, instanceId: string, contactId: string) =>
         `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}`,
+      pin: (organizationId: string, instanceId: string, contactId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}/pin`,
     },
     messages: {
       send: (organizationId: string, instanceId: string) =>
@@ -125,11 +127,7 @@ export const API_CONFIG = {
       list: (organizationId: string, instanceId: string) =>
         `/organizations/${organizationId}/whatsapp/${instanceId}/messages`,
       sendMedia: (organizationId: string, instanceId: string) =>
-        `/organizations/${organizationId}/whatsapp/${instanceId}/conversations/send-media`,
-    },
-    conversations: {
-      pin: (organizationId: string, instanceId: string, contactId: string) =>
-        `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}/pin`,
+        `/organizations/${organizationId}/whatsapp/${instanceId}/send-media`,
     },
   },
   whatsappInstances: {

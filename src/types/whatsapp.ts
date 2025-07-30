@@ -68,7 +68,7 @@ export interface InputSendMessageDTO {
 }
 
 export interface InputSendMediaDTO {
-  file: File;
+  media: File;
   recipient: string;
   caption?: string;
 }

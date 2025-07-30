@@ -1,39 +1,30 @@
-import React, { useEffect, useState, useRef, useLayoutEffect } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useLayoutEffect,
+  useMemo,
+} from "react";
 import {
-  MoreVertical,
-  Wifi,
-  WifiOff,
-  QrCode,
-  MessageCircle,
-  WifiIcon, // Este ícone não foi usado no seu JSX, mas mantive o import.
-  Send,
-  Mic,
-  Paperclip,
-  Pin,
-  X,
-  Download,
+  MoreVertical,  Wifi,  WifiOff,  QrCode,  MessageCircle,  Send,  Mic,
+  Paperclip,  Pin,  X,  Download,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { useWhatsAppInstanceStore } from "../../store/whatsAppInstanceStore";
 import { useWhatsappContactStore } from "../../store/whatsapp/whatsappContactStore";
 import { useWhatsappMessageStore } from "../../store/whatsapp/whatsappMessageStore";
-import { WhatsAppInstanceOutput } from "../../types/whatsappInstance";
 import { WhatsappContact, WhatsappMessage } from "../../types/whatsapp";
 import { useToast } from "../../hooks/useToast";
 import { PERMISSIONS } from "../../config/permissions";
 import { useNavigate } from "react-router-dom";
 import { ContactOptionsMenu } from "../../components/ContactOptionsMenu";
 import { EditContactModal } from "../../components/EditContactModal";
-// Importar CSS para hide-scrollbar
+import { whatsappMessageService } from "../../services/whatsapp/whatsappMessage.service";
+import { compressFile } from "../../utils/fileCompression";
 import "../Messaging/carousel.css";
 
 const LOGO_URL = "/assets/images/zenaix-logo-bg.png";
 
-// As funções auxiliares (InstanceInfoPopover, getStatusInfo, etc.) continuam as mesmas.
-// Você pode mantê-las como estão no seu arquivo original.
-// ... (cole suas funções auxiliares aqui se elas estiverem no mesmo arquivo)
-
-// Função para obter o ícone e cor do status
 function getStatusInfo(status: string) {
   switch (status) {
     case "CONNECTED":
@@ -57,7 +48,6 @@ function getStatusInfo(status: string) {
   }
 }
 
-// Função para processar URLs de imagens do WhatsApp
 function processWhatsAppImageUrl(url: string): string {
   if (!url) return "";
   if (url.includes("pps.whatsapp.net")) {
@@ -68,14 +58,11 @@ function processWhatsAppImageUrl(url: string): string {
   return url;
 }
 
-// Função para detectar se uma mensagem é uma figurinha (sticker)
 function isSticker(message: WhatsappMessage): boolean {
-  // Verificação direta para stickers
   if (message.message_type === "sticker") {
     return true;
   }
 
-  // Verificação de segurança para casos específicos
   if (message.message_type === "chat" && message.media_type === "image/webp") {
     return true;
   }
@@ -83,7 +70,6 @@ function isSticker(message: WhatsappMessage): boolean {
   return false;
 }
 
-// Função para formatar a data do separador
 function formatDateSeparator(date: Date): string {
   const today = new Date();
   const yesterday = new Date(today);
@@ -116,7 +102,6 @@ function formatDateSeparator(date: Date): string {
   });
 }
 
-// Função para agrupar mensagens por data
 function groupMessagesByDate(messages: WhatsappMessage[]): Array<{
   type: "separator" | "message";
   date?: string;
@@ -161,7 +146,6 @@ function groupMessagesByDate(messages: WhatsappMessage[]): Array<{
   return grouped;
 }
 
-// Função para obter a data atual baseada no scroll (você pode mantê-la como está)
 function getCurrentDateFromScroll(
   container: HTMLDivElement,
   groupedMessages: Array<{
@@ -261,6 +245,13 @@ export function Conversations() {
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+  // Estados para envio de arquivos
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSendingFile, setIsSendingFile] = useState(false);
+  const [fileCaption, setFileCaption] = useState("");
+  const [showFileModal, setShowFileModal] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // --- Refs para controle de Scroll ---
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -356,7 +347,6 @@ export function Conversations() {
     };
   }, [showInstanceMenu]);
 
-  // Fechar modal de imagem com ESC
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && showImageModal) {
@@ -370,13 +360,6 @@ export function Conversations() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [showImageModal]);
-
-  // ==================================================================
-  // ========= INÍCIO DA LÓGICA DE SCROLL REFINADA =====================
-  // ==================================================================
-
-  // EFEITO 1: Resetar o estado do scroll ao trocar de contato.
-  // Este é o passo mais crucial para garantir que cada conversa comece do zero.
   useEffect(() => {
     previousHeightRef.current = 0;
     hasInitialScrollRef.current = false;
@@ -411,40 +394,28 @@ export function Conversations() {
     }
   };
 
-  // EFEITO 2: Gerencia o scroll APÓS a renderização.
-  // TROCAMOS useEffect por useLayoutEffect para garantir que o scroll aconteça no momento certo.
   useLayoutEffect(() => {
     const container = messagesContainerRef.current;
     if (container && contactMessages.length > 0) {
-      // CASO A: Mantém a posição do scroll ao carregar mensagens antigas.
-      // Se `previousHeightRef` tem um valor, significa que acabamos de carregar mensagens no topo.
       if (previousHeightRef.current > 0) {
         const heightDifference =
           container.scrollHeight - previousHeightRef.current;
         container.scrollTop = heightDifference;
-        previousHeightRef.current = 0; // Reseta para o próximo ciclo.
-        return; // Impede que o código abaixo execute.
+        previousHeightRef.current = 0;
+        return;
       }
-
-      // CASO B: Rola para o final.
-      // Isso acontece no primeiro carregamento de um contato (`hasInitialScrollRef` é false)
-      // ou quando a última mensagem é uma nova mensagem de saída.
       const lastMessage = contactMessages[contactMessages.length - 1];
       const isNewOutgoingMessage =
         lastMessage?.direction === "OUTGOING" &&
         lastMessage.id.startsWith("temp_");
 
-      // Se for o scroll inicial OU uma nova mensagem foi enviada, role para o final.
       if (!hasInitialScrollRef.current || isNewOutgoingMessage) {
         container.scrollTop = container.scrollHeight;
-        hasInitialScrollRef.current = true; // Marca que o scroll inicial já foi feito.
+        hasInitialScrollRef.current = true; 
       }
     }
   }, [contactMessages]);
 
-  // ==================================================================
-  // ========= FIM DA LÓGICA DE SCROLL REFINADA ========================
-  // ==================================================================
 
   const handleSendMessage = async () => {
     if (
@@ -497,7 +468,6 @@ export function Conversations() {
       tempMessage
     );
 
-    // Rolar para o final ao enviar
     setTimeout(() => {
       if (messagesContainerRef.current) {
         messagesContainerRef.current.scrollTop =
@@ -532,6 +502,138 @@ export function Conversations() {
       handleSendMessage();
     }
   };
+
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!selectedContactId) {
+      showToast("Selecione um contato para enviar arquivo", "error");
+      return;
+    }
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "video/mp4",
+      "video/webm",
+      "video/ogg",
+      "audio/mpeg",
+      "audio/ogg",
+      "audio/wav",
+      "application/pdf",
+      "text/plain",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      showToast("Tipo de arquivo não suportado", "error");
+      return;
+    }
+
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      showToast("Arquivo muito grande. Máximo 10MB.", "error");
+      return;
+    }
+
+    try {
+      const compressionResult = await compressFile(file, {
+        maxSizeKB: 10240, 
+        quality: 0.8,
+      });
+
+      if (!compressionResult.success) {
+        showToast(
+          compressionResult.error || "Erro ao processar arquivo",
+          "error"
+        );
+        return;
+      }
+
+      setSelectedFile(compressionResult.file || file);
+      setShowFileModal(true);
+    } catch (error) {
+      console.error("Erro ao processar arquivo:", error);
+      showToast("Erro ao processar arquivo", "error");
+    }
+
+    // Limpar input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Função para enviar arquivo
+  const handleSendFile = async () => {
+    if (
+      !selectedFile ||
+      !selectedContactId ||
+      !activeInstanceId ||
+      !token ||
+      !user?.organization_id
+    ) {
+      showToast("Dados insuficientes para enviar arquivo", "error");
+      return;
+    }
+
+    setIsSendingFile(true);
+
+    try {
+      const contact = instanceContacts.find((c) => c.id === selectedContactId);
+      if (!contact) {
+        showToast("Contato não encontrado", "error");
+        return;
+      }
+
+      await whatsappMessageService.sendMedia(
+        token,
+        user.organization_id,
+        activeInstanceId,
+        {
+          media: selectedFile,
+          recipient: contact.phone,
+          caption: fileCaption.trim() || undefined,
+        }
+      );
+
+      showToast("Arquivo enviado com sucesso!", "success");
+
+      // Limpar estados
+      setSelectedFile(null);
+      setFileCaption("");
+      setShowFileModal(false);
+    } catch (error: any) {
+      console.error("Erro ao enviar arquivo:", error);
+      showToast(error.message || "Erro ao enviar arquivo", "error");
+    } finally {
+      setIsSendingFile(false);
+    }
+  };
+
+  const handleCancelFile = () => {
+    setSelectedFile(null);
+    setFileCaption("");
+    setShowFileModal(false);
+  };
+
+  const fileUrl = useMemo(() => {
+    if (selectedFile) {
+      return URL.createObjectURL(selectedFile);
+    }
+    return null;
+  }, [selectedFile]);
+
+  useEffect(() => {
+    return () => {
+      if (fileUrl) {
+        URL.revokeObjectURL(fileUrl);
+      }
+    };
+  }, [fileUrl]);
 
   const handleMenuClick = (e: React.MouseEvent, instanceId: string) => {
     e.stopPropagation();
@@ -1030,20 +1132,25 @@ export function Conversations() {
                   {/* Barra de envio de mensagens */}
                   <div className="bg-gray-50 dark:bg-dark-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
                     <div className="flex items-center gap-2">
-                      {/* Botão de áudio (desabilitado) */}
+                      {/* Botão de áudio */}
                       <button
-                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-not-allowed"
+                        className="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
                         title="Gravar áudio (em breve)"
                         disabled
                       >
                         <Mic className="w-5 h-5" />
                       </button>
 
-                      {/* Botão de anexo (desabilitado) */}
+                      {/* Botão de anexo */}
                       <button
-                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-not-allowed"
-                        title="Anexar arquivo (em breve)"
-                        disabled
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`p-2 transition-colors ${
+                          !isSendingFile
+                            ? "text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100"
+                            : "text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                        }`}
+                        title="Anexar arquivo"
+                        disabled={isSendingFile}
                       >
                         <Paperclip className="w-5 h-5" />
                       </button>
@@ -1076,6 +1183,15 @@ export function Conversations() {
                         <Send className="w-5 h-5" />
                       </button>
                     </div>
+
+                    {/* Input de arquivo oculto */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      onChange={handleFileSelect}
+                      accept="image/*,video/*,audio/*,.pdf,.txt"
+                      className="hidden"
+                    />
                   </div>
                 </>
               ) : (
@@ -1150,6 +1266,121 @@ export function Conversations() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para envio de arquivos */}
+      {showFileModal && selectedFile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-dark-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Enviar Arquivo
+              </h3>
+              <button
+                onClick={handleCancelFile}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Preview do arquivo */}
+            <div className="mb-4">
+              {fileUrl && selectedFile && (
+                <>
+                  {selectedFile.type.startsWith("image/") ? (
+                    <div className="relative">
+                      <img
+                        src={fileUrl}
+                        alt="Preview"
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                      <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                        {selectedFile.type.split("/")[1].toUpperCase()}
+                      </div>
+                    </div>
+                  ) : selectedFile.type.startsWith("video/") ? (
+                    <div className="relative">
+                      <video
+                        src={fileUrl}
+                        className="w-full h-32 object-cover rounded-lg"
+                        controls
+                      />
+                      <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                        {selectedFile.type.split("/")[1].toUpperCase()}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 p-4 bg-gray-100 dark:bg-dark-700 rounded-lg">
+                      <Paperclip className="w-8 h-8 text-gray-500" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {selectedFile.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Campo de legenda */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Legenda (opcional)
+              </label>
+              <textarea
+                value={fileCaption}
+                onChange={(e) => setFileCaption(e.target.value)}
+                placeholder="Adicione uma legenda para o arquivo..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-dark-700 dark:text-white"
+                rows={3}
+              />
+            </div>
+
+            {/* Botões */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelFile}
+                className="flex-1 px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSendFile}
+                disabled={isSendingFile}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSendingFile ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Enviar
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
