@@ -1,11 +1,21 @@
 import React, { useEffect, useState, useRef } from "react";
-import { MoreVertical, Wifi, WifiOff, QrCode, MessageCircle, WifiIcon, Send, Mic, Paperclip } from "lucide-react";
+import {
+  MoreVertical,
+  Wifi,
+  WifiOff,
+  QrCode,
+  MessageCircle,
+  WifiIcon,
+  Send,
+  Mic,
+  Paperclip,
+} from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { useWhatsAppInstanceStore } from "../../store/whatsAppInstanceStore";
-import { useWhatsappContactStore } from '../../store/whatsapp/whatsappContactStore';
-import { useWhatsappMessageStore } from '../../store/whatsapp/whatsappMessageStore';
+import { useWhatsappContactStore } from "../../store/whatsapp/whatsappContactStore";
+import { useWhatsappMessageStore } from "../../store/whatsapp/whatsappMessageStore";
 import { WhatsAppInstanceOutput } from "../../types/whatsappInstance";
-import { WhatsappContact, WhatsappMessage } from '../../types/whatsapp';
+import { WhatsappContact, WhatsappMessage } from "../../types/whatsapp";
 import { useToast } from "../../hooks/useToast";
 import { PERMISSIONS } from "../../config/permissions";
 import { useNavigate } from "react-router-dom";
@@ -14,16 +24,35 @@ import { EditContactModal } from "../../components/EditContactModal";
 // Importar CSS para hide-scrollbar
 import "../Messaging/carousel.css";
 
-const LOGO_URL = '/assets/images/zenaix-logo-bg.png'
+const LOGO_URL = "/assets/images/zenaix-logo-bg.png";
 
-function InstanceInfoPopover({ instance }: { instance: WhatsAppInstanceOutput }) {
-  const statusColor = instance.status === 'CONNECTED' ? 'text-green-600' : instance.status === 'QR_PENDING' ? 'text-yellow-500' : 'text-red-500';
+function InstanceInfoPopover({
+  instance,
+}: {
+  instance: WhatsAppInstanceOutput;
+}) {
+  const statusColor =
+    instance.status === "CONNECTED"
+      ? "text-green-600"
+      : instance.status === "QR_PENDING"
+      ? "text-yellow-500"
+      : "text-red-500";
   return (
     <div className="rounded-lg shadow-lg bg-white dark:bg-dark-800 p-4 min-w-[220px]">
       <div className="font-bold text-lg mb-2">{instance.name}</div>
       <div className="flex items-center gap-2 mb-1">
-        {instance.status === 'CONNECTED' ? <Wifi className="w-4 h-4 text-green-600" /> : <WifiOff className="w-4 h-4 text-red-500" />}
-        <span className={`text-sm font-medium ${statusColor}`}>{instance.status === 'CONNECTED' ? 'Conectado' : instance.status === 'QR_PENDING' ? 'QR Pendente' : 'Desconectado'}</span>
+        {instance.status === "CONNECTED" ? (
+          <Wifi className="w-4 h-4 text-green-600" />
+        ) : (
+          <WifiOff className="w-4 h-4 text-red-500" />
+        )}
+        <span className={`text-sm font-medium ${statusColor}`}>
+          {instance.status === "CONNECTED"
+            ? "Conectado"
+            : instance.status === "QR_PENDING"
+            ? "QR Pendente"
+            : "Desconectado"}
+        </span>
       </div>
       <div className="text-xs text-gray-500 mb-2">{instance.phone_number}</div>
       {instance.qr_code && (
@@ -40,51 +69,90 @@ function InstanceInfoPopover({ instance }: { instance: WhatsAppInstanceOutput })
 // Função para obter o ícone e cor do status
 function getStatusInfo(status: string) {
   switch (status) {
-    case 'CONNECTED':
-      return { icon: Wifi, color: 'text-green-600', bgColor: 'bg-green-100 dark:bg-green-900/30' };
-    case 'QR_PENDING':
-      return { icon: QrCode, color: 'text-yellow-500', bgColor: 'bg-yellow-100 dark:bg-yellow-900/30' };
+    case "CONNECTED":
+      return {
+        icon: Wifi,
+        color: "text-green-600",
+        bgColor: "bg-green-100 dark:bg-green-900/30",
+      };
+    case "QR_PENDING":
+      return {
+        icon: QrCode,
+        color: "text-yellow-500",
+        bgColor: "bg-yellow-100 dark:bg-yellow-900/30",
+      };
     default:
-      return { icon: WifiOff, color: 'text-red-500', bgColor: 'bg-red-100 dark:bg-red-900/30' };
+      return {
+        icon: WifiOff,
+        color: "text-red-500",
+        bgColor: "bg-red-100 dark:bg-red-900/30",
+      };
   }
 }
 
 // Função para processar URLs de imagens do WhatsApp
 function processWhatsAppImageUrl(url: string): string {
-  if (!url) return '';
-  
+  if (!url) return "";
+
   // Se for uma URL do WhatsApp, usar proxy para evitar CORS
-  if (url.includes('pps.whatsapp.net')) {
+  if (url.includes("pps.whatsapp.net")) {
     // Usar um proxy de imagem para evitar problemas de CORS
-    return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&w=100&h=100&fit=cover&output=webp`;
+    return `https://images.weserv.nl/?url=${encodeURIComponent(
+      url
+    )}&w=100&h=100&fit=cover&output=webp`;
   }
-  
+
   return url;
 }
 
 export function Conversations() {
   const { user, token, hasPermission } = useAuthStore();
-  const { instances, isLoading: isLoadingInstances, fetchAllInstances, lastActiveInstanceId, setLastActiveInstance } = useWhatsAppInstanceStore();
-  const { contacts, isLoading: isLoadingContacts, fetchAllContacts, updateContactInStore, deleteContactFromStore } = useWhatsappContactStore();
-  const { messages, isLoading: isLoadingMessages, fetchAllMessages } = useWhatsappMessageStore();
+  const {
+    instances,
+    isLoading: isLoadingInstances,
+    fetchAllInstances,
+    lastActiveInstanceId,
+    setLastActiveInstance,
+  } = useWhatsAppInstanceStore();
+  const {
+    contacts,
+    isLoading: isLoadingContacts,
+    fetchAllContacts,
+    updateContactInStore,
+    deleteContactFromStore,
+  } = useWhatsappContactStore();
+  const {
+    messages,
+    isLoading: isLoadingMessages,
+    fetchAllMessages,
+  } = useWhatsappMessageStore();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
   // Estado local para instância ativa
-  const [activeInstanceId, setActiveInstanceId] = useState<string | null>(lastActiveInstanceId);
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [activeInstanceId, setActiveInstanceId] = useState<string | null>(
+    lastActiveInstanceId
+  );
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(
+    null
+  );
   const [showInstanceMenu, setShowInstanceMenu] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const tabRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   // Estados para menu de contatos
   const [showContactMenu, setShowContactMenu] = useState<string | null>(null);
-  const [contactMenuPosition, setContactMenuPosition] = useState({ top: 0, left: 0 });
-  const [editingContact, setEditingContact] = useState<WhatsappContact | null>(null);
+  const [contactMenuPosition, setContactMenuPosition] = useState({
+    top: 0,
+    left: 0,
+  });
+  const [editingContact, setEditingContact] = useState<WhatsappContact | null>(
+    null
+  );
   const [showEditModal, setShowEditModal] = useState(false);
 
   // Estados para envio de mensagens
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   // Atualizar instância ativa quando a store mudar
@@ -103,7 +171,12 @@ export function Conversations() {
 
   // Buscar instâncias se necessário
   useEffect(() => {
-    if (token && user?.organization_id && instances.length === 0 && !isLoadingInstances) {
+    if (
+      token &&
+      user?.organization_id &&
+      instances.length === 0 &&
+      !isLoadingInstances
+    ) {
       fetchAllInstances(token, user.organization_id);
     }
   }, [token, user?.organization_id, instances.length, isLoadingInstances]);
@@ -111,8 +184,9 @@ export function Conversations() {
   // Buscar contatos da instância ativa
   useEffect(() => {
     if (token && user?.organization_id && activeInstanceId) {
-      const hasContacts = contacts[activeInstanceId] && contacts[activeInstanceId].length > 0;
-      
+      const hasContacts =
+        contacts[activeInstanceId] && contacts[activeInstanceId].length > 0;
+
       if (hasContacts) {
         // Se já tem contatos, faz fetch em background sem loading
         fetchAllContacts(token, user.organization_id, activeInstanceId, false);
@@ -130,30 +204,47 @@ export function Conversations() {
 
   // Buscar mensagens do contato selecionado
   useEffect(() => {
-    if (token && user?.organization_id && activeInstanceId && selectedContactId) {
-      fetchAllMessages(token, user.organization_id, activeInstanceId, selectedContactId);
+    if (
+      token &&
+      user?.organization_id &&
+      activeInstanceId &&
+      selectedContactId
+    ) {
+      fetchAllMessages(
+        token,
+        user.organization_id,
+        activeInstanceId,
+        selectedContactId
+      );
     }
-  }, [token, user?.organization_id, activeInstanceId, selectedContactId, fetchAllMessages]);
-
-
+  }, [
+    token,
+    user?.organization_id,
+    activeInstanceId,
+    selectedContactId,
+    fetchAllMessages,
+  ]);
 
   // Fechar menu quando clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (showInstanceMenu && !(event.target as Element).closest('.conversations-tab')) {
+      if (
+        showInstanceMenu &&
+        !(event.target as Element).closest(".conversations-tab")
+      ) {
         setShowInstanceMenu(null);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showInstanceMenu]);
 
   const handleMenuClick = (e: React.MouseEvent, instanceId: string) => {
     e.stopPropagation();
-    
+
     if (showInstanceMenu === instanceId) {
       setShowInstanceMenu(null);
       return;
@@ -162,13 +253,13 @@ export function Conversations() {
     const tabElement = tabRefs.current[instanceId];
     if (tabElement) {
       const rect = tabElement.getBoundingClientRect();
-      
+
       setMenuPosition({
         top: rect.bottom + 5,
-        left: Math.min(rect.left, window.innerWidth - 250)
+        left: Math.min(rect.left, window.innerWidth - 250),
       });
     }
-    
+
     setShowInstanceMenu(instanceId);
   };
 
@@ -177,7 +268,7 @@ export function Conversations() {
     const rect = e.currentTarget.getBoundingClientRect();
     setContactMenuPosition({
       top: rect.bottom + 5,
-      left: rect.left
+      left: rect.left,
     });
     setShowContactMenu(showContactMenu === contactId ? null : contactId);
   };
@@ -204,25 +295,33 @@ export function Conversations() {
 
   // Função para enviar mensagem
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedContactId || !activeInstanceId || !token || !user?.organization_id) {
+    if (
+      !newMessage.trim() ||
+      !selectedContactId ||
+      !activeInstanceId ||
+      !token ||
+      !user?.organization_id
+    ) {
       return;
     }
 
-    const selectedContact = instanceContacts.find(c => c.id === selectedContactId);
+    const selectedContact = instanceContacts.find(
+      (c) => c.id === selectedContactId
+    );
     if (!selectedContact) {
-      showToast('Contato não encontrado', 'error');
+      showToast("Contato não encontrado", "error");
       return;
     }
 
     const messageText = newMessage.trim();
-    
+
     // Limpar o campo de mensagem imediatamente
-    setNewMessage('');
-    
+    setNewMessage("");
+
     // Criar mensagem temporária para mostrar na tela
     const tempMessage: WhatsappMessage = {
       id: `temp_${Date.now()}_${Math.random()}`,
-      wa_message_id: '',
+      wa_message_id: "",
       from: `${activeInstance?.phone_number}@c.us`,
       to: `${selectedContact.phone}@c.us`,
       body: messageText,
@@ -237,34 +336,49 @@ export function Conversations() {
       organization_id: user.organization_id,
       whatsapp_contact_id: selectedContactId,
       created_at: new Date().toISOString(),
-      direction: 'OUTGOING',
-      status: 'sending'
+      direction: "OUTGOING",
+      status: "sending",
     };
 
     // Adicionar mensagem temporária na store
     const messageStore = useWhatsappMessageStore.getState();
-    messageStore.addTemporaryMessage(activeInstanceId, selectedContactId, tempMessage);
+    messageStore.addTemporaryMessage(
+      activeInstanceId,
+      selectedContactId,
+      tempMessage
+    );
 
     setIsSendingMessage(true);
     try {
       // Importar o serviço dinamicamente para evitar dependência circular
-      const { whatsappMessageService } = await import('../../services/whatsapp/whatsappMessage.service');
-      
-      await whatsappMessageService.send(token, user.organization_id, activeInstanceId, {
-        phone: selectedContact.phone,
-        message: messageText
-      });
+      const { whatsappMessageService } = await import(
+        "../../services/whatsapp/whatsappMessage.service"
+      );
 
-      // Não precisamos mais recarregar as mensagens, o realtime vai atualizar
-      showToast('Mensagem enviada com sucesso!', 'success');
+      await whatsappMessageService.send(
+        token,
+        user.organization_id,
+        activeInstanceId,
+        {
+          phone: selectedContact.phone,
+          message: messageText,
+        }
+      );
     } catch (error: any) {
-      console.error('Erro ao enviar mensagem:', error);
-      showToast(error.message || 'Erro ao enviar mensagem', 'error');
-      
+      console.error("Erro ao enviar mensagem:", error);
+      showToast(error.message || "Erro ao enviar mensagem", "error");
+
       // Remover mensagem temporária em caso de erro
-      const currentMessages = messageStore.messages[activeInstanceId]?.[selectedContactId] || [];
-      const filteredMessages = currentMessages.filter(msg => msg.id !== tempMessage.id);
-      messageStore.setMessages(activeInstanceId, selectedContactId, filteredMessages);
+      const currentMessages =
+        messageStore.messages[activeInstanceId]?.[selectedContactId] || [];
+      const filteredMessages = currentMessages.filter(
+        (msg) => msg.id !== tempMessage.id
+      );
+      messageStore.setMessages(
+        activeInstanceId,
+        selectedContactId,
+        filteredMessages
+      );
     } finally {
       setIsSendingMessage(false);
     }
@@ -272,17 +386,21 @@ export function Conversations() {
 
   // Função para enviar mensagem com Enter
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
 
-  const instanceContacts: WhatsappContact[] = activeInstanceId ? (contacts[activeInstanceId] || []) : [];
-  const contactMessages = (activeInstanceId && selectedContactId)
-    ? (messages[activeInstanceId]?.[selectedContactId] || [])
+  const instanceContacts: WhatsappContact[] = activeInstanceId
+    ? contacts[activeInstanceId] || []
     : [];
-  const activeInstance = instances.find((i) => i.id === activeInstanceId) || null;
+  const contactMessages =
+    activeInstanceId && selectedContactId
+      ? messages[activeInstanceId]?.[selectedContactId] || []
+      : [];
+  const activeInstance =
+    instances.find((i) => i.id === activeInstanceId) || null;
 
   // Ref para o container de mensagens
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -290,11 +408,10 @@ export function Conversations() {
   // Scroll automático para mensagens mais recentes
   useEffect(() => {
     if (messagesContainerRef.current && contactMessages.length > 0) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      messagesContainerRef.current.scrollTop =
+        messagesContainerRef.current.scrollHeight;
     }
   }, [contactMessages.length]);
-
-
 
   if (isLoadingInstances && instances.length === 0) {
     return (
@@ -346,7 +463,7 @@ export function Conversations() {
             Crie uma instância em Conexões para começar a conversar
           </p>
           <button
-            onClick={() => navigate('/conexoes')}
+            onClick={() => navigate("/conexoes")}
             className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
           >
             Ir para Conexões
@@ -363,10 +480,10 @@ export function Conversations() {
                   {instances.map((instance) => {
                     const statusInfo = getStatusInfo(instance.status);
                     const StatusIcon = statusInfo.icon;
-                    
+
                     return (
-                      <div 
-                        key={instance.id} 
+                      <div
+                        key={instance.id}
                         className="relative"
                         ref={(el) => {
                           tabRefs.current[instance.id] = el;
@@ -381,12 +498,18 @@ export function Conversations() {
                           }`}
                           style={{ minWidth: 160, maxWidth: 220 }}
                         >
-                          <span className="truncate text-sm font-medium flex-1">{instance.name}</span>
-                          <div className={`flex items-center justify-center w-6 h-6 rounded-full ${statusInfo.bgColor} flex-shrink-0`}>
-                            <StatusIcon className={`w-3 h-3 ${statusInfo.color}`} />
+                          <span className="truncate text-sm font-medium flex-1">
+                            {instance.name}
+                          </span>
+                          <div
+                            className={`flex items-center justify-center w-6 h-6 rounded-full ${statusInfo.bgColor} flex-shrink-0`}
+                          >
+                            <StatusIcon
+                              className={`w-3 h-3 ${statusInfo.color}`}
+                            />
                           </div>
                         </button>
-                        
+
                         {/* Botão de menu para mais informações */}
                         <button
                           onClick={(e) => handleMenuClick(e, instance.id)}
@@ -410,14 +533,22 @@ export function Conversations() {
               <div className="p-4 font-bold text-lg border-b">Contatos</div>
               <div className="flex-1 overflow-y-auto">
                 {isLoadingContacts ? (
-                  <div className="p-4 text-center text-gray-500">Carregando contatos...</div>
+                  <div className="p-4 text-center text-gray-500">
+                    Carregando contatos...
+                  </div>
                 ) : instanceContacts.length === 0 ? (
-                  <div className="p-4 text-center text-gray-400">Nenhum contato encontrado</div>
+                  <div className="p-4 text-center text-gray-400">
+                    Nenhum contato encontrado
+                  </div>
                 ) : (
                   instanceContacts.map((contact) => (
                     <div
                       key={contact.id}
-                      className={`relative flex items-center gap-3 px-4 py-3 border-b hover:bg-[#f5f5ff] dark:hover:bg-[#23233a] ${selectedContactId === contact.id ? 'bg-[#f5f5ff] dark:bg-[#23233a]' : ''}`}
+                      className={`relative flex items-center gap-3 px-4 py-3 border-b hover:bg-[#f5f5ff] dark:hover:bg-[#23233a] ${
+                        selectedContactId === contact.id
+                          ? "bg-[#f5f5ff] dark:bg-[#23233a]"
+                          : ""
+                      }`}
                     >
                       <button
                         className="flex items-center gap-3 flex-1"
@@ -431,31 +562,41 @@ export function Conversations() {
                             onError={(e) => {
                               // Fallback para inicial se a imagem falhar
                               const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const fallback = target.nextElementSibling as HTMLElement;
+                              target.style.display = "none";
+                              const fallback =
+                                target.nextElementSibling as HTMLElement;
                               if (fallback) {
-                                fallback.classList.remove('hidden');
+                                fallback.classList.remove("hidden");
                               }
                             }}
                             onLoad={(e) => {
                               // Se a imagem carregar com sucesso, esconder o fallback
                               const target = e.target as HTMLImageElement;
-                              const fallback = target.nextElementSibling as HTMLElement;
+                              const fallback =
+                                target.nextElementSibling as HTMLElement;
                               if (fallback) {
-                                fallback.classList.add('hidden');
+                                fallback.classList.add("hidden");
                               }
                             }}
                           />
                         ) : null}
-                        <div className={`w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-lg uppercase ${contact.avatar_url ? 'hidden' : ''}`}>
-                          {contact.name?.[0] || contact.phone?.slice(-2) || '?'}
+                        <div
+                          className={`w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-lg uppercase ${
+                            contact.avatar_url ? "hidden" : ""
+                          }`}
+                        >
+                          {contact.name?.[0] || contact.phone?.slice(-2) || "?"}
                         </div>
                         <div className="flex-1 text-left">
-                          <div className="font-medium text-gray-900 dark:text-white">{contact.name}</div>
-                          <div className="text-xs text-gray-500">{contact.phone}</div>
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {contact.name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {contact.phone}
+                          </div>
                         </div>
                       </button>
-                      
+
                       {/* Botão de menu */}
                       <button
                         onClick={(e) => handleContactMenuClick(e, contact.id)}
@@ -476,28 +617,44 @@ export function Conversations() {
                   {/* Cabeçalho do contato */}
                   <div className="bg-gray-50 dark:bg-dark-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
                     {(() => {
-                      const selectedContact = instanceContacts.find(c => c.id === selectedContactId);
+                      const selectedContact = instanceContacts.find(
+                        (c) => c.id === selectedContactId
+                      );
                       return selectedContact ? (
                         <>
                           {selectedContact.avatar_url ? (
                             <img
-                              src={processWhatsAppImageUrl(selectedContact.avatar_url)}
+                              src={processWhatsAppImageUrl(
+                                selectedContact.avatar_url
+                              )}
                               alt={selectedContact.name}
                               className="w-10 h-10 rounded-full object-cover"
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                const fallback = target.nextElementSibling as HTMLElement;
-                                if (fallback) fallback.classList.remove('hidden');
+                                target.style.display = "none";
+                                const fallback =
+                                  target.nextElementSibling as HTMLElement;
+                                if (fallback)
+                                  fallback.classList.remove("hidden");
                               }}
                             />
                           ) : null}
-                          <div className={`w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-lg uppercase ${selectedContact.avatar_url ? 'hidden' : ''}`}>
-                            {selectedContact.name?.[0] || selectedContact.phone?.slice(-2) || '?'}
+                          <div
+                            className={`w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-lg uppercase ${
+                              selectedContact.avatar_url ? "hidden" : ""
+                            }`}
+                          >
+                            {selectedContact.name?.[0] ||
+                              selectedContact.phone?.slice(-2) ||
+                              "?"}
                           </div>
                           <div className="flex-1">
-                            <div className="font-medium text-gray-900 dark:text-white">{selectedContact.name}</div>
-                            <div className="text-xs text-gray-500">{selectedContact.phone}</div>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {selectedContact.name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {selectedContact.phone}
+                            </div>
                           </div>
                         </>
                       ) : null;
@@ -505,158 +662,215 @@ export function Conversations() {
                   </div>
 
                   {/* Área de mensagens */}
-                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto relative" style={{ backgroundImage: `url(${LOGO_URL})`, backgroundRepeat: 'repeat', backgroundSize: '200px', backgroundAttachment: 'local' }}>
+                  <div
+                    ref={messagesContainerRef}
+                    className="flex-1 overflow-y-auto relative"
+                    style={{
+                      backgroundImage: `url(${LOGO_URL})`,
+                      backgroundRepeat: "repeat",
+                      backgroundSize: "200px",
+                      backgroundAttachment: "local",
+                    }}
+                  >
                     {/* Mensagens */}
                     <div className="relative z-10 flex flex-col p-6 min-h-full bg-white/85 dark:bg-dark-900/85">
-                    {isLoadingMessages ? (
-                      <div className="text-center text-gray-500">Carregando mensagens...</div>
-                    ) : contactMessages.length === 0 ? (
-                      <div className="text-center text-gray-400">Nenhuma mensagem encontrada</div>
-                    ) : (
-                                             contactMessages
-                         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-                         .map((msg) => (
-                        <div key={msg.id} className={`mb-3 flex ${msg.direction === 'OUTGOING' ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`rounded-2xl px-4 py-2 max-w-xs lg:max-w-md ${msg.direction === 'OUTGOING' ? 'bg-[#7f00ff] text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'}`}>
-                            {msg.body && (
-                              <div className="text-sm">{msg.body}</div>
-                            )}
-                            {msg.media_url && (
-                              <div className="mt-2">
-                                {msg.media_type?.startsWith('image/') ? (
-                                  <img 
-                                    src={msg.media_url} 
-                                    alt="Mídia da mensagem"
-                                    className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                    onClick={() => window.open(msg.media_url, '_blank')}
-                                  />
-                                ) : msg.media_type?.startsWith('video/') ? (
-                                  <video 
-                                    src={msg.media_url} 
-                                    controls
-                                    className="max-w-full h-auto rounded-lg"
-                                  />
-                                ) : msg.media_type?.startsWith('audio/') ? (
-                                  <audio 
-                                    src={msg.media_url} 
-                                    controls
-                                    className="w-full"
-                                  />
-                                ) : (
-                                  <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                                    <Paperclip className="w-4 h-4" />
-                                    <span className="text-sm">{msg.file_name || 'Arquivo'}</span>
-                                    <a 
-                                      href={msg.media_url} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer" 
-                                      className={`text-xs underline ${msg.direction === 'OUTGOING' ? 'text-blue-200' : 'text-blue-600'}`}
-                                    >
-                                      Baixar
-                                    </a>
+                      {isLoadingMessages ? (
+                        <div className="text-center text-gray-500">
+                          Carregando mensagens...
+                        </div>
+                      ) : contactMessages.length === 0 ? (
+                        <div className="text-center text-gray-400">
+                          Nenhuma mensagem encontrada
+                        </div>
+                      ) : (
+                        contactMessages
+                          .sort(
+                            (a, b) =>
+                              new Date(a.timestamp).getTime() -
+                              new Date(b.timestamp).getTime()
+                          )
+                          .map((msg) => (
+                            <div
+                              key={msg.id}
+                              className={`mb-3 flex ${
+                                msg.direction === "OUTGOING"
+                                  ? "justify-end"
+                                  : "justify-start"
+                              }`}
+                            >
+                              <div
+                                className={`rounded-2xl px-4 py-2 max-w-xs lg:max-w-md ${
+                                  msg.direction === "OUTGOING"
+                                    ? "bg-[#7f00ff] text-white"
+                                    : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                }`}
+                              >
+                                {msg.body && (
+                                  <div className="text-sm whitespace-pre-wrap">
+                                    {msg.body}
                                   </div>
                                 )}
+                                {msg.media_url && (
+                                  <div className="mt-2">
+                                    {msg.media_type?.startsWith("image/") ? (
+                                      <img
+                                        src={msg.media_url}
+                                        alt="Mídia da mensagem"
+                                        className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                        onClick={() =>
+                                          window.open(msg.media_url, "_blank")
+                                        }
+                                      />
+                                    ) : msg.media_type?.startsWith("video/") ? (
+                                      <video
+                                        src={msg.media_url}
+                                        controls
+                                        className="max-w-full h-auto rounded-lg"
+                                      />
+                                    ) : msg.media_type?.startsWith("audio/") ? (
+                                      <audio
+                                        src={msg.media_url}
+                                        controls
+                                        className="w-full"
+                                      />
+                                    ) : (
+                                      <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                        <Paperclip className="w-4 h-4" />
+                                        <span className="text-sm">
+                                          {msg.file_name || "Arquivo"}
+                                        </span>
+                                        <a
+                                          href={msg.media_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className={`text-xs underline ${
+                                            msg.direction === "OUTGOING"
+                                              ? "text-blue-200"
+                                              : "text-blue-600"
+                                          }`}
+                                        >
+                                          Baixar
+                                        </a>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                <div
+                                  className={`text-xs mt-1 flex items-center justify-between ${
+                                    msg.direction === "OUTGOING"
+                                      ? "text-blue-200"
+                                      : "text-gray-500"
+                                  }`}
+                                >
+                                  <span>
+                                    {new Date(msg.timestamp).toLocaleTimeString(
+                                      "pt-BR",
+                                      {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      }
+                                    )}
+                                  </span>
+                                  {msg.direction === "OUTGOING" && (
+                                    <span className="ml-2">
+                                      {msg.status === "sending" && (
+                                        <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
+                                      )}
+                                      {msg.status === "sent" && <span>✓</span>}
+                                      {msg.status === "delivered" && (
+                                        <span>✓✓</span>
+                                      )}
+                                      {msg.status === "read" && (
+                                        <span className="text-blue-400">
+                                          ✓✓
+                                        </span>
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                            )}
-                            <div className={`text-xs mt-1 flex items-center justify-between ${msg.direction === 'OUTGOING' ? 'text-blue-200' : 'text-gray-500'}`}>
-                              <span>
-                                {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit' 
-                                })}
-                              </span>
-                              {msg.direction === 'OUTGOING' && (
-                                <span className="ml-2">
-                                  {msg.status === 'sending' && (
-                                    <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
-                                  )}
-                                  {msg.status === 'sent' && (
-                                    <span>✓</span>
-                                  )}
-                                  {msg.status === 'delivered' && (
-                                    <span>✓✓</span>
-                                  )}
-                                  {msg.status === 'read' && (
-                                    <span className="text-blue-400">✓✓</span>
-                                  )}
-                                </span>
-                              )}
                             </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                {/* Barra de envio de mensagens */}
-                <div className="bg-gray-50 dark:bg-dark-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    {/* Botão de áudio (desabilitado) */}
-                    <button
-                      className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-not-allowed"
-                      title="Gravar áudio (em breve)"
-                      disabled
-                    >
-                      <Mic className="w-5 h-5" />
-                    </button>
-
-                    {/* Botão de anexo (desabilitado) */}
-                    <button
-                      className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-not-allowed"
-                      title="Anexar arquivo (em breve)"
-                      disabled
-                    >
-                      <Paperclip className="w-5 h-5" />
-                    </button>
-
-                    {/* Campo de mensagem */}
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        placeholder="Digite uma mensagem..."
-                        className="w-full px-4 py-2 bg-white dark:bg-dark-900 border border-gray-300 dark:border-gray-600 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        disabled={isSendingMessage}
-                      />
+                          ))
+                      )}
                     </div>
-
-                    {/* Botão de enviar */}
-                    <button
-                      onClick={handleSendMessage}
-                      disabled={!newMessage.trim() || isSendingMessage}
-                      className={`p-2 rounded-full transition-colors ${
-                        newMessage.trim() && !isSendingMessage
-                          ? 'bg-purple-600 text-white hover:bg-purple-700'
-                          : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                      }`}
-                      title="Enviar mensagem"
-                    >
-                      <Send className="w-5 h-5" />
-                    </button>
                   </div>
-                </div>
 
-              </>
+                  {/* Barra de envio de mensagens */}
+                  <div className="bg-gray-50 dark:bg-dark-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {/* Botão de áudio (desabilitado) */}
+                      <button
+                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-not-allowed"
+                        title="Gravar áudio (em breve)"
+                        disabled
+                      >
+                        <Mic className="w-5 h-5" />
+                      </button>
+
+                      {/* Botão de anexo (desabilitado) */}
+                      <button
+                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-not-allowed"
+                        title="Anexar arquivo (em breve)"
+                        disabled
+                      >
+                        <Paperclip className="w-5 h-5" />
+                      </button>
+
+                      {/* Campo de mensagem */}
+                      <div className="flex-1">
+                        <textarea
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          onKeyPress={handleKeyPress}
+                          placeholder="Digite uma mensagem..."
+                          className="w-full px-4 py-2 bg-white dark:bg-dark-900 border border-gray-300 dark:border-gray-600 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                          disabled={isSendingMessage}
+                          rows={1}
+                          style={{ minHeight: "40px", maxHeight: "120px" }}
+                        />
+                      </div>
+
+                      {/* Botão de enviar */}
+                      <button
+                        onClick={handleSendMessage}
+                        disabled={!newMessage.trim() || isSendingMessage}
+                        className={`p-2 rounded-full transition-colors ${
+                          newMessage.trim() && !isSendingMessage
+                            ? "bg-purple-600 text-white hover:bg-purple-700"
+                            : "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                        }`}
+                        title="Enviar mensagem"
+                      >
+                        <Send className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <div className="flex-1 flex items-center justify-center relative">
                   {/* Background com logo */}
-                  <div className="absolute inset-0" style={{ 
-                    backgroundImage: `url(${LOGO_URL})`, 
-                    backgroundRepeat: 'repeat', 
-                    backgroundSize: '200px', 
-                    backgroundPosition: 'center center',
-                    opacity: 0.15 
-                  }}></div>
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      backgroundImage: `url(${LOGO_URL})`,
+                      backgroundRepeat: "repeat",
+                      backgroundSize: "200px",
+                      backgroundPosition: "center center",
+                      opacity: 0.15,
+                    }}
+                  ></div>
                   {/* Conteúdo central */}
                   <div className="relative z-10 flex items-center justify-center">
                     {activeInstanceId ? (
                       // Verificar se a instância ativa está conectada
                       (() => {
-                        const activeInstance = instances.find(instance => instance.id === activeInstanceId);
-                        if (activeInstance && activeInstance.status !== 'CONNECTED') {
+                        const activeInstance = instances.find(
+                          (instance) => instance.id === activeInstanceId
+                        );
+                        if (
+                          activeInstance &&
+                          activeInstance.status !== "CONNECTED"
+                        ) {
                           return (
                             <div className="text-center bg-white px-8 py-8 rounded-xl shadow-xl border border-gray-300">
                               <WifiOff className="w-16 h-16 text-red-500 mx-auto mb-4" />
@@ -664,10 +878,11 @@ export function Conversations() {
                                 Instância não conectada
                               </div>
                               <div className="text-sm text-black mt-2 mb-4">
-                                Você ainda não conectou sua instância. Clique aqui para conectar.
+                                Você ainda não conectou sua instância. Clique
+                                aqui para conectar.
                               </div>
                               <button
-                                onClick={() => navigate('/conexoes')}
+                                onClick={() => navigate("/conexoes")}
                                 className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
                               >
                                 Conectar Instância
@@ -682,7 +897,8 @@ export function Conversations() {
                               Selecione um contato para ver as mensagens
                             </div>
                             <div className="text-sm text-black mt-2">
-                              Escolha um contato da lista ao lado para iniciar uma conversa
+                              Escolha um contato da lista ao lado para iniciar
+                              uma conversa
                             </div>
                           </div>
                         );
@@ -694,7 +910,8 @@ export function Conversations() {
                           Selecione um contato para ver as mensagens
                         </div>
                         <div className="text-sm text-black mt-2">
-                          Escolha um contato da lista ao lado para iniciar uma conversa
+                          Escolha um contato da lista ao lado para iniciar uma
+                          conversa
                         </div>
                       </div>
                     )}
@@ -708,33 +925,41 @@ export function Conversations() {
 
       {/* Modal de informações - Fora do container principal */}
       {showInstanceMenu && (
-        <div 
+        <div
           className="conversations-tab-dropdown fixed z-[9999] bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-600 p-3 min-w-[200px]"
           style={{
             top: menuPosition.top,
-            left: menuPosition.left
+            left: menuPosition.left,
           }}
           onMouseLeave={() => setShowInstanceMenu(null)}
         >
           {(() => {
-            const instance = instances.find(i => i.id === showInstanceMenu);
+            const instance = instances.find((i) => i.id === showInstanceMenu);
             if (!instance) return null;
-            
+
             const statusInfo = getStatusInfo(instance.status);
             const StatusIcon = statusInfo.icon;
-            
+
             return (
               <>
-                <div className="font-semibold text-sm mb-2">{instance.name}</div>
+                <div className="font-semibold text-sm mb-2">
+                  {instance.name}
+                </div>
                 <div className="flex items-center gap-2 mb-1">
                   <StatusIcon className={`w-4 h-4 ${statusInfo.color}`} />
                   <span className={`text-xs font-medium ${statusInfo.color}`}>
-                    {instance.status === 'CONNECTED' ? 'Conectado' : instance.status === 'QR_PENDING' ? 'QR Pendente' : 'Desconectado'}
+                    {instance.status === "CONNECTED"
+                      ? "Conectado"
+                      : instance.status === "QR_PENDING"
+                      ? "QR Pendente"
+                      : "Desconectado"}
                   </span>
                 </div>
-                <div className="text-xs text-gray-500">Número: {instance.phone_number}</div>
+                <div className="text-xs text-gray-500">
+                  Número: {instance.phone_number}
+                </div>
                 {/* Mostrar QR apenas se não estiver conectado */}
-                {instance.status !== 'CONNECTED' && instance.qr_code && (
+                {instance.status !== "CONNECTED" && instance.qr_code && (
                   <div className="flex items-center gap-2 mt-1">
                     <QrCode className="w-3 h-3 text-gray-400" />
                     <span className="text-xs text-gray-500">QR disponível</span>
@@ -747,20 +972,23 @@ export function Conversations() {
       )}
 
       {/* Menu de opções de contato */}
-      {showContactMenu && (() => {
-        const contact = instanceContacts.find(c => c.id === showContactMenu);
-        return contact ? (
-          <ContactOptionsMenu
-            contact={contact}
-            instanceId={activeInstanceId!}
-            onEdit={handleEditContact}
-            onDelete={handleDeleteContact}
-            isOpen={true}
-            onToggle={() => setShowContactMenu(null)}
-            position={contactMenuPosition}
-          />
-        ) : null;
-      })()}
+      {showContactMenu &&
+        (() => {
+          const contact = instanceContacts.find(
+            (c) => c.id === showContactMenu
+          );
+          return contact ? (
+            <ContactOptionsMenu
+              contact={contact}
+              instanceId={activeInstanceId!}
+              onEdit={handleEditContact}
+              onDelete={handleDeleteContact}
+              isOpen={true}
+              onToggle={() => setShowContactMenu(null)}
+              position={contactMenuPosition}
+            />
+          ) : null;
+        })()}
 
       {/* Modal de edição de contato */}
       <EditContactModal
@@ -775,4 +1003,4 @@ export function Conversations() {
       />
     </div>
   );
-} 
+}
