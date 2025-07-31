@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { RouterProvider } from "react-router-dom";
+import { RouterProvider, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { Toaster } from "react-hot-toast";
 import { NetworkStatus } from "./components/NetworkStatus";
@@ -37,6 +37,8 @@ export function App() {
   const hasFetchedGlobals = useRef(false);
   // NOVO: Estado para controlar o carregamento inicial da aplicação.
   const [isInitializing, setIsInitializing] = useState(true);
+  // Removido: const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  // Removido: const location = useLocation();
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -120,7 +122,7 @@ export function App() {
   if (isInitializing) {
     return <FullScreenLoader />;
   }
-
+  // Removido: redirecionamento global para /login
   return (
     <>
       <NetworkStatus />
