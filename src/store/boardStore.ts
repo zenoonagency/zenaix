@@ -424,11 +424,22 @@ export const useBoardStore = create<BoardState>()(
           const boards = await boardService.getBoards(token, organizationId);
 
           get().setBoards(boards);
-          set({
-            isLoading: false,
-            error: null,
-            lastFetched: Date.now(),
-          });
+
+          // Se não houver boards, zera activeBoardId e activeBoard
+          if (!boards || boards.length === 0) {
+            set({ activeBoardId: null, activeBoard: null });
+            set({ isLoading: false, error: null, lastFetched: Date.now() });
+            return;
+          }
+
+          // Sincronizar activeBoard se existir
+          const { activeBoard } = get();
+          if (activeBoard) {
+            const updatedActive = boards.find((b) => b.id === activeBoard.id);
+            if (updatedActive) {
+              set({ activeBoard: updatedActive });
+            }
+          }
 
           get().selectActiveBoard(boards);
           get().selectDashboardBoard(boards);

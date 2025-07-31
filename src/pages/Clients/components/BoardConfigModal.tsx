@@ -48,18 +48,18 @@ export function BoardConfigModal({
   });
 
   useEffect(() => {
-    if (currentBoard) {
+    if (isOpen && currentBoard) {
       setConfig({
         access_level: currentBoard.access_level,
         member_ids: getMemberIdsFromBoard(currentBoard),
       });
-    } else {
+    } else if (isOpen && !currentBoard) {
       setConfig({
         access_level: "TEAM_WIDE",
         member_ids: [],
       });
     }
-  }, [currentBoard]);
+  }, [isOpen, currentBoard]);
 
   const handleSaveConfig = async () => {
     if (!currentBoard || !token || !organization?.id) {

@@ -79,9 +79,12 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
     case "BOARD_CREATED":
       useBoardStore.getState().addBoard(payload.data);
       break;
-    case "BOARD_UPDATED":
-      useBoardStore.getState().updateBoard(payload.data);
+    case "BOARD_UPDATED": {
+      const { user, token } = useAuthStore.getState();
+      const organizationId = user?.organization_id;
+      useBoardStore.getState().fetchAllBoards(token, organizationId);
       break;
+    }
     case "BOARD_DELETED":
       useBoardStore.getState().removeBoard(payload.data.id);
       break;

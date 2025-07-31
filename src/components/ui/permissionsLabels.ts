@@ -53,10 +53,8 @@ export const permissionsLabels = {
     "webhook:update": "Editar webhooks",
   },
   WhatsApp: {
-    "whatsapp:connect": "Conectar WhatsApp",
-    "whatsapp:create": "Criar instâncias WhatsApp",
+    "whatsapp:create": "Criar e conectar instâncias WhatsApp",
     "whatsapp:delete": "Excluir instâncias WhatsApp",
-    "whatsapp:manage_access": "Gerenciar acesso WhatsApp",
     "whatsapp:read": "Visualizar WhatsApp",
     "whatsapp:update": "Editar WhatsApp",
   },
