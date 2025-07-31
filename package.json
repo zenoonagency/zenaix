@@ -44,7 +44,7 @@
     "googleapis": "^133.0.0",
     "lucide-react": "^0.344.0",
     "papaparse": "^5.4.1",
-    "pdfjs-dist": "^4.0.379",
+    "pdfjs-dist": "^4.10.38",
     "qrcode": "^1.5.4",
     "react": "^18.2.0",
     "react-apexcharts": "^1.7.0",

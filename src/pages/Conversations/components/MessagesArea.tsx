@@ -1,14 +1,22 @@
 import React from "react";
 import { Paperclip, Video } from "lucide-react";
 import { WhatsAppAudioPlayer } from "../../../components/WhatsAppAudioPlayer";
+import { PDFViewer } from "../../../components/PDFViewer";
+import { Modal } from "../../../components/Modal";
+import { FileText, FileImage } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import * as pdfjsLib from "pdfjs-dist/build/pdf";
+// @ts-ignore
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 function AckIcon({ ack }: { ack: number }) {
   // 0: enviado, 1: enviado, 2: entregue, 3: lida
   if (ack === 0 || ack === 1) {
     return (
       <svg
-        width="16"
-        height="16"
+        width="12"
+        height="12"
         viewBox="0 0 16 16"
         className="ml-1"
         style={{ display: "inline" }}
@@ -25,8 +33,8 @@ function AckIcon({ ack }: { ack: number }) {
   if (ack === 2) {
     return (
       <svg
-        width="16"
-        height="16"
+        width="12"
+        height="12"
         viewBox="0 0 16 16"
         className="ml-1"
         style={{ display: "inline" }}
@@ -49,8 +57,8 @@ function AckIcon({ ack }: { ack: number }) {
   if (ack === 3) {
     return (
       <svg
-        width="16"
-        height="16"
+        width="12"
+        height="12"
         viewBox="0 0 16 16"
         className="ml-1"
         style={{ display: "inline" }}
@@ -73,6 +81,48 @@ function AckIcon({ ack }: { ack: number }) {
   return null;
 }
 
+function PdfThumbnail({ url }: { url: string }) {
+  const [thumb, setThumb] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    let isMounted = true;
+    async function renderThumb() {
+      try {
+        const pdf = await pdfjsLib.getDocument(url).promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 1 });
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: context, viewport }).promise;
+        if (isMounted) setThumb(canvas.toDataURL());
+      } catch {
+        if (isMounted) setThumb(null);
+      }
+    }
+    renderThumb();
+    return () => {
+      isMounted = false;
+    };
+  }, [url]);
+  if (!thumb)
+    return (
+      <div
+        className="w-full flex justify-center items-center bg-gray-200 rounded-t-lg"
+        style={{ height: 80 }}
+      />
+    );
+  return (
+    <img
+      src={thumb}
+      alt="Miniatura PDF"
+      className="w-full rounded-t-lg object-cover object-top"
+      style={{ height: 80 }}
+    />
+  );
+}
+
 export function MessagesArea({
   contactMessages,
   isLoadingMessages,
@@ -88,6 +138,8 @@ export function MessagesArea({
   messagesContainerRef,
   handleScroll,
 }) {
+  const [openDocUrl, setOpenDocUrl] = React.useState<string | null>(null);
+  const [openDocName, setOpenDocName] = React.useState<string | null>(null);
   return (
     <div
       ref={messagesContainerRef}
@@ -139,7 +191,7 @@ export function MessagesArea({
                     }`}
                   >
                     <div
-                      className={`rounded-2xl px-4 py-2 max-w-xs lg:max-sm: ${
+                      className={`rounded-xl p-2 px-3 max-w-xs lg:max-sm: ${
                         item.message.direction === "OUTGOING"
                           ? "bg-[#7f00ff] text-white"
                           : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -162,7 +214,7 @@ export function MessagesArea({
                               alt="Mídia da mensagem"
                               className={`rounded-lg cursor-pointer hover:opacity-90 transition-opacity ${
                                 isSticker(item.message)
-                                  ? "w-20 h-20 object-contain"
+                                  ? "w-20 h-20 object-cover object-top"
                                   : "max-w-full h-auto"
                               }`}
                               onClick={() => {
@@ -215,24 +267,64 @@ export function MessagesArea({
                               })()}
                               messageTime={item.message.timestamp}
                             />
+                          ) : item.message.media_type?.startsWith(
+                              "application/pdf"
+                            ) ? (
+                            <div className="w-full">
+                              <PdfThumbnail url={item.message.media_url} />
+                              <div className="flex items-center gap-2 mt-2 py-3">
+                                <FileText className="w-8 h-8 text-black" />
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium text-black">
+                                    {item.message.file_name || "Arquivo"}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {item.message.file_size_bytes
+                                      ? `${(
+                                          item.message.file_size_bytes / 1024
+                                        ).toFixed(0)} KB`
+                                      : ""}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex gap-2 mt-1 w-full">
+                                <button
+                                  className="flex-1 px-3 py-2 rounded bg-[#bf80ff40] text-white text-xs font-semibold hover:bg-[#c080ff8f] transition"
+                                  onClick={() => {
+                                    setOpenDocUrl(item.message.media_url);
+                                    setOpenDocName(
+                                      item.message.file_name || "documento.pdf"
+                                    );
+                                  }}
+                                >
+                                  Abrir
+                                </button>
+                                <a
+                                  className="flex-1 px-3 py-2 rounded bg-[#bf80ff40] dark:bg-gray-700 text-xs font-semibold text-white dark:text-gray-100 text-center hover:bg-[#bf80ff40] dark:hover:bg-gray-600 transition"
+                                  href={item.message.media_url}
+                                  download={
+                                    item.message.file_name || "documento.pdf"
+                                  }
+                                >
+                                  Salvar como...
+                                </a>
+                              </div>
+                            </div>
                           ) : (
-                            <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                              <Paperclip className="w-4 h-4" />
-                              <span className="text-sm">
-                                {item.message.file_name || "Arquivo"}
-                              </span>
-                              <a
-                                href={item.message.media_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`text-xs underline ${
-                                  item.message.direction === "OUTGOING"
-                                    ? "text-blue-200"
-                                    : "text-blue-600"
-                                }`}
-                              >
-                                Baixar
-                              </a>
+                            <div className="flex items-center gap-2">
+                              <FileText className="w-8 h-8 text-black" />
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-black">
+                                  {item.message.file_name || "Arquivo"}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {item.message.file_size_bytes
+                                    ? `${(
+                                        item.message.file_size_bytes / 1024
+                                      ).toFixed(0)} KB`
+                                    : ""}
+                                </span>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -263,6 +355,25 @@ export function MessagesArea({
           </>
         )}
       </div>
+      {/* Modal para visualização de PDF */}
+      <Modal
+        isOpen={!!openDocUrl}
+        onClose={() => setOpenDocUrl(null)}
+        title={openDocName || "Documento"}
+        size="large"
+      >
+        {openDocUrl && openDocName?.toLowerCase().endsWith(".pdf") ? (
+          <PDFViewer
+            fileUrl={openDocUrl}
+            fileName={openDocName}
+            height="80vh"
+          />
+        ) : (
+          <div className="p-8 text-center">
+            Visualização não suportada para este tipo de arquivo.
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

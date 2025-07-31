@@ -27,7 +27,6 @@ export function MessageInputBar({
   selectedContactId,
   activeInstance,
   showToast,
-  setShowAudioModal, // não será mais usado
   isSendingFile,
   fileInputRef,
   newMessage,
@@ -141,14 +140,12 @@ export function MessageInputBar({
           >
             <Trash2 className="w-5 h-5" />
           </button>
-          {/* Preview ou gravação */}
           {audioBlob ? (
             <>
-              <audio src={audioUrl!} controls className="h-8" />
+              <audio src={audioUrl!} controls controlsList="nodownload" className="h-8" />
               <span className="font-mono text-xs text-gray-700 dark:text-gray-200 min-w-[40px]">
                 {formatTime(recordingTime)}
               </span>
-              {/* Regravar */}
               <button
                 onClick={reRecord}
                 className="p-2 text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-full"
@@ -156,7 +153,6 @@ export function MessageInputBar({
               >
                 <Mic className="w-5 h-5" />
               </button>
-              {/* Enviar */}
               <button
                 onClick={sendAudio}
                 className="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-full"

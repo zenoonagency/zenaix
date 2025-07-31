@@ -607,15 +607,48 @@ export function Conversations() {
       return;
     }
 
+    const contact = instanceContacts.find((c) => c.id === selectedContactId);
+    if (!contact) {
+      showToast("Contato não encontrado", "error");
+      return;
+    }
+
+    const tempMessage = {
+      id: `temp_${Date.now()}`,
+      wa_message_id: "",
+      from: `${activeInstance?.phone_number}@c.us`,
+      to: `${contact.phone}@c.us`,
+      body: fileCaption.trim() || "",
+      media_url: URL.createObjectURL(selectedFile),
+      media_type: selectedFile.type,
+      message_type: selectedFile.type.startsWith("image/")
+        ? "image"
+        : selectedFile.type.startsWith("video/")
+        ? "video"
+        : "document",
+      timestamp: new Date().toISOString(),
+      read: false,
+      ack: 0,
+      file_name: selectedFile.name,
+      file_size_bytes: selectedFile.size,
+      media_duration_sec: null,
+      whatsapp_instance_id: activeInstanceId,
+      organization_id: user.organization_id,
+      whatsapp_contact_id: selectedContactId,
+      created_at: new Date().toISOString(),
+      direction: "OUTGOING",
+      status: "sending",
+    };
+    const messageStore = useWhatsappMessageStore.getState();
+    messageStore.addTemporaryMessage(
+      activeInstanceId,
+      selectedContactId,
+      tempMessage as WhatsappMessage
+    );
+
     setIsSendingFile(true);
 
     try {
-      const contact = instanceContacts.find((c) => c.id === selectedContactId);
-      if (!contact) {
-        showToast("Contato não encontrado", "error");
-        return;
-      }
-
       await whatsappMessageService.sendMedia(
         token,
         user.organization_id,
@@ -707,7 +740,6 @@ export function Conversations() {
       showToast("Áudio enviado com sucesso!", "success");
       setShowAudioModal(false);
 
-      // Adicionar tempMessage para aparecer imediatamente na conversa
       const tempMessage = {
         id: `temp_${Date.now()}`,
         wa_message_id: "",
@@ -947,7 +979,6 @@ export function Conversations() {
                     selectedContactId={selectedContactId}
                     activeInstance={activeInstance}
                     showToast={showToast}
-                    setShowAudioModal={setShowAudioModal}
                     isSendingFile={isSendingFile}
                     fileInputRef={fileInputRef}
                     newMessage={newMessage}
