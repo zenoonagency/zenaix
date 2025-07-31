@@ -346,7 +346,7 @@ export function KanbanBoard() {
     setActiveBoardId,
     setActiveBoard,
   } = useBoardStore();
-  const { token, organization } = useAuthStore();
+  const { token, organization, hasPermission } = useAuthStore();
   const [activeCard, setActiveCard] = useState<OutputCardDTO | null>(null);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [overListId, setOverListId] = useState<string | null>(null);
@@ -765,6 +765,9 @@ export function KanbanBoard() {
               <button
                 onClick={handleAddList}
                 className="flex-shrink-0 w-80 h-fit p-3 flex items-center justify-center gap-2 text-base bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600 transition-colors"
+                style={{
+                  display: hasPermission("lists:create") ? "flex" : "none",
+                }}
               >
                 <Plus className="w-5 h-5" />
                 Adicionar Lista
@@ -808,7 +811,10 @@ export function KanbanBoard() {
                   <button
                     onClick={handleAddList}
                     className="flex items-center justify-center w-12 h-24 rounded-lg border-2 border-dashed border-[#7f00ff] text-[#7f00ff] text-3xl hover:bg-[#7f00ff]/10 transition-colors"
-                    style={{ alignSelf: "center" }}
+                    style={{
+                      alignSelf: "center",
+                      display: hasPermission("lists:create") ? "flex" : "none",
+                    }}
                     title="Adicionar Lista"
                   >
                     <Plus className="w-8 h-8" />

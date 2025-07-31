@@ -36,7 +36,7 @@ export const List = React.memo(
     const { showToast } = useToast();
     const { customConfirm, modal } = useCustomModal();
     const { addCard } = useCardStore();
-    const { token, organization } = useAuthStore();
+    const { token, organization, hasPermission } = useAuthStore();
     const isDark = theme === "dark";
     const [showMenu, setShowMenu] = useState(false);
     const [showCardModal, setShowCardModal] = useState(false);
@@ -332,6 +332,14 @@ export const List = React.memo(
                   <button
                     onClick={() => setShowListMenuModal(true)}
                     className="p-1 hover:bg-gray-700/50 rounded-full"
+                    style={{
+                      display:
+                        hasPermission("lists:update") ||
+                        hasPermission("lists:delete") ||
+                        hasPermission("lists:create")
+                          ? "block"
+                          : "none",
+                    }}
                   >
                     <MoreVertical className="w-4 h-4 text-gray-500" />
                   </button>
@@ -437,6 +445,9 @@ export const List = React.memo(
                   ? "bg-dark-600 text-gray-400 hover:bg-dark-500"
                   : "bg-gray-200 text-gray-800 hover:bg-gray-300"
               } ${isCreatingCard ? "opacity-50 cursor-not-allowed" : ""}`}
+              style={{
+                display: hasPermission("lists:create") ? "flex" : "none",
+              }}
             >
               <Plus className="w-4 h-4 ${isDark ? 'bg-dark-600'}" />
               {isCreatingCard ? "Criando..." : "Adicionar Card"}

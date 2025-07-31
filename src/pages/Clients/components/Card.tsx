@@ -69,7 +69,7 @@ const Card = React.memo(
     const tagStore = useTagStore();
     const teamStore = useInviteStore();
     const { updateCard, removeCard } = useCardStore();
-    const { token, organization } = useAuthStore();
+    const { token, organization, hasPermission } = useAuthStore();
     const { activeBoard, boards } = useBoardStore();
     const tags = tagStore?.tags || [];
     // Estados de modais e loading

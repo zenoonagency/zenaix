@@ -3,6 +3,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Edit2, Copy, Trash2 } from "lucide-react";
+import { useAuthStore } from "../../../store/authStore";
 
 interface ListMenuModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export function ListMenuModal({
   duplicating = false,
   deleting = false,
 }: ListMenuModalProps) {
+  const { hasPermission } = useAuthStore();
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -79,6 +81,9 @@ export function ListMenuModal({
                         : ""
                     }`}
                     disabled={duplicating || deleting}
+                    style={{
+                      display: hasPermission("lists:update") ? "flex" : "none",
+                    }}
                   >
                     <Edit2 className="w-5 h-5 mr-3 text-purple-500" />
                     Editar
@@ -91,6 +96,9 @@ export function ListMenuModal({
                         : ""
                     }`}
                     disabled={duplicating || deleting}
+                    style={{
+                      display: hasPermission("lists:create") ? "flex" : "none",
+                    }}
                   >
                     <Copy className="w-5 h-5 mr-3 text-purple-500" />
                     {duplicating ? "Duplicando..." : "Duplicar"}
@@ -98,15 +106,14 @@ export function ListMenuModal({
                   <button
                     onClick={onDelete}
                     disabled={!canDelete || duplicating || deleting}
-                    className={`w-full text-left px-4 py-3 rounded-lg flex items-center transition-colors text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20${
-                      !canDelete
-                        ? " text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                        : ""
-                    }${
-                      duplicating || deleting
-                        ? " opacity-50 cursor-not-allowed"
+                    className={`w-full text-left px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center transition-colors ${
+                      !canDelete || duplicating || deleting
+                        ? "opacity-50 cursor-not-allowed"
                         : ""
                     }`}
+                    style={{
+                      display: hasPermission("lists:delete") ? "flex" : "none",
+                    }}
                   >
                     <Trash2 className="w-5 h-5 mr-3 text-red-500" />
                     {deleting ? "Excluindo..." : "Excluir"}

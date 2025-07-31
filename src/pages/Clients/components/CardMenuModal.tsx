@@ -3,6 +3,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Pencil, Copy, ArrowUpDown, Trash2 } from "lucide-react";
+import { useAuthStore } from "../../../store/authStore";
 
 interface CardMenuModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export function CardMenuModal({
   onDelete,
   duplicating = false,
 }: CardMenuModalProps) {
+  const { hasPermission } = useAuthStore();
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -75,6 +77,9 @@ export function CardMenuModal({
                       duplicating ? " opacity-50 cursor-not-allowed" : ""
                     }`}
                     disabled={duplicating}
+                    style={{
+                      display: hasPermission("lists:update") ? "flex" : "none",
+                    }}
                   >
                     <Pencil className="w-5 h-5 mr-3 text-purple-500" />
                     Editar
@@ -85,6 +90,9 @@ export function CardMenuModal({
                       duplicating ? " opacity-50 cursor-not-allowed" : ""
                     }`}
                     disabled={duplicating}
+                    style={{
+                      display: hasPermission("lists:update") ? "flex" : "none",
+                    }}
                   >
                     <Copy className="w-5 h-5 mr-3 text-purple-500" />
                     {duplicating ? "Duplicando..." : "Duplicar"}
@@ -107,10 +115,13 @@ export function CardMenuModal({
                       await onDelete();
                       onClose();
                     }}
-                    className={`w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg flex items-center transition-colors${
+                    className={`w-full text-left px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center transition-colors${
                       duplicating ? " opacity-50 cursor-not-allowed" : ""
                     }`}
                     disabled={duplicating}
+                    style={{
+                      display: hasPermission("lists:update") ? "flex" : "none",
+                    }}
                   >
                     <Trash2 className="w-5 h-5 mr-3 text-red-500" />
                     Excluir

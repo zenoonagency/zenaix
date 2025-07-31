@@ -232,6 +232,9 @@ export function Clients() {
             <button
               onClick={handleAddList}
               className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
+              style={{
+                display: hasPermission("boards:update") ? "flex" : "none",
+              }}
             >
               <span className="mr-2">Lista de Concluídos</span>
               <CheckSquare className="w-4 h-4" />
@@ -264,6 +267,9 @@ export function Clients() {
                 setShowAutomationModal(true);
               }}
               className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
+              style={{
+                display: hasPermission("boards:update") ? "flex" : "none",
+              }}
             >
               <span className="mr-2">Criar Automação</span>
               <Zap className="w-4 h-4" />
@@ -280,6 +286,9 @@ export function Clients() {
                 setShowBoardConfigModal(true);
               }}
               className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
+              style={{
+                display: hasPermission("boards:update") ? "flex" : "none",
+              }}
             >
               <span className="mr-2">Configurar Quadro</span>
               <Settings className="w-4 h-4" />
@@ -289,6 +298,9 @@ export function Clients() {
             <button
               onClick={handleAddBoard}
               className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
+              style={{
+                display: hasPermission("boards:create") ? "flex" : "none",
+              }}
             >
               <Plus className="w-4 h-4 mr-1" />
               Novo Quadro
@@ -309,6 +321,9 @@ export function Clients() {
                 }
               }}
               className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
+              style={{
+                display: hasPermission("boards:update") ? "flex" : "none",
+              }}
             >
               <Edit2 className="w-4 h-4 mr-1" />
               Editar
@@ -342,6 +357,9 @@ export function Clients() {
               }}
               className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
               disabled={isDuplicatingBoard}
+              style={{
+                display: hasPermission("boards:update") ? "flex" : "none",
+              }}
             >
               <Copy className="w-4 h-4 mr-1" />
               {isDuplicatingBoard ? "Duplicando..." : "Duplicar"}
@@ -359,6 +377,9 @@ export function Clients() {
                 setShowDeleteModal(true);
               }}
               className="flex items-center px-4 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50"
+              style={{
+                display: hasPermission("boards:delete") ? "flex" : "none",
+              }}
             >
               <Trash2 className="w-4 h-4 mr-1" />
               Excluir
