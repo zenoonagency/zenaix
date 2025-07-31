@@ -545,56 +545,43 @@ export function KanbanBoard() {
         } else {
           // Se o card foi movido para uma lista diferente
           try {
-            // Atualização otimista
-            const updatedBoard = { ...board };
-            const fromList = updatedBoard.lists?.find(
-              (l: any) => l.id === fromListId
-            );
-            const toList = updatedBoard.lists?.find(
-              (l: any) => l.id === toListId
-            );
-
             // Calcular nova posição na lista de destino
             let newPosition: number;
-
+            const toList = board.lists.find((l: any) => l.id === toListId);
             if (toList && toList.cards.length === 0) {
-              // Se a lista estiver vazia, posição 1
               newPosition = 1;
             } else if (toList) {
-              // Se já tiver cards, pegar a próxima posição
               const maxPosition = Math.max(
                 ...toList.cards.map((c: any) => c.position || 0)
               );
               newPosition = maxPosition + 1;
             } else {
-              // Fallback
               newPosition = 1;
             }
 
-            if (fromList && toList) {
-              // Remover o card da lista de origem
-              const cardIndex = fromList.cards?.findIndex(
-                (c: any) => c.id === cardId
-              );
-              if (cardIndex !== -1) {
-                const [movedCard] = fromList.cards.splice(cardIndex, 1);
-
-                // Adicionar o card na lista de destino
-                movedCard.list_id = toListId;
-                movedCard.position = newPosition;
-                // Marcar como loading
-                setLoadingCardIds((prev) => [...prev, movedCard.id]);
-                toList.cards.push(movedCard);
-
-                // Reordenar cards por posição
-                toList.cards.sort(
-                  (a: any, b: any) => (a.position || 0) - (b.position || 0)
-                );
-
-                // Atualizar o estado local imediatamente
-                setActiveBoard(updatedBoard);
-              }
-            }
+            // Atualização otimista IMUTÁVEL
+            const updatedBoard = {
+              ...board,
+              lists: board.lists.map((l: any) => {
+                if (l.id === fromListId) {
+                  // Remove o card da lista de origem
+                  const newCards = l.cards.filter((c: any) => c.id !== cardId);
+                  return { ...l, cards: newCards };
+                }
+                if (l.id === toListId) {
+                  // Adiciona o card na lista de destino
+                  const moved = {
+                    ...movedCard,
+                    list_id: toListId,
+                    position: newPosition,
+                  };
+                  const newCards = [...l.cards, moved];
+                  return { ...l, cards: newCards };
+                }
+                return l;
+              }),
+            };
+            setActiveBoard(updatedBoard);
 
             // Atualizar no backend
             const dto: InputUpdateCardDTO = {
@@ -813,6 +800,7 @@ export function KanbanBoard() {
                       boardId={board.id}
                       isOver={list.id === overListId}
                       activeCard={activeCard}
+                      loadingCardIds={loadingCardIds}
                     />
                   ))}
                 {/* Botão '+' só aparece se houver pelo menos uma lista */}

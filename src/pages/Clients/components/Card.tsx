@@ -329,9 +329,8 @@ const Card = React.memo(
           onClick={openDetailModal}
           className={cardClassName + " flex flex-col h-full"}
         >
-          {/* Overlay de loading */}
           {isLoading && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/60 dark:bg-dark-800/60 rounded-lg">
+            <div className="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-white/60 dark:bg-dark-800/60 opacity-80 backdrop-blur-sm">
               <span className="animate-spin w-8 h-8 border-4 border-[#7f00ff] border-t-transparent rounded-full"></span>
             </div>
           )}

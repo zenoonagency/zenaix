@@ -27,14 +27,14 @@ interface ListProps {
   boardId: string;
   isOver?: boolean;
   activeCard?: BoardCard | null;
+  loadingCardIds?: string[];
 }
 
 export const List = React.memo(
-  ({ list, boardId, isOver, activeCard }: ListProps) => {
+  ({ list, boardId, isOver, activeCard, loadingCardIds = [] }: ListProps) => {
     const { theme } = useThemeStore();
     const { showToast } = useToast();
     const { customConfirm, modal } = useCustomModal();
-    const { selectAndLoadBoard } = useBoardStore();
     const { addCard } = useCardStore();
     const { token, organization } = useAuthStore();
     const isDark = theme === "dark";
@@ -48,6 +48,7 @@ export const List = React.memo(
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isCreatingCard, setIsCreatingCard] = useState(false);
+    const [temporaryCard, setTemporaryCard] = useState<BoardCard | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
     const isCompletedList =
       list.name.toLowerCase().includes("concluído") ||
@@ -146,6 +147,41 @@ export const List = React.memo(
         showToast(err?.message || "Erro ao excluir lista", "error");
       } finally {
         setIsDeleting(false);
+      }
+    };
+    const handleMoveCardToList = async (cardData: InputCreateCardDTO) => {
+      if (!token || !organization?.id) return;
+      // Cria um card temporário
+      const tempId = `temp-${Date.now()}`;
+      const tempCard: BoardCard = {
+        id: tempId,
+        ...cardData,
+        list_id: list.id,
+        position: (list.cards.length + 1) * 1000,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        subtasks: (cardData.subtasks || []).map((sub: any, idx: number) => ({
+          id: `temp-subtask-${idx}`,
+          title: sub.title,
+          is_completed: false,
+          card_id: tempId,
+          description: sub.description || "",
+        })),
+      };
+      setTemporaryCard(tempCard);
+      try {
+        const newCard = await cardService.createCard(
+          token,
+          organization.id,
+          boardId,
+          list.id,
+          cardData
+        );
+        addCard(newCard);
+      } catch (err) {
+        showToast("Erro ao criar card ao mover", "error");
+      } finally {
+        setTemporaryCard(null);
       }
     };
     const cardData = useMemo(() => list.cards, [list.cards]);
@@ -357,22 +393,35 @@ export const List = React.memo(
             }}
           >
             <SortableContext
-              items={list.cards
-                .sort((a, b) => (a.position || 0) - (b.position || 0))
-                .map((card) => card.id)}
+              items={
+                list.cards
+                  .sort((a, b) => (a.position || 0) - (b.position || 0))
+                  .map((card) => card.id)
+                // Não inclui o temporário aqui, pois ele não tem id real
+              }
               strategy={verticalListSortingStrategy}
             >
+              {temporaryCard && (
+                <Card
+                  key={temporaryCard.id}
+                  card={temporaryCard}
+                  boardId={boardId}
+                  listId={list.id}
+                  isLoading
+                />
+              )}
               {list.cards
                 .sort((a, b) => (a.position || 0) - (b.position || 0))
                 .map((card) => {
-                  const isActive = activeCard && activeCard.id === card.id;
-                  if (isActive) return null;
+                  // const isActive = activeCard && activeCard.id === card.id;
+                  // if (isActive) return null;
                   return (
                     <Card
                       key={card.id}
                       card={card}
                       boardId={boardId}
                       listId={list.id}
+                      isLoading={loadingCardIds.includes(card.id)}
                     />
                   );
                 })}
