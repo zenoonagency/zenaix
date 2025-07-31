@@ -12,10 +12,10 @@ export const permissionsLabels = {
     "boards:update": "Editar kanbans",
   },
   Listas: {
-    "lists:create": "Criar listas",
-    "lists:delete": "Excluir listas",
-    "lists:read": "Visualizar listas",
-    "lists:update": "Editar listas e marcadores",
+    "lists:create": "Criar listas e cards",
+    "lists:delete": "Excluir listas e cards",
+    "lists:read": "Visualizar listas e cards",
+    "lists:update": "Editar listas, cards e marcadores",
   },
   Calendário: {
     "calendar:create": "Criar eventos",

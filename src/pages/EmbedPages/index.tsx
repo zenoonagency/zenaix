@@ -8,6 +8,7 @@ import { PERMISSIONS } from "../../config/permissions";
 import { useEmbedPagesStore } from "../../store/embedPagesStore";
 import { EmbedOutput } from "../../types/embed";
 import { useToast } from "../../hooks/useToast";
+import { ModalCanAcess } from "../../components/ModalCanAcess";
 
 export function EmbedPages() {
   const [isActionLoading, setIsActionLoading] = useState(false);
@@ -23,6 +24,8 @@ export function EmbedPages() {
     organizationId: state.user?.organization_id,
     hasPermission: state.hasPermission,
   }));
+
+  const canAccessEmbed = hasPermission("embed:read");
 
   const { pages, isLoading } = useEmbedPagesStore();
   const { showToast } = useToast();
@@ -130,6 +133,14 @@ export function EmbedPages() {
     setActivePage(page);
     setShowEditModal(true);
   };
+
+  if (!canAccessEmbed) {
+    return (
+      <ModalCanAcess
+        title="Páginas Embed"
+      />
+    );
+  }
 
   return (
     <div className="p-6 h-[95vh] flex flex-col">

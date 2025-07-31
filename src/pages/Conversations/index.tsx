@@ -36,6 +36,7 @@ import { compressFile } from "../../utils/fileCompression";
 import "../Messaging/carousel.css";
 import { ContactProfileModal } from "../../components/ContactProfileModal";
 import { processWhatsAppMediaUrl } from "../../utils/imageUtils";
+import { ModalCanAcess } from "../../components/ModalCanAcess";
 
 const LOGO_URL = "/assets/images/zenaix-logo-bg.png";
 
@@ -206,6 +207,8 @@ function getCurrentDateFromScroll(
 
 export function Conversations() {
   const { user, token, hasPermission } = useAuthStore();
+
+  const canAccess = hasPermission("whatsapp2:read");
   const {
     instances,
     isLoading: isLoadingInstances,
@@ -776,6 +779,10 @@ export function Conversations() {
         <div className="text-center py-12">Carregando instâncias...</div>
       </div>
     );
+  }
+
+  if (!canAccess) {
+    return <ModalCanAcess title="  Conversas" />;
   }
 
   if (!hasPermission(PERMISSIONS.WHATSAPP_READ)) {

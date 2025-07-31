@@ -27,12 +27,15 @@ import { useAuthStore } from "../../store/authStore";
 import { InputCreateBoardDTO } from "../../types/board";
 import { OutputCardDTO } from "../../types/card";
 import { CardModal } from "./components/CardModal";
+import { ModalCanAcess } from "../../components/ModalCanAcess";
 
 export function Clients() {
   const { theme } = useThemeStore();
   const isDark = theme === "dark";
   const { showToast } = useToast();
-  const { token, organization } = useAuthStore();
+  const { token, organization, hasPermission } = useAuthStore();
+
+  const canAccess = hasPermission("boards:read");
 
   const {
     boards,
@@ -155,10 +158,8 @@ export function Clients() {
     }
   };
 
-  const currentBoard = activeBoard; // Usar o board ativo que já vem com listas e cards
-  const currentBoardTitle = currentBoard?.name || "Selecione um quadro";
+  const currentBoard = activeBoard;
 
-  // Garantir que as listas e cards existam antes de usar
   const allCards =
     currentBoard?.lists?.flatMap((list) => list.cards || []) || [];
   const currentList = currentBoard?.lists?.find((list) =>
@@ -167,13 +168,15 @@ export function Clients() {
 
   const handleAddList = () => {
     if (!activeBoardId || !currentBoard) {
-      showToast("Nenhum quadro encontrado. Crie um quadro primeiro!", "warning");
+      showToast(
+        "Nenhum quadro encontrado. Crie um quadro primeiro!",
+        "warning"
+      );
       return;
     }
     setShowListSelector(true);
   };
 
-  // Efeito para carregar o board ativo completo quando necessário
   useEffect(() => {
     if (
       activeBoardId &&
@@ -182,6 +185,10 @@ export function Clients() {
       selectAndLoadKanbanBoard(activeBoardId);
     }
   }, [activeBoardId, activeBoard?.lists, selectAndLoadKanbanBoard]);
+
+  if (!canAccess) {
+    return <ModalCanAcess title="Gestão de funil" />;
+  }
 
   return (
     <div className="flex flex-col">
@@ -198,11 +205,10 @@ export function Clients() {
           ) : activeBoard ? (
             <div>
               <h2 className="text-xl font-bold bg-gradient-to-r inline-block  from-[#7f00ff] to-[#e100ff]   text-transparent bg-clip-text">
-                Quadro: 
-              </h2>
-              {" "}
+                Quadro:
+              </h2>{" "}
               <h2 className="text-xl font-bold inline-block text-[#000] bg-clip-text">
-                 {activeBoard?.name}
+                {activeBoard?.name}
               </h2>
             </div>
           ) : (
@@ -233,7 +239,10 @@ export function Clients() {
             <button
               onClick={() => {
                 if (!activeBoardId || !currentBoard) {
-                  showToast("Nenhum quadro encontrado. Crie um quadro primeiro!", "warning");
+                  showToast(
+                    "Nenhum quadro encontrado. Crie um quadro primeiro!",
+                    "warning"
+                  );
                   return;
                 }
                 setShowSearchModal(true);
@@ -246,7 +255,10 @@ export function Clients() {
             <button
               onClick={() => {
                 if (!activeBoardId || !currentBoard) {
-                  showToast("Nenhum quadro encontrado. Crie um quadro primeiro!", "warning");
+                  showToast(
+                    "Nenhum quadro encontrado. Crie um quadro primeiro!",
+                    "warning"
+                  );
                   return;
                 }
                 setShowAutomationModal(true);
@@ -259,7 +271,10 @@ export function Clients() {
             <button
               onClick={() => {
                 if (!activeBoardId || !currentBoard) {
-                  showToast("Nenhum quadro encontrado. Crie um quadro primeiro!", "warning");
+                  showToast(
+                    "Nenhum quadro encontrado. Crie um quadro primeiro!",
+                    "warning"
+                  );
                   return;
                 }
                 setShowBoardConfigModal(true);
@@ -281,7 +296,10 @@ export function Clients() {
             <button
               onClick={() => {
                 if (!activeBoardId || boards.length === 0) {
-                  showToast("Nenhum quadro encontrado. Crie um quadro primeiro!", "warning");
+                  showToast(
+                    "Nenhum quadro encontrado. Crie um quadro primeiro!",
+                    "warning"
+                  );
                   return;
                 }
                 const board = boards.find((b) => b.id === activeBoardId);
@@ -302,7 +320,10 @@ export function Clients() {
                   return;
                 }
                 if (!activeBoardId || boards.length === 0) {
-                  showToast("Nenhum quadro encontrado. Crie um quadro primeiro!", "warning");
+                  showToast(
+                    "Nenhum quadro encontrado. Crie um quadro primeiro!",
+                    "warning"
+                  );
                   return;
                 }
                 setIsDuplicatingBoard(true);
@@ -328,7 +349,10 @@ export function Clients() {
             <button
               onClick={() => {
                 if (!activeBoardId || boards.length === 0) {
-                  showToast("Nenhum quadro encontrado. Crie um quadro primeiro!", "warning");
+                  showToast(
+                    "Nenhum quadro encontrado. Crie um quadro primeiro!",
+                    "warning"
+                  );
                   return;
                 }
                 setBoardToDelete(activeBoardId);

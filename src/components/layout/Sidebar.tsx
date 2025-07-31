@@ -42,6 +42,7 @@ interface SidebarLinkProps {
   exact?: boolean;
   isNew?: boolean;
   requiresOrganization?: boolean;
+  requiresPermission?: string;
 }
 
 interface SidebarSectionProps {
@@ -81,14 +82,19 @@ const SidebarLink = ({
   exact = false,
   isNew = false,
   requiresOrganization = false,
+  requiresPermission,
 }: SidebarLinkProps) => {
   const location = useLocation();
   const { checkAccess } = useOrganizationAccess();
+  const { hasPermission } = useAuthStore();
   const isActive = exact
     ? location.pathname === to
     : location.pathname.startsWith(to);
 
   const hasAccess = checkAccess(to);
+  const hasRequiredPermission = requiresPermission
+    ? hasPermission(requiresPermission)
+    : true;
 
   const linkClassName = `flex items-center ${
     collapsed ? "justify-center py-4" : ""
@@ -96,7 +102,7 @@ const SidebarLink = ({
     isActive
       ? "bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border-r-4 border-primary-500 shadow-sm"
       : ""
-  }`;
+  } ${!hasRequiredPermission ? "opacity-50 cursor-not-allowed" : ""}`;
 
   const linkContent = (
     <>
@@ -129,6 +135,17 @@ const SidebarLink = ({
       >
         {linkContent}
       </ProtectedLink>
+    );
+  }
+
+  if (!hasRequiredPermission) {
+    return (
+      <div
+        className={linkClassName}
+        title={collapsed ? `${label} (Sem permissão)` : undefined}
+      >
+        {linkContent}
+      </div>
     );
   }
 
@@ -772,11 +789,10 @@ export function Sidebar() {
         p-2
         ml-5
         mt-5
-        ml-5
         shadow-lg
         overflow-hidden
         rounded-[20px]
-h-[calc(100%-2.5rem)]
+        h-[calc(100%-2.5rem)]
         transition-all duration-300
         ${isProfileModalOpen ? "relative z-40" : ""}
       `}
@@ -912,6 +928,7 @@ h-[calc(100%-2.5rem)]
                 label="Calendário"
                 collapsed={collapsed}
                 requiresOrganization={true}
+                requiresPermission="calendar:read"
               />
             </SidebarSection>
 
@@ -923,6 +940,7 @@ h-[calc(100%-2.5rem)]
                 label="Conversas"
                 collapsed={collapsed}
                 requiresOrganization={true}
+                requiresPermission="whatsapp:read"
               />
               <SidebarLink
                 to="/dashboard/messaging"
@@ -930,6 +948,7 @@ h-[calc(100%-2.5rem)]
                 label="Disparo"
                 collapsed={collapsed}
                 requiresOrganization={true}
+                requiresPermission="dispatch:read"
               />
             </SidebarSection>
 
@@ -941,6 +960,7 @@ h-[calc(100%-2.5rem)]
                 label="Gestão de funil"
                 collapsed={collapsed}
                 requiresOrganization={true}
+                requiresPermission="boards:read"
               />
               <SidebarLink
                 to="/dashboard/team"
@@ -959,6 +979,7 @@ h-[calc(100%-2.5rem)]
                 label="Financeiro"
                 collapsed={collapsed}
                 requiresOrganization={true}
+                requiresPermission="finance:read"
               />
               <SidebarLink
                 to="/dashboard/contracts"
@@ -966,6 +987,7 @@ h-[calc(100%-2.5rem)]
                 label="Contratos"
                 collapsed={collapsed}
                 requiresOrganization={true}
+                requiresPermission="contracts:read"
               />
             </SidebarSection>
 
@@ -977,6 +999,7 @@ h-[calc(100%-2.5rem)]
                 label="Páginas Embed"
                 collapsed={collapsed}
                 requiresOrganization={true}
+                requiresPermission="embed:read"
               />
               <SidebarLink
                 to="/dashboard/connections"
@@ -984,6 +1007,7 @@ h-[calc(100%-2.5rem)]
                 label="Conexões"
                 collapsed={collapsed}
                 requiresOrganization={true}
+                requiresPermission="whatsapp:read"
               />
             </SidebarSection>
           </nav>
@@ -1009,12 +1033,16 @@ h-[calc(100%-2.5rem)]
                     {!hasOrganization && (
                       <span className="flex items-center ml-2 flex-shrink-0">
                         <Crown className="w-4 h-4 text-amber-500" />
-                        <span className="text-[10px] text-amber-500 ml-1 font-bold">PRO</span>
+                        <span className="text-[10px] text-amber-500 ml-1 font-bold">
+                          PRO
+                        </span>
                       </span>
                     )}
                     <ChevronRight
                       size={22}
-                      className={`ml-auto transform transition-transform ${showTags ? "rotate-90" : ""}`}
+                      className={`ml-auto transform transition-transform ${
+                        showTags ? "rotate-90" : ""
+                      }`}
                     />
                   </button>
                   {showTags && hasOrganization && (
@@ -1026,7 +1054,10 @@ h-[calc(100%-2.5rem)]
                     </div>
                   )}
                 </div>
-                <OrganizationRequiredModal isOpen={showOrgModal} onClose={() => setShowOrgModal(false)} />
+                <OrganizationRequiredModal
+                  isOpen={showOrgModal}
+                  onClose={() => setShowOrgModal(false)}
+                />
               </>
             )}
           </div>

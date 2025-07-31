@@ -35,6 +35,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import "./styles.css";
 import { useToast } from "../../hooks/useToast";
+import { ModalCanAcess } from "../../components/ModalCanAcess";
 
 const locales = {
   "pt-BR": ptBR,
@@ -53,7 +54,7 @@ const DragAndDropCalendar = withDragAndDrop(BigCalendar);
 export function Calendar() {
   const { events, fetchEvents, isLoading } = useCalendarStore();
 
-  const { token, user } = useAuthStore();
+  const { token, user, hasPermission } = useAuthStore();
   const { members, fetchAllMembers } = useTeamMembersStore();
   const { showToast } = useToast();
   const organizationId = user?.organization_id;
@@ -100,6 +101,8 @@ export function Calendar() {
   const [updatingEventIds, setUpdatingEventIds] = useState<Set<string>>(
     new Set()
   );
+
+  const canAccess = hasPermission("calendar:read");
 
   useEffect(() => {
     if (!token || !organizationId) return;
@@ -315,7 +318,7 @@ export function Calendar() {
         )} foram excluídos com sucesso!`,
         "success"
       );
-      
+
       setShowDeleteConfirmModal(false);
       setDateToDelete(null);
     } catch (error: any) {
@@ -499,6 +502,10 @@ export function Calendar() {
     const interval = setInterval(checkNotifications, 60000);
     return () => clearInterval(interval);
   }, [events]);
+
+  if (!canAccess) {
+    return <ModalCanAcess title="Calendário" />;
+  }
 
   return (
     <div className="flex h-full">

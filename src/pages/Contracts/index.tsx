@@ -7,21 +7,21 @@ import { useAuthStore } from "../../store/authStore";
 import { contractService } from "../../services/contract/contract.service";
 // import { useDebounce } from "../../hooks/useDebounce"; // Para futura implementação com backend
 import { useContractStore } from "../../store/contractStore";
+import { ModalCanAcess } from "../../components/ModalCanAcess";
 
 export function Contracts() {
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [itensFiltrados, setItensFiltrados] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(false);
-  // const debouncedSearch = useDebounce(searchQuery, 800); // Para futura implementação com backend
-  const { token, organizationId } = useAuthStore((state) => ({
+  const { token, organizationId, hasPermission } = useAuthStore((state) => ({
     token: state.token,
     organizationId: state.user?.organization_id,
+    hasPermission: state.hasPermission,
   }));
   const { contracts } = useContractStore();
-
+  const canAccess = hasPermission("contracts:read");
   useEffect(() => {
-    // Busca local pela store (não precisa debounce)
     if (searchQuery.trim()) {
       setLoading(true);
       const filtered = contracts.filter((c) =>
@@ -33,14 +33,6 @@ export function Contracts() {
       setItensFiltrados(null);
       setLoading(false);
     }
-    // Para futura implementação com backend, use debounce:
-    // useEffect(() => {
-    //   if (debouncedSearch.trim()) {
-    //     setLoading(true);
-    //     // chamada à API
-    //     setLoading(false);
-    //   }
-    // }, [debouncedSearch, ...]);
   }, [searchQuery, contracts]);
 
   const handleAddContract = async (contractData: any) => {
@@ -68,6 +60,10 @@ export function Contracts() {
       return false;
     }
   };
+
+  if (!canAccess) {
+    return <ModalCanAcess title="Contratos" description="Gerencie todos os seus contratos"/>;
+  }
 
   return (
     <PageContainer

@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { WhatsAppInstanceOutput, WhatsAppInstanceState } from "../types/whatsappInstance";
+import {
+  WhatsAppInstanceOutput,
+  WhatsAppInstanceState,
+} from "../types/whatsappInstance";
 import { whatsappInstanceService } from "../services/whatsappInstance.service";
 import { APIError } from "../services/errors/api.errors";
 
@@ -31,15 +34,22 @@ export const useWhatsAppInstanceStore = create<WhatsAppInstanceState>()(
 
       deleteInstance: (instanceId) =>
         set((state) => ({
-          instances: state.instances.filter((instance) => instance.id !== instanceId),
+          instances: state.instances.filter(
+            (instance) => instance.id !== instanceId
+          ),
           // Se a instância deletada era a última ativa, limpar a referência
-          lastActiveInstanceId: state.lastActiveInstanceId === instanceId ? null : state.lastActiveInstanceId,
+          lastActiveInstanceId:
+            state.lastActiveInstanceId === instanceId
+              ? null
+              : state.lastActiveInstanceId,
         })),
 
       updateQrCode: (instanceId: string, qrCode: string) => {
         set((state) => ({
           instances: state.instances.map((instance) =>
-            instance.id === instanceId ? { ...instance, qr_code: qrCode } : instance
+            instance.id === instanceId
+              ? { ...instance, qr_code: qrCode }
+              : instance
           ),
         }));
       },
@@ -65,9 +75,14 @@ export const useWhatsAppInstanceStore = create<WhatsAppInstanceState>()(
             lastFetched: Date.now(),
           });
         } catch (err: any) {
-          console.error("WhatsAppInstanceStore: Erro ao buscar instâncias:", err);
+          console.error(
+            "WhatsAppInstanceStore: Erro ao buscar instâncias:",
+            err
+          );
           const errorMessage =
-            err instanceof APIError ? err.message : "Falha ao carregar instâncias.";
+            err instanceof APIError
+              ? err.message
+              : "Falha ao carregar instâncias.";
           set({ error: errorMessage, isLoading: false });
         }
       },
@@ -88,4 +103,4 @@ export const useWhatsAppInstanceStore = create<WhatsAppInstanceState>()(
       }),
     }
   )
-); 
+);

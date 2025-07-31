@@ -4,7 +4,6 @@ import { Dashboard } from "../pages/Dashboard";
 import { Financial } from "../pages/Financial";
 import { Conversations } from "../pages/Conversations";
 import { Clients } from "../pages/Clients";
-import { Contacts } from "../pages/Contacts";
 import { Contracts } from "../pages/Contracts";
 import { Messaging } from "../pages/Messaging";
 import { Team } from "../pages/Team";
@@ -99,16 +98,7 @@ export const router = createBrowserRouter([
                   </OrganizationProtectedRoute>
                 ),
               },
-              {
-                path: "contacts",
-                element: (
-                  <OrganizationProtectedRoute>
-                    <PageTransition>
-                      <Contacts />
-                    </PageTransition>
-                  </OrganizationProtectedRoute>
-                ),
-              },
+            
               {
                 path: "financial",
                 element: (
