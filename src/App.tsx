@@ -6,74 +6,68 @@ import { NetworkStatus } from "./components/NetworkStatus";
 import { Notification } from "./components/Notification";
 import { router } from "./routes";
 import { supabase } from "./lib/supabaseClient";
+import { Loader2 } from "lucide-react";
 
 // Stores
 import { useAuthStore } from "./store/authStore";
 import { useRealtimeStore } from "./store/realtimeStore";
+// Importe todas as outras stores que você precisa inicializar
 import { usePlanStore } from "./store/planStore";
-import { useTransactionStore } from "./store/transactionStore";
-import { useEmbedPagesStore } from "./store/embedPagesStore";
 import { useTagStore } from "./store/tagStore";
 import { useContractStore } from "./store/contractStore";
 import { useTeamMembersStore } from "./store/teamMembersStore";
+import { useEmbedPagesStore } from "./store/embedPagesStore";
 import { useBoardStore } from "./store/boardStore";
-import { useCalendarStore } from "./store/calendarStore";
 import { useWhatsAppInstanceStore } from "./store/whatsAppInstanceStore";
+import { useCalendarStore } from "./store/calendarStore";
 import { useSystemPermissionsStore } from "./store/systemPermissionsStore";
 
+import { userService } from "./services/user/user.service";
+
+// NOVO: Componente de carregamento em tela cheia
+function FullScreenLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-900">
+      <Loader2 className="w-8 h-8 animate-spin text-[#7f00ff]" />
+    </div>
+  );
+}
+
 export function App() {
-  const hasInitialized = useRef(false);
   const hasFetchedGlobals = useRef(false);
+  // NOVO: Estado para controlar o carregamento inicial da aplicação.
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        const {
+          setSession,
+          updateUserDataSilently,
+          setLoading,
+          logout,
+          clearAuth,
+        } = useAuthStore.getState();
         const { connect, disconnect } = useRealtimeStore.getState();
-        const { setSession, clearAuth, fetchAndSetDeepUserData } =
-          useAuthStore.getState();
 
-        console.log(
-          "[App] Auth state change:",
-          event,
-          session?.access_token ? "Token presente" : "Sem token"
-        );
+        try {
+          console.log(`[App] Auth event: ${event}`);
 
-        if (session) {
-          setSession(session);
+          if (session && session.access_token) {
+            setSession(session);
+            const freshUserData = await userService.getMe(session.access_token);
+            updateUserDataSilently(freshUserData);
 
-          const { user, organization, permissions } = useAuthStore.getState();
-          const needsFetch =
-            !user &&
-            !organization &&
-            (!permissions || permissions.length === 0);
+            const organizationId = freshUserData.organization?.id;
+            connect(session.user.id, organizationId);
 
-          if (needsFetch) {
-            try {
-              await fetchAndSetDeepUserData();
-              hasFetchedGlobals.current = false; // Permite fetch global após reload/login
+            if (event === "SIGNED_IN" && !hasFetchedGlobals.current) {
+              hasFetchedGlobals.current = true;
               console.log(
-                "[App] fetchAndSetDeepUserData executado por reload de página"
+                "[App] First sign-in detected. Fetching all global data..."
               );
-            } catch (error) {
-              console.error("[App] Erro ao buscar dados completos:", error);
-            }
-          } else {
-            console.log(
-              "[App] Dados já presentes na store, não faz fetchAndSetDeepUserData"
-            );
-          }
-
-          if (!hasFetchedGlobals.current) {
-            hasFetchedGlobals.current = true;
-
-            // Usar organization_id do Supabase user_metadata se disponível
-            const organizationId = session.user?.user_metadata?.organization_id;
-            const organizationData = session.user?.user_metadata?.organization;
-
-            if (session.access_token && session.user) {
-              usePlanStore.getState().fetchAllPlans(session.access_token);
-
-              if (organizationId && organizationData) {
+              if (organizationId) {
+                usePlanStore.getState().fetchAllPlans(session.access_token);
                 useSystemPermissionsStore
                   .getState()
                   .fetchAllSystemPermissions(session.access_token);
@@ -96,33 +90,36 @@ export function App() {
                   .getState()
                   .fetchAllInstances(session.access_token, organizationId);
                 useCalendarStore.getState().fetchEvents();
-                connect(session.user.id, organizationId);
-              } else {
-                connect(session.user.id, undefined);
               }
-            } else {
-              console.warn("[App] Session ou access_token ausentes");
             }
+          } else if (event === "SIGNED_OUT") {
+            hasFetchedGlobals.current = false;
+            disconnect();
+            clearAuth();
           }
-        } else if (event === "SIGNED_OUT") {
-          hasFetchedGlobals.current = false;
-          hasInitialized.current = false;
-
-          disconnect();
-          clearAuth();
-
-          localStorage.removeItem("auth-storage");
+        } catch (error) {
+          console.error(
+            "[App] Critical error during session processing. Logging out.",
+            error
+          );
+          await logout();
+        } finally {
+          // MODIFICADO: Garante que a aplicação seja exibida após a primeira verificação.
+          setIsInitializing(false);
         }
       }
     );
 
     return () => {
-      console.log(
-        "[App] Desmontando componente. Removendo listener de autenticação."
-      );
+      console.log("[App] Unmounting. Unsubscribing from auth listener.");
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  // NOVO: Renderiza o loader enquanto a verificação inicial não termina.
+  if (isInitializing) {
+    return <FullScreenLoader />;
+  }
 
   return (
     <>

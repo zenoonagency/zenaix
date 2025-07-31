@@ -24,6 +24,7 @@ export interface User {
   phone_number?: string;
   permissions: string[];
   email_verified?: boolean;
+  organization?: OrganizationOutput | null; 
 }
 
 export interface RegisterData {
@@ -57,15 +58,16 @@ export interface AuthState {
   _hasHydrated: boolean;
   _isLoggingOut: boolean;
   plan?: any;
+  isLoading: boolean;
 
   setSession: (session: Session) => void;
   updateToken: (newToken: string) => void;
-  fetchAndSetDeepUserData: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   clearAuth: () => void;
   setOrganization: (organizationData: OrganizationOutput) => void;
   isLoggingOut: () => boolean;
   hasPermission: (permission: string) => boolean;
   updateUser: (userData: Partial<User>) => void;
-  setUserDataFromMe: (meData: any) => void;
+  updateUserDataSilently: (meData: User) => void;
+  setLoading: (loading: boolean) => void; // <-- NOVA AÇÃO
 }

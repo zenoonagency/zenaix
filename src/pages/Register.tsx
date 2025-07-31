@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Loader2,
@@ -14,16 +14,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "../components/ui/Input";
 import { useAuthStore } from "../store/authStore";
 import { useToast } from "../hooks/useToast";
-import { authService } from "../services/authService"; // ✅ Usando seu serviço
+import { authService } from "../services/authService";
 import { RegisterData } from "../types/auth";
 import { LANGUAGE_OPTIONS } from "../contexts/LocalizationContext";
 import { TIMEZONE_OPTIONS } from "../utils/dateUtils";
 import { useThemeStore } from "../store/themeStore";
 import { ParticlesEffect } from "../components/effects/ParticlesEffect";
 import { compressImage } from "../utils/imageCompression";
-import { supabase } from "../lib/supabaseClient"; // ✅ Usado para setSession
+import { supabase } from "../lib/supabaseClient";
 import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
-import { userService } from "../services/user/user.service"; // ✅ Usado para getMe
+import { userService } from "../services/user/user.service";
 
 export function Register() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -42,18 +42,19 @@ export function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const navigate = useNavigate();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const _hasHydrated = useAuthStore((state) => state._hasHydrated);
   const { showToast } = useToast();
   const { theme } = useThemeStore();
-  const { setUserDataFromMe, clearAuth } = useAuthStore.getState();
 
-  // Desabilitado para não redirecionar automaticamente
-  // React.useEffect(() => {
-  //   if (isAuthenticated) {
-  //     navigate("/dashboard", { replace: true });
-  //   }
-  // }, [isAuthenticated, navigate]);
+  const { isAuthenticated, _hasHydrated } = useAuthStore((state) => ({
+    isAuthenticated: state.isAuthenticated,
+    _hasHydrated: state._hasHydrated,
+  }));
+
+  useEffect(() => {
+    if (_hasHydrated && isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [_hasHydrated, isAuthenticated, navigate]);
 
   if (!_hasHydrated) {
     return (
@@ -131,78 +132,35 @@ export function Register() {
     setLoading(true);
 
     try {
-      console.log("[Register] Iniciando registro...");
+      // 1. Registrar o usuário no seu backend.
       const response = await authService.register(formData);
-      console.log("[Register] Registro realizado:", response);
+      const { session } = response;
 
+      // 2. MODIFICADO: Se houver um avatar, faz o upload usando o token recém-criado.
+      if (formData.avatar) {
+        console.log("[Register] Avatar detected, uploading...");
+        await userService.updateAvatar(session.access_token, formData.avatar);
+        console.log("[Register] Avatar uploaded successfully.");
+      }
+
+      // 3. CRÍTICO: AGORA, inicia a sessão no cliente Supabase.
+      // Isso irá disparar o `onAuthStateChange` no App.js com o evento 'SIGNED_IN'.
+      // O App.js fará o getMe final (que agora incluirá o avatar_url) e buscará os dados globais.
       const { error: sessionError } = await supabase.auth.setSession({
-        access_token: response.session.access_token,
-        refresh_token: response.session.refresh_token,
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
       });
 
       if (sessionError) {
-        console.error(
-          "[Register] Erro ao setar sessão no Supabase:",
-          sessionError
-        );
         throw sessionError;
       }
-      console.log("[Register] Sessão do Supabase ativada");
-
-      setUserDataFromMe(response.data);
-      console.log("[Register] Usuário salvo na store:", response.data);
-
-      // Se o usuário selecionou avatar, atualizar antes de buscar dados finais
-      if (formData.avatar) {
-        console.log("[Register] Avatar selecionado, enviando update...");
-        try {
-          await userService.updateAvatar(
-            response.session.access_token,
-            formData.avatar
-          );
-          console.log("[Register] Avatar atualizado com sucesso");
-        } catch (avatarErr) {
-          console.error("[Register] Erro ao atualizar avatar:", avatarErr);
-          showToast("Erro ao atualizar avatar", "error");
-        }
-      }
-
-      // Buscar dados finais (sempre após avatar se houver)
-      const finalUser = await userService.getMe(response.session.access_token);
-      setUserDataFromMe(finalUser);
-      console.log("[Register] Dados finais obtidos:", finalUser);
-
-      showToast("Conta criada com sucesso!", "success");
-      console.log("[Register] Redirecionando para dashboard...");
-      navigate("/dashboard", { replace: true });
     } catch (error: any) {
-      await supabase.auth.signOut();
       const message = handleSupabaseError(error, "Erro ao registrar usuário");
       setError(message);
       showToast(message, "error");
-      clearAuth();
-      console.error("[Register] Erro no fluxo de registro:", error);
-    } finally {
       setLoading(false);
     }
   };
-
-  const handleLoginClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    navigate("/login");
-  };
-
-  const toggleShowPassword = () => setShowPassword(!showPassword);
-  const toggleShowConfirmPassword = () =>
-    setShowConfirmPassword(!showConfirmPassword);
-
-  React.useEffect(() => {
-    return () => {
-      if (avatarPreview) {
-        URL.revokeObjectURL(avatarPreview);
-      }
-    };
-  }, [avatarPreview]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
@@ -279,7 +237,7 @@ export function Register() {
                   />
                   <button
                     type="button"
-                    onClick={toggleShowPassword}
+                    onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-[47px] transform -translate-y-1/2 text-gray-500"
                   >
                     {showPassword ? (
@@ -301,7 +259,7 @@ export function Register() {
                   />
                   <button
                     type="button"
-                    onClick={toggleShowConfirmPassword}
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-[47px] transform -translate-y-1/2 text-gray-500"
                   >
                     {showConfirmPassword ? (
@@ -449,7 +407,6 @@ export function Register() {
           <Link
             to="/login"
             className="text-[#7f00ff] hover:text-[#7f00ff]/80 transition-colors"
-            onClick={handleLoginClick}
           >
             Faça login
           </Link>

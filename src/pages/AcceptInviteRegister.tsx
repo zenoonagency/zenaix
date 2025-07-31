@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import {
   Loader2,
@@ -19,26 +19,26 @@ import { ParticlesEffect } from "../components/effects/ParticlesEffect";
 import { inviteService } from "../services/invite/invite.service";
 import { LANGUAGE_OPTIONS } from "../contexts/LocalizationContext";
 import { TIMEZONE_OPTIONS } from "../utils/dateUtils";
-import { userService } from "../services/user/user.service";
 import { compressImage } from "../utils/imageCompression";
-import { OAuthButtonsInvite } from "../components/auth/OAuthButtonsInvite";
 import { supabase } from "../lib/supabaseClient";
 import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
 import { authService } from "../services/authService";
+import { RegisterData } from "../types/auth";
+import { userService } from "../services/user/user.service";
 
 export function AcceptInviteRegister() {
   const [searchParams] = useSearchParams();
   const org = searchParams.get("org");
   const inviteToken = searchParams.get("token");
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<RegisterData>({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
     language: "pt-BR",
     timezone: "America/Sao_Paulo",
-    avatar: undefined as File | undefined,
+    avatar: undefined,
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,7 +48,37 @@ export function AcceptInviteRegister() {
   const { showToast } = useToast();
   const { theme } = useThemeStore();
   const navigate = useNavigate();
-  const { setUserDataFromMe, clearAuth } = useAuthStore.getState();
+
+  // Observa o estado de autenticação para redirecionamento automático
+  const { isAuthenticated, _hasHydrated } = useAuthStore((state) => ({
+    isAuthenticated: state.isAuthenticated,
+    _hasHydrated: state._hasHydrated,
+  }));
+
+  // Efeito que redireciona o usuário assim que o App.js confirmar a autenticação
+  useEffect(() => {
+    if (_hasHydrated && isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [_hasHydrated, isAuthenticated, navigate]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
+
+  if (!_hasHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-900">
+        <span className="text-gray-700 dark:text-gray-200 text-lg">
+          Carregando...
+        </span>
+      </div>
+    );
+  }
 
   const logoUrl =
     theme === "dark"
@@ -56,7 +86,7 @@ export function AcceptInviteRegister() {
       : "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-DARK.png";
 
   const handleInputChange = (
-    field: string,
+    field: keyof RegisterData,
     value: string | File | undefined
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -81,9 +111,7 @@ export function AcceptInviteRegister() {
   };
 
   const nextStep = (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
+    if (e) e.preventDefault();
     if (currentStep === 1) {
       if (
         !formData.name ||
@@ -117,21 +145,17 @@ export function AcceptInviteRegister() {
     setError("");
     setLoading(true);
 
+    if (!inviteToken) {
+      setError("Token de convite inválido ou ausente.");
+      showToast("Token de convite inválido ou ausente.", "error");
+      setLoading(false);
+      return;
+    }
+
     try {
-      // 1. Registro via backend
       const response = await authService.register(formData);
-      // 2. Ativar sessão no Supabase
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: response.session.access_token,
-        refresh_token: response.session.refresh_token,
-      });
-      if (sessionError) {
-        throw sessionError;
-      }
+      const { session } = response;
 
-      setUserDataFromMe(response.data);
-
-      // 3. Upload do avatar (opcional)
       if (formData.avatar) {
         try {
           await userService.updateAvatar(
@@ -143,24 +167,21 @@ export function AcceptInviteRegister() {
         }
       }
 
-      // 4. Buscar dados finais (sempre após avatar se houver)
-      const finalUser = await userService.getMe(response.session.access_token);
-      setUserDataFromMe(finalUser);
+      await inviteService.acceptInvite(session.access_token, {
+        token: inviteToken,
+      });
 
-      // 5. Aceitar convite
-      if (inviteToken) {
-        await inviteService.acceptInvite(response.session.access_token, {
-          token: inviteToken,
-        });
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      });
+
+      if (sessionError) {
+        throw sessionError;
       }
 
-      // 6. Redirecionar
-      showToast("Convite aceito com sucesso!", "success");
-      navigate("/dashboard");
     } catch (error: any) {
-      await supabase.auth.signOut();
       const message = handleSupabaseError(error, "Erro ao registrar");
-      setError(message);
       if (
         message.toLowerCase().includes("já existe") ||
         message.toLowerCase().includes("already registered")
@@ -178,20 +199,12 @@ export function AcceptInviteRegister() {
         );
         return;
       }
+      setError(message);
       showToast(message, "error");
-      clearAuth();
     } finally {
       setLoading(false);
     }
   };
-
-  React.useEffect(() => {
-    return () => {
-      if (avatarPreview) {
-        URL.revokeObjectURL(avatarPreview);
-      }
-    };
-  }, [avatarPreview]);
 
   const toggleShowPassword = () => setShowPassword(!showPassword);
   const toggleShowConfirmPassword = () =>
@@ -214,15 +227,9 @@ export function AcceptInviteRegister() {
             {org}
           </div>
         )}
-        <motion.h2
-          className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white"
-          initial={{ y: -10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.3 }}
-        >
+        <h2 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
           {currentStep === 1 ? "Criar Conta" : "Configurações"}
-        </motion.h2>
-        {/* Indicador de progresso */}
+        </h2>
         <div className="flex items-center justify-center mb-6">
           <div className="flex space-x-2">
             <div
@@ -311,15 +318,6 @@ export function AcceptInviteRegister() {
                     )}
                   </button>
                 </div>
-                <div className="flex justify-end mt-4">
-                  <button
-                    type="button"
-                    onClick={nextStep}
-                    className="flex items-center px-4 py-2 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:ring-offset-2"
-                  >
-                    Próximo <ArrowRight className="w-4 h-4 ml-2" />
-                  </button>
-                </div>
               </motion.div>
             )}
             {currentStep === 2 && (
@@ -331,46 +329,44 @@ export function AcceptInviteRegister() {
                 transition={{ duration: 0.3 }}
                 className="space-y-4"
               >
-                <div className="flex flex-col  mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Avatar (opcional)
-                    </label>
-                    <div className="flex items-center space-x-4">
-                      {avatarPreview ? (
-                        <div className="relative">
-                          <img
-                            src={avatarPreview}
-                            alt="Avatar preview"
-                            className="w-16 h-16 rounded-full object-cover border-2 border-[#7f00ff]"
-                          />
-                          <button
-                            type="button"
-                            onClick={removeAvatar}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                          <User className="w-8 h-8 text-gray-400" />
-                        </div>
-                      )}
-                      <label className="cursor-pointer bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                        <Upload className="w-4 h-4 inline mr-2" />
-                        Escolher arquivo
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAvatarChange}
-                          className="hidden"
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Avatar (opcional)
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    {avatarPreview ? (
+                      <div className="relative">
+                        <img
+                          src={avatarPreview}
+                          alt="Avatar preview"
+                          className="w-16 h-16 rounded-full object-cover border-2 border-[#7f00ff]"
                         />
-                      </label>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={removeAvatar}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                        <User className="w-8 h-8 text-gray-400" />
+                      </div>
+                    )}
+                    <label className="cursor-pointer bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                      <Upload className="w-4 h-4 inline mr-2" />
+                      Escolher arquivo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
                 </div>
-                <div className="mb-4">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Fuso Horário
                   </label>
@@ -388,7 +384,7 @@ export function AcceptInviteRegister() {
                     ))}
                   </select>
                 </div>
-                <div className="mb-4">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Idioma
                   </label>
@@ -406,41 +402,45 @@ export function AcceptInviteRegister() {
                     ))}
                   </select>
                 </div>
-
-                <div className="flex justify-between mt-4">
-                  <button
-                    type="button"
-                    onClick={prevStep}
-                    className="flex items-center px-4 py-2 bg-gray-200 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:ring-offset-2"
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="flex items-center px-4 py-2 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:ring-offset-2 disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <span className="flex items-center justify-center">
-                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                        Registrando...
-                      </span>
-                    ) : (
-                      "Registrar e aceitar convite"
-                    )}
-                  </button>
-                </div>
               </motion.div>
             )}
           </AnimatePresence>
+          <div className="flex space-x-3 pt-4">
+            {currentStep > 1 && (
+              <button
+                type="button"
+                onClick={prevStep}
+                className="flex-1 flex items-center justify-center px-4 py-2 bg-gray-200 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:ring-offset-2"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
+              </button>
+            )}
+            {currentStep < 2 ? (
+              <button
+                type="button"
+                onClick={nextStep}
+                className="flex-1 flex items-center justify-center px-4 py-2 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:ring-offset-2"
+              >
+                Próximo <ArrowRight className="w-4 h-4 ml-2" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 bg-[#7f00ff] text-white py-2 px-4 rounded-md hover:bg-[#7f00ff]/90 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:ring-offset-2 disabled:opacity-50"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />{" "}
+                    Registrando...
+                  </span>
+                ) : (
+                  "Registrar e aceitar convite"
+                )}
+              </button>
+            )}
+          </div>
         </form>
-
-        <OAuthButtonsInvite
-          className="mt-6"
-          org={org}
-          inviteToken={inviteToken}
-        />
-
         <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           Já tem uma conta?{" "}
           <Link

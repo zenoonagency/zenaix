@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { Loader2, Eye, EyeOff } from "lucide-react";
@@ -8,7 +8,7 @@ import { useThemeStore } from "../store/themeStore";
 import { ParticlesEffect } from "../components/effects/ParticlesEffect";
 import { useToast } from "../hooks/useToast";
 import { OAuthButtons } from "../components/auth/OAuthButtons";
-import { supabase } from "../lib/supabaseClient"; // ✅ Importar o Supabase client
+import { supabase } from "../lib/supabaseClient";
 import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
 import { userService } from "../services/user/user.service";
 
@@ -21,12 +21,18 @@ export function Login() {
   const { theme } = useThemeStore();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const _hasHydrated = useAuthStore((state) => state._hasHydrated);
-  const { setUserDataFromMe, clearAuth } = useAuthStore.getState();
-  const user = useAuthStore((state) => state.user);
-  const organization = useAuthStore((state) => state.organization);
-  const permissions = useAuthStore((state) => state.permissions);
+
+  const { isAuthenticated, _hasHydrated } = useAuthStore((state) => ({
+    isAuthenticated: state.isAuthenticated,
+    _hasHydrated: state._hasHydrated,
+  }));
+
+  // Este useEffect ainda é útil para redirecionar usuários que já chegam na página logados.
+  useEffect(() => {
+    if (_hasHydrated && isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [_hasHydrated, isAuthenticated, navigate]);
 
   if (!_hasHydrated) {
     return (
@@ -49,7 +55,7 @@ export function Login() {
     setLoading(true);
 
     try {
-      // 1. Login Supabase
+      // 1. Fazer login com Supabase para obter a sessão/token
       const { data, error: signInError } =
         await supabase.auth.signInWithPassword({
           email,
@@ -57,25 +63,24 @@ export function Login() {
         });
 
       if (signInError || !data.session) {
-        throw signInError || new Error("Sessão não encontrada");
+        throw signInError || new Error("Sessão não encontrada após o login.");
       }
 
-      // 2. Buscar getMe com access_token
       const token = data.session.access_token;
-      const meResponse = await userService.getMe(token);
-      if (!meResponse) throw new Error("Erro ao buscar dados do usuário");
+      const meData = await userService.getMe(token);
 
-      // 3. Salvar tudo na store
-      setUserDataFromMe(meResponse);
+      const { updateUserDataSilently } = useAuthStore.getState();
+      updateUserDataSilently(meData);
 
-      // 4. Redirecionar (só após getMe)
       navigate("/dashboard", { replace: true });
     } catch (error: any) {
       await supabase.auth.signOut();
+      const { clearAuth } = useAuthStore.getState();
+      clearAuth();
+
       const message = handleSupabaseError(error, "Erro ao fazer login");
       setError(message);
       showToast(message, "error");
-      clearAuth();
     } finally {
       setLoading(false);
     }
@@ -85,38 +90,22 @@ export function Login() {
     setShowPassword(!showPassword);
   };
 
-  const handleRegisterClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    navigate("/register");
-  };
-
+  // O resto do seu componente JSX permanece o mesmo...
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
-      {/* Efeito de partículas no fundo */}
       <ParticlesEffect />
-
       <motion.div
         className="bg-white dark:bg-dark-800 p-8 rounded-lg shadow-md w-96 backdrop-blur-sm bg-opacity-90 dark:bg-opacity-90 relative z-10"
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.3 }}
       >
-        <motion.div
-          className="flex items-center justify-center mb-6"
-          initial={{ y: -20 }}
-          animate={{ y: 0 }}
-          transition={{ delay: 0.1, duration: 0.3 }}
-        >
+        <div className="flex items-center justify-center mb-6">
           <img src={logoUrl} alt="Login" className="w-24" />
-        </motion.div>
-        <motion.h2
-          className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white"
-          initial={{ y: -10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.3 }}
-        >
+        </div>
+        <h2 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
           Seja bem-vindo!
-        </motion.h2>
+        </h2>
 
         {error && (
           <motion.div
@@ -129,11 +118,7 @@ export function Login() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <motion.div
-            initial={{ x: -10, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.3 }}
-          >
+          <div>
             <Input
               type="email"
               value={email}
@@ -141,12 +126,8 @@ export function Login() {
               label="Email"
               required
             />
-          </motion.div>
-          <motion.div
-            initial={{ x: -10, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.3 }}
-          >
+          </div>
+          <div>
             <div className="relative">
               <Input
                 type={showPassword ? "text" : "password"}
@@ -167,13 +148,9 @@ export function Login() {
                 )}
               </button>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ y: 10, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.3 }}
-          >
+          <div>
             <button
               type="submit"
               disabled={loading}
@@ -182,51 +159,34 @@ export function Login() {
               {loading ? (
                 <span className="flex items-center justify-center">
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Carregando dados...
+                  Carregando...
                 </span>
               ) : (
                 "Entrar"
               )}
             </button>
-          </motion.div>
+          </div>
         </form>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.3 }}
-        >
-          <OAuthButtons className="mt-6" />
-        </motion.div>
+        <OAuthButtons className="mt-6" />
 
-        <motion.div
-          className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7, duration: 0.3 }}
-        >
+        <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           Não tem uma conta?{" "}
           <Link
             to="/register"
             className="text-[#7f00ff] hover:text-[#7f00ff]/80 transition-colors"
-            onClick={handleRegisterClick}
           >
             Cadastre-se
           </Link>
-        </motion.div>
-        <motion.div
-          className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.3 }}
-        >
+        </div>
+        <div className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
           <Link
             to="/forgot-password"
             className="text-[#7f00ff] hover:text-[#7f00ff]/80 transition-colors"
           >
             Esqueceu sua senha?
           </Link>
-        </motion.div>
+        </div>
       </motion.div>
     </div>
   );

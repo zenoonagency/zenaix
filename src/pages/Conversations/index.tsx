@@ -1633,7 +1633,6 @@ export function Conversations() {
         onUpdate={handleUpdateContact}
       />
 
-      {/* Modal de imagem */}
       {showImageModal && selectedImage && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
@@ -1643,7 +1642,6 @@ export function Conversations() {
           }}
         >
           <div className="relative max-w-6xl max-h-[95vh] overflow-hidden">
-            {/* Botões de ação - posicionados sobre a imagem */}
             <div className="absolute top-4 right-4 flex gap-2 z-10">
               <button
                 onClick={async () => {

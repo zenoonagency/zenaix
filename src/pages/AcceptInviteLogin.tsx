@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { Loader2, Eye, EyeOff } from "lucide-react";
@@ -25,7 +25,27 @@ export function AcceptInviteLogin() {
   const { theme } = useThemeStore();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { setUserDataFromMe, clearAuth } = useAuthStore.getState();
+
+  const { isAuthenticated, _hasHydrated } = useAuthStore((state) => ({
+    isAuthenticated: state.isAuthenticated,
+    _hasHydrated: state._hasHydrated,
+  }));
+
+  useEffect(() => {
+    if (_hasHydrated && isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [_hasHydrated, isAuthenticated, navigate]);
+
+  if (!_hasHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-900">
+        <span className="text-gray-700 dark:text-gray-200 text-lg">
+          Carregando...
+        </span>
+      </div>
+    );
+  }
 
   const logoUrl =
     theme === "dark"
@@ -37,8 +57,15 @@ export function AcceptInviteLogin() {
     setError("");
     setLoading(true);
 
+    if (!inviteToken) {
+      setError("Token de convite inválido ou ausente.");
+      showToast("Token de convite inválido ou ausente.", "error");
+      setLoading(false);
+      return;
+    }
+
     try {
-      // 1. Login Supabase
+      // 1. Fazer login com Supabase para obter a sessão/token
       const { data, error: signInError } =
         await supabase.auth.signInWithPassword({
           email,
@@ -46,42 +73,32 @@ export function AcceptInviteLogin() {
         });
 
       if (signInError || !data.session) {
-        throw signInError || new Error("Sessão não encontrada");
+        throw signInError || new Error("Sessão não encontrada após o login.");
       }
-
-      // 2. Buscar getMe com access_token
       const token = data.session.access_token;
-      const meResponse = await userService.getMe(token);
-      if (!meResponse) throw new Error("Erro ao buscar dados do usuário");
 
-      // 3. Salvar tudo na store
-      setUserDataFromMe(meResponse);
+      await inviteService.acceptInvite(token, { token: inviteToken });
 
-      // 4. Aceitar convite
-      if (inviteToken) {
-        await inviteService.acceptInvite(token, { token: inviteToken });
-      }
+      const finalUserData = await userService.getMe(token);
 
-      // 5. Redirecionar (só após getMe)
-      showToast("Convite aceito com sucesso!", "success");
-      navigate("/dashboard");
+      const { updateUserDataSilently } = useAuthStore.getState();
+      updateUserDataSilently(finalUserData);
+
+      navigate("/dashboard", { replace: true });
+
     } catch (error: any) {
+      // Em caso de erro, deslogar para garantir um estado limpo
       await supabase.auth.signOut();
-      const message = handleSupabaseError(error, "Erro ao fazer login");
-      if (
-        message.includes("Convite não pode ser aceito. Status atual: ACCEPTED.")
-      ) {
-        setError(
-          "Este convite já foi aceito anteriormente. Faça login normalmente."
-        );
-        showToast(
-          "Este convite já foi aceito anteriormente. Faça login normalmente.",
-          "info"
-        );
+      const { clearAuth } = useAuthStore.getState();
+      clearAuth();
+
+      const message = handleSupabaseError(error, "Erro ao aceitar o convite");
+      if (message.includes("Convite não pode ser aceito. Status atual: ACCEPTED.")) {
+        setError("Este convite já foi aceito. Faça login normalmente.");
+        showToast("Este convite já foi aceito.", "info");
       } else {
         setError(message);
         showToast(message, "error");
-        clearAuth();
       }
     } finally {
       setLoading(false);

@@ -337,6 +337,12 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
       }
       break;
     }
+    case "INVITATION_ACCEPTED": {
+      if (payload.data?.user) {
+        useTeamMembersStore.getState().addMember(payload.data.user);
+      }
+      break;
+    }
     default:
       break;
   }
