@@ -27,7 +27,6 @@ export function AcceptInviteLogin() {
   const { showToast } = useToast();
   const { setUserDataFromMe, clearAuth } = useAuthStore.getState();
 
-
   const logoUrl =
     theme === "dark"
       ? "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT.png"
@@ -40,10 +39,11 @@ export function AcceptInviteLogin() {
 
     try {
       // 1. Login Supabase
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
       if (signInError || !data.session) {
         throw signInError || new Error("Sessão não encontrada");
@@ -62,7 +62,7 @@ export function AcceptInviteLogin() {
         await inviteService.acceptInvite(token, { token: inviteToken });
       }
 
-      // 5. Redirecionar
+      // 5. Redirecionar (só após getMe)
       showToast("Convite aceito com sucesso!", "success");
       navigate("/dashboard");
     } catch (error: any) {

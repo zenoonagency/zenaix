@@ -29,6 +29,22 @@ export const useAuthStore = create<AuthState>()(
           "[AuthStore] setSession chamado com token:",
           session.access_token ? "presente" : "ausente"
         );
+        console.log(
+          "[AuthStore] setSession - existingUser:",
+          get().user ? "presente" : "ausente",
+          "ID:",
+          get().user?.id
+        );
+        console.log(
+          "[AuthStore] setSession - existingOrganization:",
+          get().organization ? "presente" : "ausente",
+          "ID:",
+          get().organization?.id
+        );
+        console.log(
+          "[AuthStore] setSession - existingPermissions count:",
+          get().permissions.length
+        );
 
         if (currentUser && currentUser.id !== supabaseUser.id) {
           // Remover tudo de cleanAllUserDataStores e o array stores, pois não são mais necessários com o novo logout seguro.
@@ -57,35 +73,19 @@ export const useAuthStore = create<AuthState>()(
         };
 
         // Se já temos dados completos no localStorage, usar eles
-        const existingUser = get().user;
-        const existingOrganization = get().organization;
-        const existingPermissions = get().permissions;
+        // Se o usuário do Supabase existe, considerá-lo autenticado, e setUserDataFromMe/fetchAndSetDeepUserData lida com os dados completos.
+        set({
+          isAuthenticated: true, // Sempre true se o Supabase reporta uma sessão
+          token: session.access_token,
+          user: basicUser, // Iniciar com dados básicos do Supabase
+          organization: get().organization || null, // Manter o existente ou null
+          permissions: get().permissions || [], // Manter as existentes ou vazias
+        });
 
-        if (
-          existingUser &&
-          existingOrganization &&
-          existingPermissions.length > 0
-        ) {
-          console.log("[AuthStore] Usando dados existentes do localStorage");
-          set({
-            isAuthenticated: true,
-            token: session.access_token,
-            user: existingUser,
-            organization: existingOrganization,
-            permissions: existingPermissions,
-          });
-        } else {
-          console.log(
-            "[AuthStore] Dados incompletos, definindo usuário básico"
-          );
-          set({
-            isAuthenticated: false, // Só fica true após getMe
-            token: session.access_token,
-            user: basicUser,
-            organization: null,
-            permissions: [],
-          });
-        }
+        console.log(
+          "[AuthStore] setSession completado. isAuthenticated:",
+          get().isAuthenticated
+        );
       },
 
       updateToken: (newToken: string) => {
@@ -189,7 +189,8 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true, // Só aqui fica true!
         });
       },
-      clearAuth: () => set({ user: null, organization: null, permissions: [], plan: null }),
+      clearAuth: () =>
+        set({ user: null, organization: null, permissions: [], plan: null }),
 
       setOrganization: (organizationData: OrganizationOutput) => {
         set({ organization: organizationData });

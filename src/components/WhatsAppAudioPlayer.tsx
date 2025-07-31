@@ -34,6 +34,7 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
     const handleLoadedMetadata = () => {
       setDuration(audio.duration);
       setIsLoading(false);
+      setHasError(false);
     };
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleEnded = () => {
@@ -42,16 +43,25 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
     };
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
-    const handleError = () => {
+    const handleError = (e) => {
+      console.error("Erro no áudio:", e);
       setHasError(true);
       setIsLoading(false);
+      setIsPlaying(false);
     };
+    const handleLoadStart = () => {
+      setIsLoading(true);
+      setHasError(false);
+    };
+
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("ended", handleEnded);
     audio.addEventListener("play", handlePlay);
     audio.addEventListener("pause", handlePause);
     audio.addEventListener("error", handleError);
+    audio.addEventListener("loadstart", handleLoadStart);
+
     return () => {
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("timeupdate", handleTimeUpdate);
@@ -59,6 +69,7 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
       audio.removeEventListener("play", handlePlay);
       audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("error", handleError);
+      audio.removeEventListener("loadstart", handleLoadStart);
     };
   }, []);
 
@@ -69,17 +80,31 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handlePlayPause = () => {
+  const handlePlayPause = async () => {
     if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
+
+    try {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        // Pausar todos os outros áudios antes de tocar este
+        const allAudios = document.querySelectorAll("audio");
+        allAudios.forEach((audio) => {
+          if (audio !== audioRef.current) {
+            audio.pause();
+          }
+        });
+
+        await audioRef.current.play();
+      }
+    } catch (error) {
+      console.error("Erro ao reproduzir áudio:", error);
+      setHasError(true);
     }
   };
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || hasError) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const width = rect.width;
@@ -92,7 +117,11 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
   // Gera barras de onda fake (visual)
   const renderWaveform = () => {
     const bars = [];
-    const totalBars = 28;
+    // Calcular largura disponível para as ondas (excluindo espaço do avatar)
+    const availableWidth = 200; // Largura fixa para as ondas
+    const barWidth = 3; // Largura de cada barra (2px + 1px margin)
+    const totalBars = Math.floor(availableWidth / barWidth);
+
     for (let i = 0; i < totalBars; i++) {
       // Altura fake, mas com padrão de "onda"
       const base = [6, 10, 14, 18, 22, 18, 14, 10, 6];
@@ -124,6 +153,16 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
     return bars;
   };
 
+  if (hasError) {
+    return (
+      <div className="w-full flex items-center justify-center p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
+        <span className="text-sm text-red-600 dark:text-red-400">
+          Erro ao carregar áudio
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full flex flex-col">
       <div className="flex items-center w-full">
@@ -146,10 +185,10 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
         </button>
         {/* Barra de onda fake */}
         <div
-          className="flex-1 flex items-end h-7 cursor-pointer select-none"
+          className="flex-1 flex items-end h-7 cursor-pointer select-none overflow-hidden"
           onClick={handleSeek}
         >
-          {renderWaveform()}
+          <div className="flex items-end h-7">{renderWaveform()}</div>
         </div>
         {/* Avatar à direita */}
         {avatarUrl ? (

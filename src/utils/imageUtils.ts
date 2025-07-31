@@ -311,3 +311,64 @@ export function processImageUrl(src: string): string {
   console.error("processImageUrl - Formato de imagem não reconhecido");
   return "";
 }
+
+/**
+ * Processa uma URL de mídia do WhatsApp para garantir que é válida e segura
+ * @param mediaUrl URL da mídia
+ * @param mediaType Tipo da mídia (opcional)
+ * @returns URL processada
+ */
+export function processWhatsAppMediaUrl(
+  mediaUrl: string,
+  mediaType?: string
+): string {
+  if (!mediaUrl) {
+    console.error("URL de mídia vazia recebida");
+    return "";
+  }
+
+  // Se já for uma data URI, retornar como está
+  if (mediaUrl.startsWith("data:")) {
+    return mediaUrl;
+  }
+
+  // Corrigir URLs sem protocolo
+  if (mediaUrl.startsWith("//")) {
+    mediaUrl = "https:" + mediaUrl;
+  }
+
+  // Verificar se é uma URL relativa
+  if (mediaUrl.startsWith("/") && !mediaUrl.startsWith("//")) {
+    mediaUrl = window.location.origin + mediaUrl;
+  }
+
+  // Se for uma URL do WhatsApp (pps.whatsapp.net), usar proxy para imagens
+  if (
+    mediaUrl.includes("pps.whatsapp.net") &&
+    mediaType?.startsWith("image/")
+  ) {
+    return `https://images.weserv.nl/?url=${encodeURIComponent(
+      mediaUrl
+    )}&w=800&h=600&fit=cover&output=webp`;
+  }
+
+  // NÃO usar proxy para Supabase, localhost, ou domínio atual
+  const isSupabase = mediaUrl.includes("supabase.co");
+  const isLocalhost =
+    mediaUrl.includes("localhost") || mediaUrl.includes("127.0.0.1");
+  const isSameOrigin =
+    mediaUrl.startsWith(window.location.origin) ||
+    mediaUrl.includes(window.location.hostname);
+  if (isSupabase || isLocalhost || isSameOrigin) {
+    return mediaUrl;
+  }
+
+  // Proxy só para imagens externas (CORS)
+  if (mediaType?.startsWith("image/") && mediaUrl.startsWith("http")) {
+    return `https://images.weserv.nl/?url=${encodeURIComponent(
+      mediaUrl
+    )}&w=800&h=600&fit=cover&output=webp`;
+  }
+
+  return mediaUrl;
+}

@@ -17,6 +17,7 @@ import {
   Pin,
   X,
   Download,
+  Video,
 } from "lucide-react";
 import { AudioRecorderModal } from "../../components/AudioRecorderModal";
 import { WhatsAppAudioPlayer } from "../../components/WhatsAppAudioPlayer";
@@ -33,6 +34,8 @@ import { EditContactModal } from "../../components/EditContactModal";
 import { whatsappMessageService } from "../../services/whatsapp/whatsappMessage.service";
 import { compressFile } from "../../utils/fileCompression";
 import "../Messaging/carousel.css";
+import { ContactProfileModal } from "../../components/ContactProfileModal";
+import { processWhatsAppMediaUrl } from "../../utils/imageUtils";
 
 const LOGO_URL = "/assets/images/zenaix-logo-bg.png";
 
@@ -61,12 +64,7 @@ function getStatusInfo(status: string) {
 
 function processWhatsAppImageUrl(url: string): string {
   if (!url) return "";
-  if (url.includes("pps.whatsapp.net")) {
-    return `https://images.weserv.nl/?url=${encodeURIComponent(
-      url
-    )}&w=100&h=100&fit=cover&output=webp`;
-  }
-  return url;
+  return processWhatsAppMediaUrl(url, "image/jpeg");
 }
 
 function isSticker(message: WhatsappMessage): boolean {
@@ -266,6 +264,7 @@ export function Conversations() {
   // Estados para gravação de áudio
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [isSendingAudio, setIsSendingAudio] = useState(false);
+  const [showContactProfileModal, setShowContactProfileModal] = useState(false);
 
   // --- Refs para controle de Scroll ---
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -980,45 +979,50 @@ export function Conversations() {
                       );
                       return selectedContact ? (
                         <>
-                          {selectedContact.avatar_url ? (
-                            <img
-                              src={processWhatsAppImageUrl(
-                                selectedContact.avatar_url
-                              )}
-                              alt={selectedContact.name}
-                              className="w-10 h-10 rounded-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = "none";
-                                const fallback =
-                                  target.nextElementSibling as HTMLElement;
-                                if (fallback)
-                                  fallback.classList.remove("hidden");
-                              }}
-                            />
-                          ) : null}
-                          <div
-                            className={`w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-lg uppercase ${
-                              selectedContact.avatar_url ? "hidden" : ""
-                            }`}
+                          <button
+                            onClick={() => setShowContactProfileModal(true)}
+                            className="flex items-center gap-3 flex-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 transition-colors"
                           >
-                            {selectedContact.name?.[0] ||
-                              selectedContact.phone?.slice(-2) ||
-                              "?"}
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                              {selectedContact.name}
-                              {selectedContact.is_pinned && (
-                                <div className="flex items-center justify-center w-4 h-4 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                                  <Pin className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" />
-                                </div>
-                              )}
+                            {selectedContact.avatar_url ? (
+                              <img
+                                src={processWhatsAppImageUrl(
+                                  selectedContact.avatar_url
+                                )}
+                                alt={selectedContact.name}
+                                className="w-10 h-10 rounded-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = "none";
+                                  const fallback =
+                                    target.nextElementSibling as HTMLElement;
+                                  if (fallback)
+                                    fallback.classList.remove("hidden");
+                                }}
+                              />
+                            ) : null}
+                            <div
+                              className={`w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-lg uppercase ${
+                                selectedContact.avatar_url ? "hidden" : ""
+                              }`}
+                            >
+                              {selectedContact.name?.[0] ||
+                                selectedContact.phone?.slice(-2) ||
+                                "?"}
                             </div>
-                            <div className="text-xs text-gray-500">
-                              {selectedContact.phone}
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                                {selectedContact.name}
+                                {selectedContact.is_pinned && (
+                                  <div className="flex items-center justify-center w-4 h-4 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                                    <Pin className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 text-start">
+                                {selectedContact.phone}
+                              </div>
                             </div>
-                          </div>
+                          </button>
                         </>
                       ) : null;
                     })()}
@@ -1083,7 +1087,7 @@ export function Conversations() {
                                     }`}
                                   >
                                     <div
-                                      className={`rounded-2xl px-4 py-2 max-w-xs lg:max-w-md ${
+                                      className={`rounded-2xl px-4 py-2 max-w-xs lg:max-sm: ${
                                         item.message.direction === "OUTGOING"
                                           ? "bg-[#7f00ff] text-white"
                                           : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -1101,7 +1105,10 @@ export function Conversations() {
                                             "image/"
                                           ) ? (
                                             <img
-                                              src={item.message.media_url}
+                                              src={processWhatsAppMediaUrl(
+                                                item.message.media_url,
+                                                item.message.media_type
+                                              )}
                                               alt="Mídia da mensagem"
                                               className={`rounded-lg cursor-pointer hover:opacity-90 transition-opacity ${
                                                 isSticker(item.message)
@@ -1114,20 +1121,59 @@ export function Conversations() {
                                                 );
                                                 setShowImageModal(true);
                                               }}
+                                              onError={(e) => {
+                                                const target =
+                                                  e.target as HTMLImageElement;
+                                                target.style.display = "none";
+                                                const fallback =
+                                                  target.nextElementSibling as HTMLElement;
+                                                if (fallback)
+                                                  fallback.classList.remove(
+                                                    "hidden"
+                                                  );
+                                              }}
                                             />
                                           ) : item.message.media_type?.startsWith(
                                               "video/"
                                             ) ? (
-                                            <video
-                                              src={item.message.media_url}
-                                              controls
-                                              className="max-w-full h-auto rounded-lg"
-                                            />
+                                            <div className="relative">
+                                              <video
+                                                src={processWhatsAppMediaUrl(
+                                                  item.message.media_url,
+                                                  item.message.media_type
+                                                )}
+                                                controls
+                                                className="max-w-full h-auto rounded-lg"
+                                                preload="metadata"
+                                                onError={(e) => {
+                                                  const target =
+                                                    e.target as HTMLVideoElement;
+                                                  target.style.display = "none";
+                                                  const fallback =
+                                                    target.nextElementSibling as HTMLElement;
+                                                  if (fallback)
+                                                    fallback.classList.remove(
+                                                      "hidden"
+                                                    );
+                                                }}
+                                              />
+                                              <div className="hidden absolute inset-0 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                                                <div className="text-center">
+                                                  <Video className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                                  <p className="text-sm text-gray-500">
+                                                    Vídeo não disponível
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            </div>
                                           ) : item.message.media_type?.startsWith(
                                               "audio/"
                                             ) ? (
                                             <WhatsAppAudioPlayer
-                                              audioUrl={item.message.media_url}
+                                              audioUrl={processWhatsAppMediaUrl(
+                                                item.message.media_url,
+                                                item.message.media_type
+                                              )}
                                               isOutgoing={
                                                 item.message.direction ===
                                                 "OUTGOING"
@@ -1607,22 +1653,25 @@ export function Conversations() {
                     const url = window.URL.createObjectURL(blob);
                     const link = document.createElement("a");
                     link.href = url;
-                    link.download = `imagem_${Date.now()}.jpg`;
+                    link.download = `midia_${Date.now()}.${
+                      selectedImage.includes(".gif") ? "gif" : "jpg"
+                    }`;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                     window.URL.revokeObjectURL(url);
                   } catch (error) {
-                    console.error("Erro ao baixar imagem:", error);
-                    // Fallback para o método anterior
+                    console.error("Erro ao baixar mídia:", error);
                     const link = document.createElement("a");
                     link.href = selectedImage;
-                    link.download = `imagem_${Date.now()}.jpg`;
+                    link.download = `midia_${Date.now()}.${
+                      selectedImage.includes(".gif") ? "gif" : "jpg"
+                    }`;
                     link.click();
                   }
                 }}
                 className="flex items-center justify-center w-10 h-10 bg-white/90 dark:bg-dark-800/90 hover:bg-white dark:hover:bg-dark-800 text-gray-700 dark:text-gray-300 rounded-full shadow-lg transition-all duration-200 backdrop-blur-sm"
-                title="Baixar imagem"
+                title="Baixar mídia"
               >
                 <Download className="w-5 h-5" />
               </button>
@@ -1638,13 +1687,72 @@ export function Conversations() {
               </button>
             </div>
 
-            {/* Imagem */}
-            <img
-              src={selectedImage}
-              alt="Imagem da mensagem"
-              className="max-w-full max-h-[95vh] object-contain rounded-lg"
-              onClick={(e) => e.stopPropagation()}
-            />
+            {/* Mídia - suporta imagem, vídeo e GIF */}
+            {(() => {
+              const processedUrl = processWhatsAppMediaUrl(selectedImage);
+              const isGif =
+                selectedImage.toLowerCase().includes(".gif") ||
+                selectedImage.toLowerCase().includes("image/gif");
+              const isVideo =
+                selectedImage.toLowerCase().includes(".mp4") ||
+                selectedImage.toLowerCase().includes(".webm") ||
+                selectedImage.toLowerCase().includes("video/");
+
+              console.log("Modal de mídia:", {
+                selectedImage,
+                processedUrl,
+                isGif,
+                isVideo,
+              });
+
+              if (isGif) {
+                return (
+                  <img
+                    src={processedUrl}
+                    alt="GIF da mensagem"
+                    className="max-w-full max-h-[95vh] object-contain rounded-lg"
+                    onClick={(e) => e.stopPropagation()}
+                    onError={(e) => {
+                      console.error(
+                        "Erro ao carregar GIF no modal:",
+                        processedUrl
+                      );
+                    }}
+                  />
+                );
+              } else if (isVideo) {
+                return (
+                  <video
+                    src={processedUrl}
+                    controls
+                    autoPlay
+                    className="max-w-full max-h-[95vh] object-contain rounded-lg"
+                    onClick={(e) => e.stopPropagation()}
+                    onError={(e) => {
+                      console.error(
+                        "Erro ao carregar vídeo no modal:",
+                        processedUrl
+                      );
+                    }}
+                  />
+                );
+              } else {
+                return (
+                  <img
+                    src={processedUrl}
+                    alt="Imagem da mensagem"
+                    className="max-w-full max-h-[95vh] object-contain rounded-lg"
+                    onClick={(e) => e.stopPropagation()}
+                    onError={(e) => {
+                      console.error(
+                        "Erro ao carregar imagem no modal:",
+                        processedUrl
+                      );
+                    }}
+                  />
+                );
+              }
+            })()}
           </div>
         </div>
       )}
@@ -1659,6 +1767,33 @@ export function Conversations() {
         onClose={() => setShowAudioModal(false)}
         onSend={handleSendAudio}
         isSending={isSendingAudio}
+      />
+
+      {/* Modal de perfil do contato */}
+      <ContactProfileModal
+        isOpen={showContactProfileModal}
+        onClose={() => setShowContactProfileModal(false)}
+        contact={(() => {
+          return (
+            instanceContacts.find((c) => c.id === selectedContactId) || null
+          );
+        })()}
+        messages={contactMessages}
+        onUpdateContact={(updatedContact) => {
+          if (activeInstanceId) {
+            updateContactInStore(
+              activeInstanceId,
+              updatedContact.id,
+              updatedContact
+            );
+          }
+        }}
+        onViewMedia={(mediaUrl) => {
+          console.log("onViewMedia chamado:", mediaUrl);
+          setSelectedImage(mediaUrl);
+          setShowImageModal(true);
+          setShowContactProfileModal(false);
+        }}
       />
     </div>
   );

@@ -41,60 +41,76 @@ export function App() {
         if (session) {
           setSession(session);
 
-          // Só buscar dados completos se user/organization/permissions estiverem realmente vazios
           const { user, organization, permissions } = useAuthStore.getState();
-          const needsFetch = !user && !organization && (!permissions || permissions.length === 0);
+          const needsFetch =
+            !user &&
+            !organization &&
+            (!permissions || permissions.length === 0);
 
           if (needsFetch) {
             try {
               await fetchAndSetDeepUserData();
               hasFetchedGlobals.current = false; // Permite fetch global após reload/login
-              console.log("[App] fetchAndSetDeepUserData executado por reload de página");
+              console.log(
+                "[App] fetchAndSetDeepUserData executado por reload de página"
+              );
             } catch (error) {
               console.error("[App] Erro ao buscar dados completos:", error);
             }
           } else {
-            console.log("[App] Dados já presentes na store, não faz fetchAndSetDeepUserData");
+            console.log(
+              "[App] Dados já presentes na store, não faz fetchAndSetDeepUserData"
+            );
           }
 
-          // Buscar dados globais em background (não await) SÓ UMA VEZ por login/reload
           if (!hasFetchedGlobals.current) {
             hasFetchedGlobals.current = true;
-            const { token, user: u, organization: org } = useAuthStore.getState();
-            let organizationId = u?.organization_id;
-            // Polling até organizationId estar pronto (máx 1s)
-            let tries = 0;
-            while (!organizationId && tries < 10) {
-              await new Promise((res) => setTimeout(res, 100));
-              organizationId = useAuthStore.getState().user?.organization_id;
-              tries++;
-            }
-            if (token && u && org && organizationId) {
+
+            // Usar organization_id do Supabase user_metadata se disponível
+            const organizationId = session.user?.user_metadata?.organization_id;
+            const organizationData = session.user?.user_metadata?.organization;
+
+            if (session.access_token && session.user) {
               usePlanStore.getState().fetchAllPlans(session.access_token);
-              useSystemPermissionsStore.getState().fetchAllSystemPermissions(session.access_token);
-              useEmbedPagesStore.getState().fetchAllEmbedPages(session.access_token, organizationId);
-              useTagStore.getState().fetchAllTags(session.access_token, organizationId);
-              useContractStore.getState().fetchAllContracts(session.access_token, organizationId);
-              useTeamMembersStore.getState().fetchAllMembers(session.access_token, organizationId);
-              useBoardStore.getState().fetchAllBoards(session.access_token, organizationId);
-              useWhatsAppInstanceStore.getState().fetchAllInstances(session.access_token, organizationId);
-              useCalendarStore.getState().fetchEvents();
-              connect(u.id, organizationId);
+
+              if (organizationId && organizationData) {
+                useSystemPermissionsStore
+                  .getState()
+                  .fetchAllSystemPermissions(session.access_token);
+                useEmbedPagesStore
+                  .getState()
+                  .fetchAllEmbedPages(session.access_token, organizationId);
+                useTagStore
+                  .getState()
+                  .fetchAllTags(session.access_token, organizationId);
+                useContractStore
+                  .getState()
+                  .fetchAllContracts(session.access_token, organizationId);
+                useTeamMembersStore
+                  .getState()
+                  .fetchAllMembers(session.access_token, organizationId);
+                useBoardStore
+                  .getState()
+                  .fetchAllBoards(session.access_token, organizationId);
+                useWhatsAppInstanceStore
+                  .getState()
+                  .fetchAllInstances(session.access_token, organizationId);
+                useCalendarStore.getState().fetchEvents();
+                connect(session.user.id, organizationId);
+              } else {
+                connect(session.user.id, undefined);
+              }
             } else {
-              console.warn("[App] Dados globais não carregados: token, user ou organizationId ausentes");
+              console.warn("[App] Session ou access_token ausentes");
             }
           }
         } else if (event === "SIGNED_OUT") {
           hasFetchedGlobals.current = false;
           hasInitialized.current = false;
 
-          // Primeiro desconectar do realtime
           disconnect();
-
-          // Limpar auth de forma síncrona para evitar piscadas
           clearAuth();
 
-          // Limpar localStorage para garantir limpeza completa
           localStorage.removeItem("auth-storage");
         }
       }
@@ -106,7 +122,7 @@ export function App() {
       );
       authListener.subscription.unsubscribe();
     };
-  }, []); // O array vazio [] garante que isso rode apenas uma vez na vida do componente.
+  }, []);
 
   return (
     <>

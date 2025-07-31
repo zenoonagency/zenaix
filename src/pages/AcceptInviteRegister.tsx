@@ -50,7 +50,6 @@ export function AcceptInviteRegister() {
   const navigate = useNavigate();
   const { setUserDataFromMe, clearAuth } = useAuthStore.getState();
 
-
   const logoUrl =
     theme === "dark"
       ? "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT.png"
@@ -70,7 +69,6 @@ export function AcceptInviteRegister() {
       if (result.success && result.file) {
         handleInputChange("avatar", result.file);
         setAvatarPreview(URL.createObjectURL(result.file));
-     
       } else {
         showToast(result.error || "Erro ao processar imagem", "error");
       }
@@ -130,39 +128,33 @@ export function AcceptInviteRegister() {
       if (sessionError) {
         throw sessionError;
       }
+
+      setUserDataFromMe(response.data);
+
       // 3. Upload do avatar (opcional)
       if (formData.avatar) {
         try {
-          const fileExtension = formData.avatar.type.split("/")[1];
-          const filePath = `${response.session.user.id}/avatar.${fileExtension}`;
-          const { error: uploadError } = await supabase.storage
-            .from("avatars")
-            .upload(filePath, formData.avatar, { upsert: true });
-          if (uploadError) throw uploadError;
-          const { data: urlData } = supabase.storage
-            .from("avatars")
-            .getPublicUrl(filePath);
-          await supabase.auth.updateUser({
-            data: { avatar_url: urlData.publicUrl },
-          });
-        } catch (avatarError) {
-          showToast(
-            "A sua conta foi criada, mas houve um erro ao enviar o seu avatar, tente novamente nas configurações do seu perfil.",
-            "warning"
+          await userService.updateAvatar(
+            response.session.access_token,
+            formData.avatar
           );
+        } catch (avatarError) {
+          showToast("Erro ao atualizar avatar", "error");
         }
       }
-      // 4. Buscar getMe com access_token
-      const token = response.session.access_token;
-      const meResponse = await userService.getMe(token);
-      if (!meResponse) throw new Error("Erro ao buscar dados do usuário");
-      // 5. Salvar tudo na store
-      setUserDataFromMe(meResponse);
-      // 6. Aceitar convite
+
+      // 4. Buscar dados finais (sempre após avatar se houver)
+      const finalUser = await userService.getMe(response.session.access_token);
+      setUserDataFromMe(finalUser);
+
+      // 5. Aceitar convite
       if (inviteToken) {
-        await inviteService.acceptInvite(token, { token: inviteToken });
+        await inviteService.acceptInvite(response.session.access_token, {
+          token: inviteToken,
+        });
       }
-      // 7. Redirecionar
+
+      // 6. Redirecionar
       showToast("Convite aceito com sucesso!", "success");
       navigate("/dashboard");
     } catch (error: any) {
@@ -443,10 +435,10 @@ export function AcceptInviteRegister() {
           </AnimatePresence>
         </form>
 
-        <OAuthButtonsInvite 
-          className="mt-6" 
-          org={org} 
-          inviteToken={inviteToken} 
+        <OAuthButtonsInvite
+          className="mt-6"
+          org={org}
+          inviteToken={inviteToken}
         />
 
         <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">

@@ -48,11 +48,12 @@ export function Register() {
   const { theme } = useThemeStore();
   const { setUserDataFromMe, clearAuth } = useAuthStore.getState();
 
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
+  // Desabilitado para não redirecionar automaticamente
+  // React.useEffect(() => {
+  //   if (isAuthenticated) {
+  //     navigate("/dashboard", { replace: true });
+  //   }
+  // }, [isAuthenticated, navigate]);
 
   if (!_hasHydrated) {
     return (
@@ -97,7 +98,12 @@ export function Register() {
   const nextStep = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     if (currentStep === 1) {
-      if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+      if (
+        !formData.name ||
+        !formData.email ||
+        !formData.password ||
+        !formData.confirmPassword
+      ) {
         setError("Preencha todos os campos obrigatórios");
         return;
       }
@@ -125,24 +131,49 @@ export function Register() {
     setLoading(true);
 
     try {
-      // 1. Registro via backend
+      console.log("[Register] Iniciando registro...");
       const response = await authService.register(formData);
-      // 2. Ativar sessão no Supabase
+      console.log("[Register] Registro realizado:", response);
+
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: response.session.access_token,
         refresh_token: response.session.refresh_token,
       });
+
       if (sessionError) {
+        console.error(
+          "[Register] Erro ao setar sessão no Supabase:",
+          sessionError
+        );
         throw sessionError;
       }
-      // 3. Buscar getMe com access_token
-      const token = response.session.access_token;
-      const meResponse = await userService.getMe(token);
-      if (!meResponse) throw new Error("Erro ao buscar dados do usuário");
-      // 4. Salvar tudo na store
-      setUserDataFromMe(meResponse);
-      // 5. Redirecionar
+      console.log("[Register] Sessão do Supabase ativada");
+
+      setUserDataFromMe(response.data);
+      console.log("[Register] Usuário salvo na store:", response.data);
+
+      // Se o usuário selecionou avatar, atualizar antes de buscar dados finais
+      if (formData.avatar) {
+        console.log("[Register] Avatar selecionado, enviando update...");
+        try {
+          await userService.updateAvatar(
+            response.session.access_token,
+            formData.avatar
+          );
+          console.log("[Register] Avatar atualizado com sucesso");
+        } catch (avatarErr) {
+          console.error("[Register] Erro ao atualizar avatar:", avatarErr);
+          showToast("Erro ao atualizar avatar", "error");
+        }
+      }
+
+      // Buscar dados finais (sempre após avatar se houver)
+      const finalUser = await userService.getMe(response.session.access_token);
+      setUserDataFromMe(finalUser);
+      console.log("[Register] Dados finais obtidos:", finalUser);
+
       showToast("Conta criada com sucesso!", "success");
+      console.log("[Register] Redirecionando para dashboard...");
       navigate("/dashboard", { replace: true });
     } catch (error: any) {
       await supabase.auth.signOut();
@@ -150,6 +181,7 @@ export function Register() {
       setError(message);
       showToast(message, "error");
       clearAuth();
+      console.error("[Register] Erro no fluxo de registro:", error);
     } finally {
       setLoading(false);
     }
@@ -161,8 +193,9 @@ export function Register() {
   };
 
   const toggleShowPassword = () => setShowPassword(!showPassword);
-  const toggleShowConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
-  
+  const toggleShowConfirmPassword = () =>
+    setShowConfirmPassword(!showConfirmPassword);
+
   React.useEffect(() => {
     return () => {
       if (avatarPreview) {
@@ -170,7 +203,7 @@ export function Register() {
       }
     };
   }, [avatarPreview]);
-  
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
       <ParticlesEffect />
@@ -188,8 +221,16 @@ export function Register() {
         </h2>
         <div className="flex items-center justify-center mb-6">
           <div className="flex space-x-2">
-            <div className={`w-3 h-3 rounded-full ${currentStep >= 1 ? "bg-[#7f00ff]" : "bg-gray-300"}`}></div>
-            <div className={`w-3 h-3 rounded-full ${currentStep >= 2 ? "bg-[#7f00ff]" : "bg-gray-300"}`}></div>
+            <div
+              className={`w-3 h-3 rounded-full ${
+                currentStep >= 1 ? "bg-[#7f00ff]" : "bg-gray-300"
+              }`}
+            ></div>
+            <div
+              className={`w-3 h-3 rounded-full ${
+                currentStep >= 2 ? "bg-[#7f00ff]" : "bg-gray-300"
+              }`}
+            ></div>
           </div>
         </div>
         {error && (
@@ -212,18 +253,62 @@ export function Register() {
                 transition={{ duration: 0.3 }}
                 className="space-y-4"
               >
-                <Input type="text" value={formData.name} onChange={(e) => handleInputChange("name", e.target.value)} label="Nome completo" required />
-                <Input type="email" value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} label="Email" required />
+                <Input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  label="Nome completo"
+                  required
+                />
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  label="Email"
+                  required
+                />
                 <div className="relative">
-                  <Input type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => handleInputChange("password", e.target.value)} label="Senha" required />
-                  <button type="button" onClick={toggleShowPassword} className="absolute right-3 top-[47px] transform -translate-y-1/2 text-gray-500">
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
+                    label="Senha"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleShowPassword}
+                    className="absolute right-3 top-[47px] transform -translate-y-1/2 text-gray-500"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
                 <div className="relative">
-                  <Input type={showConfirmPassword ? "text" : "password"} value={formData.confirmPassword} onChange={(e) => handleInputChange("confirmPassword", e.target.value)} label="Confirmar senha" required />
-                  <button type="button" onClick={toggleShowConfirmPassword} className="absolute right-3 top-[47px] transform -translate-y-1/2 text-gray-500">
-                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={formData.confirmPassword}
+                    onChange={(e) =>
+                      handleInputChange("confirmPassword", e.target.value)
+                    }
+                    label="Confirmar senha"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleShowConfirmPassword}
+                    className="absolute right-3 top-[47px] transform -translate-y-1/2 text-gray-500"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
               </motion.div>
@@ -238,12 +323,22 @@ export function Register() {
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Avatar (opcional)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Avatar (opcional)
+                  </label>
                   <div className="flex items-center space-x-4">
                     {avatarPreview ? (
                       <div className="relative">
-                        <img src={avatarPreview} alt="Avatar preview" className="w-16 h-16 rounded-full object-cover border-2 border-[#7f00ff]" />
-                        <button type="button" onClick={removeAvatar} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600">
+                        <img
+                          src={avatarPreview}
+                          alt="Avatar preview"
+                          className="w-16 h-16 rounded-full object-cover border-2 border-[#7f00ff]"
+                        />
+                        <button
+                          type="button"
+                          onClick={removeAvatar}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        >
                           <X className="w-3 h-3" />
                         </button>
                       </div>
@@ -255,33 +350,107 @@ export function Register() {
                     <label className="cursor-pointer bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                       <Upload className="w-4 h-4 inline mr-2" />
                       Escolher arquivo
-                      <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="hidden"
+                      />
                     </label>
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fuso Horário</label>
-                  <select id="timezone" name="timezone" value={formData.timezone} onChange={(e) => handleInputChange("timezone", e.target.value)} className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent outline-none">
-                    {TIMEZONE_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+                  <label
+                    htmlFor="timezone"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Fuso Horário
+                  </label>
+                  <select
+                    id="timezone"
+                    name="timezone"
+                    value={formData.timezone}
+                    onChange={(e) =>
+                      handleInputChange("timezone", e.target.value)
+                    }
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent outline-none"
+                  >
+                    {TIMEZONE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="language" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Idioma</label>
-                  <select id="language" name="language" value={formData.language} onChange={(e) => handleInputChange("language", e.target.value)} className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent outline-none">
-                    {LANGUAGE_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+                  <label
+                    htmlFor="language"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Idioma
+                  </label>
+                  <select
+                    id="language"
+                    name="language"
+                    value={formData.language}
+                    onChange={(e) =>
+                      handleInputChange("language", e.target.value)
+                    }
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent outline-none"
+                  >
+                    {LANGUAGE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
           <div className="flex space-x-3 pt-4">
-            {currentStep > 1 && (<button type="button" onClick={prevStep} className="flex-1 flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><ArrowLeft className="w-4 h-4 mr-2" /> Voltar</button>)}
-            {currentStep < 2 ? (<button type="button" onClick={(e) => nextStep(e)} className="flex-1 flex items-center justify-center px-4 py-2 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90 transition-colors">Próximo <ArrowRight className="w-4 h-4 ml-2" /></button>) : (<button type="submit" disabled={loading} className="flex-1 bg-[#7f00ff] text-white py-2 px-4 rounded-md hover:bg-[#7f00ff]/90 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:ring-offset-2 disabled:opacity-50">{loading ? (<span className="flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin mr-2" /> Processando...</span>) : ("Cadastrar")}</button>)}
+            {currentStep > 1 && (
+              <button
+                type="button"
+                onClick={prevStep}
+                className="flex-1 flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
+              </button>
+            )}
+            {currentStep < 2 ? (
+              <button
+                type="button"
+                onClick={(e) => nextStep(e)}
+                className="flex-1 flex items-center justify-center px-4 py-2 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90 transition-colors"
+              >
+                Próximo <ArrowRight className="w-4 h-4 ml-2" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 bg-[#7f00ff] text-white py-2 px-4 rounded-md hover:bg-[#7f00ff]/90 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:ring-offset-2 disabled:opacity-50"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />{" "}
+                    Processando...
+                  </span>
+                ) : (
+                  "Cadastrar"
+                )}
+              </button>
+            )}
           </div>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           Já tem uma conta?{" "}
-          <Link to="/login" className="text-[#7f00ff] hover:text-[#7f00ff]/80 transition-colors" onClick={handleLoginClick}>
+          <Link
+            to="/login"
+            className="text-[#7f00ff] hover:text-[#7f00ff]/80 transition-colors"
+            onClick={handleLoginClick}
+          >
             Faça login
           </Link>
         </p>

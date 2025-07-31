@@ -28,13 +28,6 @@ export function Login() {
   const organization = useAuthStore((state) => state.organization);
   const permissions = useAuthStore((state) => state.permissions);
 
-  React.useEffect(() => {
-    const isReady = isAuthenticated && user && organization && permissions.length > 0;
-    if (isReady) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [isAuthenticated, user, organization, permissions, navigate]);
-
   if (!_hasHydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-900">
@@ -57,10 +50,11 @@ export function Login() {
 
     try {
       // 1. Login Supabase
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
       if (signInError || !data.session) {
         throw signInError || new Error("Sessão não encontrada");
@@ -74,7 +68,7 @@ export function Login() {
       // 3. Salvar tudo na store
       setUserDataFromMe(meResponse);
 
-      // 4. Redirecionar
+      // 4. Redirecionar (só após getMe)
       navigate("/dashboard", { replace: true });
     } catch (error: any) {
       await supabase.auth.signOut();
