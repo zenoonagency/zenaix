@@ -77,7 +77,6 @@ export const useWhatsappContactStore = create<WhatsappContactStoreState>()(
           set({ isLoading: true, error: null });
         }
 
-        // Verificar se a instância está conectada antes de buscar contatos
         const instanceStore = useWhatsAppInstanceStore.getState();
         const instance = instanceStore.instances.find(inst => inst.id === instanceId);
         

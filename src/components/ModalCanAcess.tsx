@@ -10,7 +10,7 @@ export const ModalCanAcess = ({ title, description }: ModalCanAcess) => {
     <div className="p-6 space-y-6 min-h-screen bg-gray-50 dark:bg-dark-900">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-purple-700 text-transparent bg-clip-text">
             {title}
           </h1>
           {description && (

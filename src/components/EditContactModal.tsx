@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { X, User, Phone } from 'lucide-react';
-import { WhatsappContact } from '../types/whatsapp';
-import { whatsappContactService } from '../services/whatsapp/whatsappContact.service';
-import { useToast } from '../hooks/useToast';
-import { useAuthStore } from '../store/authStore';
+import React, { useState, useEffect } from "react";
+import { X, User, Phone } from "lucide-react";
+import { WhatsappContact } from "../types/whatsapp";
+import { whatsappContactService } from "../services/whatsapp/whatsappContact.service";
+import { useToast } from "../hooks/useToast";
+import { useAuthStore } from "../store/authStore";
 
 interface EditContactModalProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ interface EditContactModalProps {
   contact: WhatsappContact | null;
   instanceId: string;
   onUpdate: (contact: WhatsappContact) => void;
+  onCreate?: (contact: WhatsappContact) => void;
 }
 
 export function EditContactModal({
@@ -18,57 +19,71 @@ export function EditContactModal({
   onClose,
   contact,
   instanceId,
-  onUpdate
+  onUpdate,
+  onCreate,
 }: EditContactModalProps) {
   const { token, user } = useAuthStore();
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    phone: ''
+    name: "",
+    phone: "",
   });
 
   useEffect(() => {
     if (contact) {
       setFormData({
         name: contact.name,
-        phone: contact.phone
+        phone: contact.phone,
       });
+    } else {
+      setFormData({ name: "", phone: "" });
     }
   }, [contact]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!token || !user?.organization_id || !contact) {
-      showToast('Erro de autenticação', 'error');
+    if (!token || !user?.organization_id) {
+      showToast("Erro de autenticação", "error");
       return;
     }
-
     if (!formData.name.trim() || !formData.phone.trim()) {
-      showToast('Preencha todos os campos', 'error');
+      showToast("Preencha todos os campos", "error");
       return;
     }
-
     setIsLoading(true);
     try {
-      const updatedContact = await whatsappContactService.update(
-        token,
-        user.organization_id,
-        instanceId,
-        contact.id,
-        {
-          name: formData.name.trim(),
-          phone: formData.phone.trim()
-        }
-      );
-      
-      onUpdate(updatedContact);
-      showToast('Contato atualizado com sucesso!', 'success');
+      if (contact) {
+        // Atualizar contato existente
+        const updatedContact = await whatsappContactService.update(
+          token,
+          user.organization_id,
+          instanceId,
+          contact.id,
+          {
+            name: formData.name.trim(),
+            phone: formData.phone.trim(),
+          }
+        );
+        onUpdate(updatedContact);
+        showToast("Contato atualizado com sucesso!", "success");
+      } else {
+        // Criar novo contato
+        const newContact = await whatsappContactService.create(
+          token,
+          user.organization_id,
+          instanceId,
+          {
+            name: formData.name.trim(),
+            phone: formData.phone.trim(),
+          }
+        );
+        if (onCreate) onCreate(newContact);
+        showToast("Contato criado com sucesso!", "success");
+      }
       onClose();
     } catch (error: any) {
-      console.error('Erro ao atualizar contato:', error);
-      showToast(error.message || 'Erro ao atualizar contato', 'error');
+      showToast(error.message || "Erro ao salvar contato", "error");
     } finally {
       setIsLoading(false);
     }
@@ -80,14 +95,14 @@ export function EditContactModal({
     }
   };
 
-  if (!isOpen || !contact) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl max-w-md w-full mx-4">
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Editar Contato
+            {contact ? "Editar Contato" : "Novo Contato"}
           </h2>
           <button
             onClick={handleClose}
@@ -97,63 +112,69 @@ export function EditContactModal({
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Nome
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-dark-700 dark:text-white"
                 placeholder="Nome do contato"
                 disabled={isLoading}
-                required
               />
+              <User className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
             </div>
           </div>
-
-          <div>
+          <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Telefone
             </label>
             <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
-                type="tel"
+                type="text"
                 value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
-                placeholder="Número de telefone"
+                onChange={(e) => {
+                  // Permitir apenas números
+                  let value = e.target.value.replace(/\D/g, "");
+                  // Limitar a 14 dígitos (ex: 5511999999999)
+                  if (value.length > 14) value = value.slice(0, 14);
+                  setFormData({ ...formData, phone: value });
+                }}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-dark-700 dark:text-white"
+                placeholder="Ex: 5511999999999"
                 disabled={isLoading}
-                required
               />
+              <Phone className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
             </div>
+            <span className="text-xs text-gray-400 mt-1 block">
+              Formato: DDI + DDD + número. Ex: 5511999999999
+            </span>
           </div>
-
-          <div className="flex gap-3 pt-4">
+          <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={handleClose}
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 transition-colors"
               disabled={isLoading}
-              className="flex-1 px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-dark-700 rounded-md hover:bg-gray-200 dark:hover:bg-dark-600 transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
+              className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors disabled:opacity-50"
               disabled={isLoading}
-              className="flex-1 px-4 py-2 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90 transition-colors disabled:opacity-50"
             >
-              {isLoading ? 'Salvando...' : 'Salvar'}
+              {contact ? "Salvar" : "Criar"}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
-} 
+}

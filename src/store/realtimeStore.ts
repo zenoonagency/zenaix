@@ -148,6 +148,11 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
       contactStore.updateContactInStore(whatsapp_instance_id, id, payload.data);
       break;
     }
+    case "WHATSAPP_CONTACT_CREATED":
+      useWhatsappContactStore
+        .getState()
+        .addContact(payload.data.whatsapp_instance_id, payload.data);
+      break;
     case "NEW_WHATSAPP_MESSAGE": {
       console.log(
         "[RealtimeStore] 📱 Nova mensagem WhatsApp recebida:",
