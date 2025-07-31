@@ -11,11 +11,28 @@ import { TeamMemberModal } from "./TeamMemberModal";
 export function TeamList() {
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const { modal, customConfirm } = useCustomModal();
-  const { token, user } = useAuthStore();
+  const { token, user, hasPermission } = useAuthStore();
   const organizationId = user?.organization_id;
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [roleLoadingId, setRoleLoadingId] = useState<string | null>(null);
   const { showToast } = useToast();
+
+  // Verificar se o usuário tem permissão para gerenciar membros
+  const canManageMembers = hasPermission("organization:manage_members");
+
+  // Verificar se o usuário atual pode editar um membro específico
+  const canEditMember = (memberRole: string) => {
+    // MASTER pode editar todos
+    if (user?.role === "MASTER") return true;
+
+    // ADMIN e TEAM_MEMBER só podem editar se tiverem a permissão
+    if (canManageMembers) {
+      if (user?.role === "ADMIN") return memberRole === "TEAM_MEMBER";
+      if (user?.role === "TEAM_MEMBER") return false;
+    }
+
+    return false;
+  };
 
   const {
     members,
@@ -131,7 +148,8 @@ export function TeamList() {
                         </div>
                       ) : roleLoadingId === member.id ? (
                         <span className="animate-spin inline-block w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full"></span>
-                      ) : (
+                      ) : user?.role === "MASTER" &&
+                        canEditMember(member.role) ? (
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
@@ -157,11 +175,25 @@ export function TeamList() {
                             )}
                           </div>
                         </label>
+                      ) : (
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {member.role === "ADMIN" ? (
+                            <div className="flex items-center text-purple-600 dark:text-purple-400">
+                              <Shield className="w-4 h-4 mr-1" />
+                              Admin
+                            </div>
+                          ) : (
+                            <div className="flex items-center text-gray-500 dark:text-gray-400">
+                              <User className="w-4 h-4 mr-1" />
+                              Usuário
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    {member.role !== "MASTER" && (
+                    {member.role !== "MASTER" && canEditMember(member.role) && (
                       <>
                         <button
                           onClick={() => setEditingMember(member)}

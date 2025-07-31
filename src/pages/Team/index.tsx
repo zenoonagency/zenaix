@@ -10,7 +10,10 @@ import { useInviteStore } from "../../store/inviteStore";
 
 export function Team() {
   const { inviteError } = useInviteStore();
-  const { token, organization } = useAuthStore();
+  const { token, organization, hasPermission } = useAuthStore();
+
+  // Verificar se o usuário tem permissão para gerenciar membros
+  const canManageMembers = hasPermission("organization:manage_members");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [feedbackModal, setFeedbackModal] = useState<{
@@ -73,21 +76,25 @@ export function Team() {
           </h1>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => setIsInvitesModalOpen(true)}
-            className="flex items-center px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-          >
-            <Mail className="w-5 h-5 mr-2" />
-            Convites
-          </button>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-            disabled={isLoading}
-          >
-            <UserPlus className="w-5 h-5 mr-2" />
-            Adicionar Membro
-          </button>
+          {canManageMembers && (
+            <>
+              <button
+                onClick={() => setIsInvitesModalOpen(true)}
+                className="flex items-center px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+              >
+                <Mail className="w-5 h-5 mr-2" />
+                Convites
+              </button>
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                disabled={isLoading}
+              >
+                <UserPlus className="w-5 h-5 mr-2" />
+                Adicionar Membro
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -104,7 +111,7 @@ export function Team() {
 
       {isInvitesModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 !mt-0">
-          <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl w-full max-w-3xl">
+          <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl w-full max-w-4xl">
             <div className="flex items-center justify-between p-4 border-b border-gray-200/10 dark:border-gray-700/10">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 Convites Enviados

@@ -15,7 +15,7 @@ export const permissionsLabels = {
     "lists:create": "Criar listas",
     "lists:delete": "Excluir listas",
     "lists:read": "Visualizar listas",
-    "lists:update": "Editar listas",
+    "lists:update": "Editar listas e marcadores",
   },
   Calendário: {
     "calendar:create": "Criar eventos",
@@ -45,5 +45,19 @@ export const permissionsLabels = {
     "embed:delete": "Excluir páginas embed",
     "embed:read": "Visualizar páginas embed",
     "embed:update": "Editar páginas embed",
+  },
+  Webhooks: {
+    "webhook:create": "Criar webhooks",
+    "webhook:delete": "Excluir webhooks",
+    "webhook:read": "Visualizar webhooks",
+    "webhook:update": "Editar webhooks",
+  },
+  WhatsApp: {
+    "whatsapp:connect": "Conectar WhatsApp",
+    "whatsapp:create": "Criar instâncias WhatsApp",
+    "whatsapp:delete": "Excluir instâncias WhatsApp",
+    "whatsapp:manage_access": "Gerenciar acesso WhatsApp",
+    "whatsapp:read": "Visualizar WhatsApp",
+    "whatsapp:update": "Editar WhatsApp",
   },
 };

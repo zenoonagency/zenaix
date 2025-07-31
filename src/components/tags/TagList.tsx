@@ -14,12 +14,19 @@ import { TagModal } from "./TagModal";
 
 type Tag = OutputTagDTO;
 
-export function TagList({ blockNewTag = false, onBlockNewTag }: { blockNewTag?: boolean; onBlockNewTag?: () => void } = {}) {
+export function TagList({
+  blockNewTag = false,
+  onBlockNewTag,
+}: { blockNewTag?: boolean; onBlockNewTag?: () => void } = {}) {
   const { tags, fetchAllTags } = useTagStore();
-  const { token, organizationId } = useAuthStore((state) => ({
+  const { token, organizationId, hasPermission } = useAuthStore((state) => ({
     token: state.token,
     organizationId: state.user?.organization_id,
+    hasPermission: state.hasPermission,
   }));
+
+  // Verificar se o usuário tem permissão para gerenciar marcadores
+  const canManageTags = hasPermission("lists:update");
 
   const isLoading = useTagStore((state) => state.isLoading);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,23 +94,27 @@ export function TagList({ blockNewTag = false, onBlockNewTag }: { blockNewTag?: 
   // 5. Renderização do Componente
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end">
-        <button
-          onClick={() => {
-            if (blockNewTag && onBlockNewTag) {
-              onBlockNewTag();
-              return;
-            }
-            setEditingTag(null);
-            setShowModal(true);
-          }}
-          className={`text-[#7f00ff] hover:text-[#7f00ff]/80 flex items-center text-sm ${blockNewTag ? 'opacity-60 cursor-not-allowed' : ''}`}
-          disabled={blockNewTag}
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Novo
-        </button>
-      </div>
+      {canManageTags && (
+        <div className="flex items-center justify-end">
+          <button
+            onClick={() => {
+              if (blockNewTag && onBlockNewTag) {
+                onBlockNewTag();
+                return;
+              }
+              setEditingTag(null);
+              setShowModal(true);
+            }}
+            className={`text-[#7f00ff] hover:text-[#7f00ff]/80 flex items-center text-sm ${
+              blockNewTag ? "opacity-60 cursor-not-allowed" : ""
+            }`}
+            disabled={blockNewTag}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Novo
+          </button>
+        </div>
+      )}
 
       <div className="space-y-2">
         {isLoading ? (
@@ -123,41 +134,43 @@ export function TagList({ blockNewTag = false, onBlockNewTag }: { blockNewTag?: 
                   {tag.name}
                 </span>
               </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => handleEdit(tag)}
-                  className="text-gray-400 hover:text-[#7f00ff]"
-                  disabled={deletingTagId === tag.id}
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(tag.id)}
-                  className="text-gray-400 hover:text-red-500"
-                  disabled={deletingTagId === tag.id}
-                >
-                  {deletingTagId === tag.id ? (
-                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      />
-                    </svg>
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
+              {canManageTags && (
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleEdit(tag)}
+                    className="text-gray-400 hover:text-[#7f00ff]"
+                    disabled={deletingTagId === tag.id}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(tag.id)}
+                    className="text-gray-400 hover:text-red-500"
+                    disabled={deletingTagId === tag.id}
+                  >
+                    {deletingTagId === tag.id ? (
+                      <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                        />
+                      </svg>
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           ))
         )}

@@ -46,6 +46,9 @@ export function TeamMemberModal({
 
   const { token, user } = useAuthStore();
   const organizationId = user?.organization_id;
+
+  // Verificar se o usuário é MASTER para mostrar a permissão de gerenciar membros
+  const isMaster = user?.role === "MASTER";
   const {
     systemPermissions,
     fetchAllSystemPermissions,
@@ -69,7 +72,7 @@ export function TeamMemberModal({
       );
       fetchPermissions(token, organizationId, member.id);
     }
-  }, [isOpen, token, organizationId, member, fetchPermissions]);
+  }, [isOpen, token, organizationId, member?.id]);
 
   // Reset do estado quando o modal é aberto para adicionar
   useEffect(() => {
@@ -84,7 +87,7 @@ export function TeamMemberModal({
     if (isTeamMember(member)) {
       setLocalPerms(permissions.map((p) => p.name));
     }
-  }, [permissions, member]);
+  }, [permissions, member?.id]);
 
   const handleTogglePermission = (permName: string, checked: boolean) => {
     setLocalPerms((prev) =>
@@ -109,6 +112,7 @@ export function TeamMemberModal({
       });
     }
     setSavingPerms(false);
+    onClose();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -228,7 +232,19 @@ export function TeamMemberModal({
                     Object.entries(permissionsLabels).map(
                       ([categoria, permsObj]) => {
                         const perms = Object.entries(permsObj).filter(
-                          ([permName]) => permName !== "organization:edit"
+                          ([permName]) => {
+                            // Sempre esconder organization:edit
+                            if (permName === "organization:edit") return false;
+
+                            // Esconder organization:manage_members se não for MASTER
+                            if (
+                              permName === "organization:manage_members" &&
+                              !isMaster
+                            )
+                              return false;
+
+                            return true;
+                          }
                         );
                         if (perms.length === 0) return null;
                         return (
