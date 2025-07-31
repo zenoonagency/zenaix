@@ -446,7 +446,7 @@ export const List = React.memo(
                   : "bg-gray-200 text-gray-800 hover:bg-gray-300"
               } ${isCreatingCard ? "opacity-50 cursor-not-allowed" : ""}`}
               style={{
-                display: hasPermission("lists:create") ? "flex" : "none",
+                display: hasPermission("lists:update") ? "flex" : "none",
               }}
             >
               <Plus className="w-4 h-4 ${isDark ? 'bg-dark-600'}" />

@@ -106,6 +106,9 @@ export function CardMenuModal({
                       duplicating ? " opacity-50 cursor-not-allowed" : ""
                     }`}
                     disabled={duplicating}
+                    style={{
+                      display: hasPermission("lists:update") ? "flex" : "none",
+                    }}
                   >
                     <ArrowUpDown className="w-5 h-5 mr-3 text-purple-500" />
                     Mover

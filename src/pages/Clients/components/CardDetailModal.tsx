@@ -72,7 +72,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   const { theme } = useThemeStore();
   const { tags } = useTagStore();
   const { members } = useTeamMembersStore();
-  const { token, organization } = useAuthStore();
+  const { token, organization, hasPermission } = useAuthStore();
   const { showToast } = useToast();
   const [showDeleteAttachmentConfirm, setShowDeleteAttachmentConfirm] =
     React.useState<string | null>(null);
@@ -368,6 +368,9 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
               className="p-2 rounded-full text-[#7f00ff] hover:text-purple-700 transition-colors"
               title="Editar card"
               disabled={isDeletingCard}
+              style={{
+                display: hasPermission("lists:update") ? "block" : "none",
+              }}
             >
               <Edit2 className="w-5 h-5" />
             </button>
@@ -376,6 +379,9 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
               className="p-2 rounded-full text-red-500 hover:text-red-600 transition-colors"
               title="Excluir card"
               disabled={isDeletingCard}
+              style={{
+                display: hasPermission("lists:update") ? "block" : "none",
+              }}
             >
               {isDeletingCard ? (
                 <svg

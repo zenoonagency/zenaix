@@ -98,6 +98,63 @@ export function TeamMemberModal({
     );
   };
 
+  const handleToggleCategory = (categoria: string, checked: boolean) => {
+    const categoriaPerms = Object.entries(permissionsLabels[categoria] || {})
+      .filter(([permName]) => {
+        if (permName === "organization:edit") return false;
+        if (permName === "organization:manage_members" && !isMaster)
+          return false;
+        return true;
+      })
+      .map(([permName]) => permName);
+
+    setLocalPerms((prev) => {
+      if (checked) {
+        const newPerms = [...prev];
+        categoriaPerms.forEach((perm) => {
+          if (!newPerms.includes(perm)) {
+            newPerms.push(perm);
+          }
+        });
+        return newPerms;
+      } else {
+        return prev.filter((p) => !categoriaPerms.includes(p));
+      }
+    });
+  };
+
+  const isCategoryChecked = (categoria: string) => {
+    const categoriaPerms = Object.entries(permissionsLabels[categoria] || {})
+      .filter(([permName]) => {
+        if (permName === "organization:edit") return false;
+        if (permName === "organization:manage_members" && !isMaster)
+          return false;
+        return true;
+      })
+      .map(([permName]) => permName);
+
+    return (
+      categoriaPerms.length > 0 &&
+      categoriaPerms.every((perm) => localPerms.includes(perm))
+    );
+  };
+
+  const isCategoryIndeterminate = (categoria: string) => {
+    const categoriaPerms = Object.entries(permissionsLabels[categoria] || {})
+      .filter(([permName]) => {
+        if (permName === "organization:edit") return false;
+        if (permName === "organization:manage_members" && !isMaster)
+          return false;
+        return true;
+      })
+      .map(([permName]) => permName);
+
+    const checkedCount = categoriaPerms.filter((perm) =>
+      localPerms.includes(perm)
+    ).length;
+    return checkedCount > 0 && checkedCount < categoriaPerms.length;
+  };
+
   const handleSavePermissions = async () => {
     if (!token || !organizationId || !isTeamMember(member)) return;
     setSavingPerms(true);
@@ -261,8 +318,25 @@ export function TeamMemberModal({
                             key={categoria}
                             className="py-2 first:pt-0 last:pb-0"
                           >
-                            <div className="font-semibold text-xs text-purple-700 dark:text-purple-300 mb-2 uppercase tracking-wide">
+                            <div className="font-semibold text-xs text-purple-700 dark:text-purple-300 mb-2 uppercase tracking-wide flex items-center justify-between">
                               {categoria}
+                              <input
+                                type="checkbox"
+                                checked={isCategoryChecked(categoria)}
+                                ref={(el) => {
+                                  if (el) {
+                                    el.indeterminate =
+                                      isCategoryIndeterminate(categoria);
+                                  }
+                                }}
+                                onChange={(e) =>
+                                  handleToggleCategory(
+                                    categoria,
+                                    e.target.checked
+                                  )
+                                }
+                                disabled={isLoading || localLoading}
+                              />
                             </div>
                             <ul className="space-y-2">
                               {perms.map(([permName, label]) => (

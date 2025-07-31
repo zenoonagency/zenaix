@@ -364,12 +364,14 @@ const Card = React.memo(
                   </span>
                 </div>
               )}
-              <button
-                onClick={openCardMenu}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <MoreVertical className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              </button>
+              {hasPermission("lists:update") && (
+                <button
+                  onClick={openCardMenu}
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreVertical className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                </button>
+              )}
             </div>
             {/* Card Title */}
             <div
