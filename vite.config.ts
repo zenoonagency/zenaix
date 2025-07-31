@@ -2,8 +2,19 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
+const crossOriginIsolationMiddleware = () => ({
+  name: "cross-origin-isolation",
+  configureServer(server) {
+    server.middlewares.use((_req, res, next) => {
+      res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+      res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
+      next();
+    });
+  },
+});
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), crossOriginIsolationMiddleware()],
   server: {
     port: 3000,
     host: true,
@@ -37,6 +48,11 @@ export default defineConfig({
             console.error("Proxy error:", err);
           });
         },
+      },
+      "/storage": {
+        target: "https://samiqqeumkhpfgwdkjvb.supabase.co",
+        changeOrigin: true,
+        secure: false,
       },
     },
   },

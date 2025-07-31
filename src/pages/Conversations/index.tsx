@@ -19,6 +19,7 @@ import {
   Download,
 } from "lucide-react";
 import { AudioRecorderModal } from "../../components/AudioRecorderModal";
+import { WhatsAppAudioPlayer } from "../../components/WhatsAppAudioPlayer";
 import { useAuthStore } from "../../store/authStore";
 import { useWhatsAppInstanceStore } from "../../store/whatsAppInstanceStore";
 import { useWhatsappContactStore } from "../../store/whatsapp/whatsappContactStore";
@@ -651,7 +652,6 @@ export function Conversations() {
       return;
     }
 
-    // Verificar se a instância está conectada
     if (activeInstance?.status !== "CONNECTED") {
       showToast("Instância não está conectada", "error");
       return;
@@ -666,7 +666,7 @@ export function Conversations() {
         return;
       }
 
-      // Converter Blob para File e processar formato
+      // Converter Blob para File
       const audioFile = new File([audioBlob], `audio_${Date.now()}.ogg`, {
         type: "audio/ogg",
       });
@@ -1088,6 +1088,7 @@ export function Conversations() {
                                           ? "bg-[#7f00ff] text-white"
                                           : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                                       }`}
+                                      style={{ position: "relative" }}
                                     >
                                       {item.message.body && (
                                         <div className="text-sm whitespace-pre-wrap">
@@ -1125,10 +1126,43 @@ export function Conversations() {
                                           ) : item.message.media_type?.startsWith(
                                               "audio/"
                                             ) ? (
-                                            <audio
-                                              src={item.message.media_url}
-                                              controls
-                                              className="w-full"
+                                            <WhatsAppAudioPlayer
+                                              audioUrl={item.message.media_url}
+                                              isOutgoing={
+                                                item.message.direction ===
+                                                "OUTGOING"
+                                              }
+                                              messageType={
+                                                item.message.message_type
+                                              }
+                                              mediaType={
+                                                item.message.media_type
+                                              }
+                                              avatarUrl={(() => {
+                                                const contato =
+                                                  instanceContacts.find(
+                                                    (c) =>
+                                                      c.id ===
+                                                      item.message
+                                                        .whatsapp_contact_id
+                                                  );
+                                                return (
+                                                  contato?.avatar_url || null
+                                                );
+                                              })()}
+                                              contactName={(() => {
+                                                const contato =
+                                                  instanceContacts.find(
+                                                    (c) =>
+                                                      c.id ===
+                                                      item.message
+                                                        .whatsapp_contact_id
+                                                  );
+                                                return contato?.name || "";
+                                              })()}
+                                              messageTime={
+                                                item.message.timestamp
+                                              }
                                             />
                                           ) : (
                                             <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
@@ -1154,57 +1188,29 @@ export function Conversations() {
                                           )}
                                         </div>
                                       )}
-                                      <div
-                                        className={`text-xs mt-1 flex items-center justify-between ${
-                                          item.message.direction === "OUTGOING"
-                                            ? "text-blue-200"
-                                            : "text-gray-500"
-                                        }`}
-                                      >
-                                        <span>
+                                      {/* Horário sempre no canto direito, menor */}
+                                      {!item.message.media_type?.startsWith(
+                                        "audio/"
+                                      ) && (
+                                        <div
+                                          className="text-[11px] flex items-center justify-end mt-1"
+                                          style={{
+                                            color:
+                                              item.message.direction ===
+                                              "OUTGOING"
+                                                ? "#cfcfff"
+                                                : "#888",
+                                          }}
+                                        >
                                           {new Date(
                                             item.message.timestamp
                                           ).toLocaleTimeString("pt-BR", {
                                             hour: "2-digit",
                                             minute: "2-digit",
                                           })}
-                                        </span>
-                                        {item.message.direction ===
-                                          "OUTGOING" && (
-                                          <span className="ml-2">
-                                            {item.message.status ===
-                                              "sending" && (
-                                              <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
-                                            )}
-                                            {/* Priorizar ACK sobre status quando disponível */}
-                                            {item.message.ack === 1 && (
-                                              <span>✓</span>
-                                            )}
-                                            {item.message.ack === 2 && (
-                                              <span>✓✓</span>
-                                            )}
-                                            {item.message.ack === 3 && (
-                                              <span className="text-blue-400">
-                                                ✓✓
-                                              </span>
-                                            )}
-                                            {/* Fallback para status quando ACK não está disponível */}
-                                            {!item.message.ack &&
-                                              item.message.status ===
-                                                "sent" && <span>✓</span>}
-                                            {!item.message.ack &&
-                                              item.message.status ===
-                                                "delivered" && <span>✓✓</span>}
-                                            {!item.message.ack &&
-                                              item.message.status ===
-                                                "read" && (
-                                                <span className="text-blue-400">
-                                                  ✓✓
-                                                </span>
-                                              )}
-                                          </span>
-                                        )}
-                                      </div>
+                                        </div>
+                                      )}
+                                      {/* Status/ACK para OUTGOING pode ficar ao lado do horário se quiser */}
                                     </div>
                                   </div>
                                 )}
@@ -1324,7 +1330,7 @@ export function Conversations() {
                     }}
                   ></div>
                   {/* Conteúdo central */}
-                  <div className="relative z-10 flex items-center justify-center">
+                  <div className="relative z-10 flex items-center justify-center p-4">
                     {activeInstanceId ? (
                       // Verificar se a instância ativa está conectada
                       (() => {
