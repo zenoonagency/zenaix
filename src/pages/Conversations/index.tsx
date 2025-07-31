@@ -24,7 +24,11 @@ import { useAuthStore } from "../../store/authStore";
 import { useWhatsAppInstanceStore } from "../../store/whatsAppInstanceStore";
 import { useWhatsappContactStore } from "../../store/whatsapp/whatsappContactStore";
 import { useWhatsappMessageStore } from "../../store/whatsapp/whatsappMessageStore";
-import { WhatsappContact, WhatsappMessage } from "../../types/whatsapp";
+import {
+  WhatsappContact,
+  WhatsappMessage,
+  WhatsappMessageDirection,
+} from "../../types/whatsapp";
 import { useToast } from "../../hooks/useToast";
 import { useNavigate } from "react-router-dom";
 import { ContactOptionsMenu } from "../../components/ContactOptionsMenu";
@@ -710,7 +714,7 @@ export function Conversations() {
         from: `${activeInstance?.phone_number}@c.us`,
         to: `${contact.phone}@c.us`,
         body: "",
-        media_url: null, // será preenchido quando chegar do backend
+        media_url: null,
         media_type: "audio/ogg",
         message_type: "ptt",
         timestamp: new Date().toISOString(),
@@ -723,8 +727,8 @@ export function Conversations() {
         organization_id: user.organization_id,
         whatsapp_contact_id: selectedContactId,
         created_at: new Date().toISOString(),
-        direction: "OUTGOING",
-        status: "sending",
+        direction: "OUTGOING" as WhatsappMessageDirection,
+        status: "sending" as const,
       };
       const messageStore = useWhatsappMessageStore.getState();
       messageStore.addTemporaryMessage(
@@ -953,6 +957,7 @@ export function Conversations() {
                     handleSendMessage={handleSendMessage}
                     handleFileSelect={handleFileSelect}
                     isLoadingMessages={isLoadingMessages}
+                    handleSendAudio={handleSendAudio}
                   />
                 </>
               ) : (
