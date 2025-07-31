@@ -143,15 +143,26 @@ export function MessagesArea({
   return (
     <div
       ref={messagesContainerRef}
-      className="flex-1 overflow-y-auto relative"
-      style={{
-        backgroundRepeat: "repeat",
-        backgroundSize: "200px",
-        backgroundAttachment: "local",
-      }}
+      className="flex-1 overflow-auto relative"
       onScroll={handleScroll}
     >
       <div className="relative z-10 flex flex-col p-6 min-h-full bg-white/85 dark:bg-dark-900/85 justify-end">
+        <div
+          style={{
+            backgroundImage: 'url("/assets/images/zenaix-logo-bg.png")',
+            backgroundRepeat: "repeat",
+            backgroundPosition: "center",
+            backgroundSize: "180px",
+            opacity: 0.1,
+            position: "absolute",
+            inset: 0,
+            zIndex: 0,
+            pointerEvents: "none",
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+          }}
+        />
         {isLoadingMessages ? (
           <div className="text-center text-gray-500">
             Carregando mensagens...
@@ -191,7 +202,7 @@ export function MessagesArea({
                     }`}
                   >
                     <div
-                      className={`rounded-xl p-2 px-3 max-w-xs lg:max-sm: ${
+                      className={`rounded-lg p-2 px-3 max-w-xs lg:max-sm: ${
                         item.message.direction === "OUTGOING"
                           ? "bg-[#7f00ff] text-white"
                           : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"

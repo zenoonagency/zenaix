@@ -6,6 +6,7 @@ import { useAuthStore } from "../../../store/authStore";
 import { useEffect } from "react";
 import { TeamMember } from "../../../types/team.types";
 import { permissionsLabels } from "../../../components/ui/permissionsLabels";
+import { useToast } from "../../../hooks/useToast";
 
 export type TeamRole = "ADMIN" | "TEAM_MEMBER";
 
@@ -62,6 +63,8 @@ export function TeamMemberModal({
     isLoading: isLoadingMemberPerms,
   } = usePermissionsStore();
 
+  const { showToast } = useToast();
+
   // Determinar se é modo de adicionar ou editar
   const isAddMode = !isTeamMember(member);
 
@@ -98,21 +101,27 @@ export function TeamMemberModal({
   const handleSavePermissions = async () => {
     if (!token || !organizationId || !isTeamMember(member)) return;
     setSavingPerms(true);
-    const currentPerms = permissions.map((p) => p.name);
-    const toGrant = localPerms.filter((p) => !currentPerms.includes(p));
-    const toRevoke = currentPerms.filter((p) => !localPerms.includes(p));
-    if (toGrant.length > 0) {
-      await grantPermissions(token, organizationId, member.id, {
-        permission_names: toGrant,
-      });
+    try {
+      const currentPerms = permissions.map((p) => p.name);
+      const toGrant = localPerms.filter((p) => !currentPerms.includes(p));
+      const toRevoke = currentPerms.filter((p) => !localPerms.includes(p));
+      if (toGrant.length > 0) {
+        await grantPermissions(token, organizationId, member.id, {
+          permission_names: toGrant,
+        });
+      }
+      if (toRevoke.length > 0) {
+        await revokePermissions(token, organizationId, member.id, {
+          permission_names: toRevoke,
+        });
+      }
+      setSavingPerms(false);
+      onClose();
+    } catch (error: any) {
+      const errorMessage = error?.message || "Erro ao salvar permissões";
+      showToast(errorMessage, "error");
+      setSavingPerms(false);
     }
-    if (toRevoke.length > 0) {
-      await revokePermissions(token, organizationId, member.id, {
-        permission_names: toRevoke,
-      });
-    }
-    setSavingPerms(false);
-    onClose();
   };
 
   const handleSubmit = (e: React.FormEvent) => {

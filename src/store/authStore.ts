@@ -18,7 +18,7 @@ export const useAuthStore = create<AuthState>()(
       _hasHydrated: false,
       _isLoggingOut: false,
       isLoading: false,
-      
+
       setLoading: (loading: boolean) => set({ isLoading: loading }),
 
       setSession: (session: Session) => {
@@ -34,8 +34,8 @@ export const useAuthStore = create<AuthState>()(
         );
         const { organization, permissions, ...userData } = meData;
         set((state) => ({
-          isAuthenticated: true, 
-          isLoading: false, 
+          isAuthenticated: true,
+          isLoading: false,
           user: {
             ...(state.user as User),
             ...userData,
@@ -50,9 +50,13 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         if (get()._isLoggingOut) return;
         set({ _isLoggingOut: true });
-        await supabase.auth.signOut();
+        try {
+          await supabase.auth.signOut();
+        } catch (e) {
+          console.error("[AuthStore] Erro ao fazer signOut do Supabase:", e);
+        }
         get().clearAuth();
-        localStorage.clear(); 
+        localStorage.clear();
         set({ _isLoggingOut: false });
         window.location.href = "/login";
       },
@@ -88,7 +92,7 @@ export const useAuthStore = create<AuthState>()(
       name: "auth-storage",
       partialize: (state) => ({
         token: state.token,
-        user: state.user, 
+        user: state.user,
         organization: state.organization,
         permissions: state.permissions,
         plan: state.plan,

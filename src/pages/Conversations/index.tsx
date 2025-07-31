@@ -900,7 +900,8 @@ export function Conversations() {
               }}
             />
             {/* Área de mensagens */}
-            <div className="flex-1 relative bg-white dark:bg-dark-900 flex flex-col">
+            <div className="flex-1 relative bg-white dark:bg-dark-900 flex flex-col overflow-auto">
+             
               {selectedContactId ? (
                 <>
                   {/* Cabeçalho do contato */}
