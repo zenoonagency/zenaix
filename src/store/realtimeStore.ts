@@ -13,6 +13,7 @@ import { useWhatsappMessageStore } from "./whatsapp/whatsappMessageStore";
 import { useWhatsappContactStore } from "./whatsapp/whatsappContactStore";
 import { useEmbedPagesStore } from "./embedPagesStore";
 import { useCalendarStore } from "./calendarStore";
+import { useDashboardStore } from "./dashboardStore";
 
 interface RealtimeState {
   userChannel: RealtimeChannel | null;
@@ -101,6 +102,8 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
       break;
     case "CARD_CREATED":
       useBoardStore.getState().addCardToActiveBoard(payload.data);
+      const dashboardStore = useDashboardStore.getState();
+
       break;
     case "CARD_UPDATED":
       useBoardStore.getState().updateCardInActiveBoard(payload.data);
@@ -439,11 +442,7 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
     // --- Heartbeat ---
     const newHeartbeatInterval = setInterval(() => {
       const isConnected = supabase.realtime.isConnected();
-      console.log(
-        `[RealtimeStore][HEARTBEAT] Estado da conexão: ${
-          isConnected ? "CONECTADO" : "DESCONECTADO"
-        }`
-      );
+ 
       if (!isConnected) {
         supabase.realtime.connect();
         // Após reconectar, reestabelece os canais

@@ -53,33 +53,58 @@ export function useDashboardData() {
     }
   }, [boards, dashboardSelectInitialBoard]);
 
-  useEffect(() => {
-    if (dashboardActiveBoardId) {
-      const needsFullLoad =
-        !dashboardActiveBoard ||
-        dashboardActiveBoard.id !== dashboardActiveBoardId ||
-        !dashboardActiveBoard.lists ||
-        dashboardActiveBoard.lists.length === 0;
+  // Função utilitária para cache localStorage
+  function getTopSellersCache(boardId: string) {
+    try {
+      const cache = localStorage.getItem(`topsellers_${boardId}`);
+      if (cache) return JSON.parse(cache);
+    } catch {}
+    return null;
+  }
+  function setTopSellersCache(boardId: string, data: any) {
+    try {
+      localStorage.setItem(`topsellers_${boardId}`, JSON.stringify(data));
+    } catch {}
+  }
 
-      if (needsFullLoad && !isDashboardLoadingBoard) {
-        dashboardSelectAndLoadBoard(dashboardActiveBoardId);
+  useEffect(() => {
+    if (
+      dashboardActiveBoardId &&
+      dashboardActiveBoard?.id === dashboardActiveBoardId
+    ) {
+      // Se já tem top sellers no store, não faz fetch
+      if (dashboardTopSellers?.data?.length > 0) return;
+      // Tenta cache local
+      const cache = getTopSellersCache(dashboardActiveBoardId);
+      if (cache && Array.isArray(cache.data) && cache.data.length > 0) {
+        useDashboardStore.getState().setTopSellers(cache);
+        // Busca em background para atualizar
+        useDashboardStore
+          .getState()
+          .fetchTopSellers(dashboardActiveBoardId)
+          .then((fresh) => {
+            if (fresh && Array.isArray(fresh.data) && fresh.data.length > 0) {
+              setTopSellersCache(dashboardActiveBoardId, fresh);
+            }
+          });
         return;
       }
-
-      if (
-        dashboardActiveBoard?.id === dashboardActiveBoardId &&
-        !isDashboardLoadingTopSellers
-      ) {
-        const { fetchTopSellers } = useDashboardStore.getState();
-        fetchTopSellers(dashboardActiveBoardId);
-      }
+      // Se não tem cache, busca normalmente
+      useDashboardStore
+        .getState()
+        .fetchTopSellers(dashboardActiveBoardId)
+        .then((fresh) => {
+          if (fresh && Array.isArray(fresh.data) && fresh.data.length > 0) {
+            setTopSellersCache(dashboardActiveBoardId, fresh);
+          }
+        });
     } else {
-      const store = useDashboardStore.getState();
-      if (store.topSellers.data.length > 0) {
-        store.topSellers = { data: [] };
+      // Limpando top sellers se não tem board
+      if (dashboardTopSellers.data.length > 0) {
+        useDashboardStore.getState().setTopSellers({ data: [] });
       }
     }
-  }, [dashboardActiveBoardId, dashboardActiveBoard?.id]);
+  }, [dashboardActiveBoardId, dashboardActiveBoard]);
 
   useEffect(() => {
     if (token && user?.organization_id) {

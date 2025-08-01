@@ -170,6 +170,8 @@ export const useDashboardStore = create<DashboardStore>()(
             activeBoardId: state.lastUsedBoardId,
             activeBoard: board,
           });
+          // Carregar o board automaticamente
+          get().fetchDashboardBoard(state.lastUsedBoardId);
           return;
         }
 
@@ -178,6 +180,8 @@ export const useDashboardStore = create<DashboardStore>()(
           activeBoardId: boards[0].id,
           activeBoard: boards[0],
         });
+        // Carregar o board automaticamente
+        get().fetchDashboardBoard(boards[0].id);
       },
     }),
     {
