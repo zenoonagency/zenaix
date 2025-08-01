@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
-import { X, Plus, Trash2, Upload } from 'lucide-react';
-import { useDataTablesStore } from '../../../store/dataTablesStore';
-import { DataColumn, DataColumnType } from '../../../types/dataTables';
-import { normalizeText, normalizeTableData } from '../../../utils/textNormalization';
-import { generateId } from '../../../utils/generateId';
-import Papa from 'papaparse';
+import React, { useState } from "react";
+import { X, Plus, Trash2, Upload } from "lucide-react";
+import { useDataTablesStore } from "../../../store/dataTablesStore";
+import { DataColumn, DataColumnType } from "../../../types/dataTables";
+import {
+  normalizeText,
+  normalizeTableData,
+} from "../../../utils/textNormalization";
+import { generateId } from "../../../utils/generateId";
+import Papa from "papaparse";
 
 interface TableModalProps {
   isOpen: boolean;
@@ -12,16 +15,16 @@ interface TableModalProps {
 }
 
 const columnTypes: { value: DataColumnType; label: string }[] = [
-  { value: 'text', label: 'Texto' },
-  { value: 'number', label: 'Número' },
-  { value: 'date', label: 'Data' },
-  { value: 'boolean', label: 'Sim/Não' },
-  { value: 'select', label: 'Seleção' },
+  { value: "text", label: "Texto" },
+  { value: "number", label: "Número" },
+  { value: "date", label: "Data" },
+  { value: "boolean", label: "Sim/Não" },
+  { value: "select", label: "Seleção" },
 ];
 
 export function TableModal({ isOpen, onClose }: TableModalProps) {
   const { addTable } = useDataTablesStore();
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
   const [columns, setColumns] = useState<DataColumn[]>([]);
   const [importedData, setImportedData] = useState<Record<string, any>[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -31,8 +34,8 @@ export function TableModal({ isOpen, onClose }: TableModalProps) {
       ...columns,
       {
         id: generateId(),
-        name: '',
-        type: 'text',
+        name: "",
+        type: "text",
       },
     ]);
   };
@@ -47,9 +50,7 @@ export function TableModal({ isOpen, onClose }: TableModalProps) {
     value: string
   ) => {
     setColumns(
-      columns.map((col) =>
-        col.id === id ? { ...col, [key]: value } : col
-      )
+      columns.map((col) => (col.id === id ? { ...col, [key]: value } : col))
     );
   };
 
@@ -59,21 +60,25 @@ export function TableModal({ isOpen, onClose }: TableModalProps) {
 
     Papa.parse(file, {
       header: true,
-      encoding: 'ISO-8859-1', // Handle special characters
+      encoding: "ISO-8859-1", // Handle special characters
       complete: (results) => {
         if (results.data && Array.isArray(results.data)) {
           // Create columns from headers with normalized names
           if (results.meta.fields) {
-            const newColumns: DataColumn[] = results.meta.fields.map((field) => ({
-              id: generateId(),
-              name: normalizeText(field),
-              type: 'text',
-            }));
+            const newColumns: DataColumn[] = results.meta.fields.map(
+              (field) => ({
+                id: generateId(),
+                name: normalizeText(field),
+                type: "text",
+              })
+            );
             setColumns(newColumns);
           }
 
           // Store normalized imported data
-          const normalizedData = normalizeTableData(results.data as Record<string, any>[]);
+          const normalizedData = normalizeTableData(
+            results.data as Record<string, any>[]
+          );
           setImportedData(normalizedData);
         }
       },
@@ -87,25 +92,25 @@ export function TableModal({ isOpen, onClose }: TableModalProps) {
     e.preventDefault();
 
     if (!name.trim()) {
-      setError('Por favor, insira um nome para a tabela');
+      setError("Por favor, insira um nome para a tabela");
       return;
     }
 
     if (columns.length === 0) {
-      setError('Por favor, adicione pelo menos uma coluna');
+      setError("Por favor, adicione pelo menos uma coluna");
       return;
     }
 
     if (columns.some((col) => !col.name.trim())) {
-      setError('Todas as colunas precisam ter um nome');
+      setError("Todas as colunas precisam ter um nome");
       return;
     }
 
     try {
       // Normalize column names before adding the table
-      const normalizedColumns = columns.map(col => ({
+      const normalizedColumns = columns.map((col) => ({
         ...col,
-        name: normalizeText(col.name)
+        name: normalizeText(col.name),
       }));
 
       addTable({
@@ -118,7 +123,7 @@ export function TableModal({ isOpen, onClose }: TableModalProps) {
       if (error instanceof Error) {
         setError(error.message);
       } else {
-        setError('Erro ao criar tabela. Por favor, tente novamente.');
+        setError("Erro ao criar tabela. Por favor, tente novamente.");
       }
     }
   };
@@ -126,7 +131,7 @@ export function TableModal({ isOpen, onClose }: TableModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 !mt-0 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-3xl max-h-[90vh] flex flex-col">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center">
@@ -180,7 +185,7 @@ export function TableModal({ isOpen, onClose }: TableModalProps) {
                       placeholder="Nome da Coluna"
                       value={column.name}
                       onChange={(e) =>
-                        handleUpdateColumn(column.id, 'name', e.target.value)
+                        handleUpdateColumn(column.id, "name", e.target.value)
                       }
                       className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff] dark:bg-gray-700 dark:text-gray-100"
                     />
@@ -189,7 +194,7 @@ export function TableModal({ isOpen, onClose }: TableModalProps) {
                       onChange={(e) =>
                         handleUpdateColumn(
                           column.id,
-                          'type',
+                          "type",
                           e.target.value as DataColumnType
                         )
                       }

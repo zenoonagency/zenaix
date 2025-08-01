@@ -341,7 +341,7 @@ function ChatModal({ isOpen, onClose }: ChatModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 !mt-0">
       <div className="rounded-lg pt-16 shadow-lg w-full max-w-2xl h-[700px] relative bg-white text-black glass-effect">
         <button
           onClick={onClose}

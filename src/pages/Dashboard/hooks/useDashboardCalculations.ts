@@ -20,42 +20,35 @@ export function useDashboardCalculations(
       : "";
   };
 
-  const systemLists = useMemo(() => {
-    if (!dashboardActiveBoard?.lists)
-      return { andamento: null, pendente: null, concluido: null };
-    const andamento = dashboardActiveBoard.lists.find((l: any) =>
-      normalize(l.name).includes("emandamento")
-    );
-    const pendente = dashboardActiveBoard.lists.find((l: any) =>
-      normalize(l.name).includes("pendente")
-    );
+  const completedSalesValue = useMemo(() => {
+    if (!dashboardActiveBoard?.lists) return 0;
+
     const concluido = dashboardActiveBoard.lists.find((l: any) =>
       normalize(l.name).includes("concluido")
     );
-    return { andamento, pendente, concluido };
-  }, [dashboardActiveBoard]);
 
-  const totalKanbanValue = useMemo(() => {
-    const { andamento, pendente } = systemLists;
-    const sumList = (list: any) =>
-      list?.cards?.reduce(
-        (sum: number, card: any) => sum + (Number(card.value) || 0),
-        0
-      ) || 0;
-    const andamentoValue = sumList(andamento);
-    const pendenteValue = sumList(pendente);
-    return andamentoValue + pendenteValue;
-  }, [systemLists, dashboardActiveBoard?.name]);
-
-  const completedSalesValue = useMemo(() => {
-    const { concluido } = systemLists;
     return (
       concluido?.cards?.reduce(
         (sum: number, card: any) => sum + (Number(card.value) || 0),
         0
       ) || 0
     );
-  }, [systemLists]);
+  }, [dashboardActiveBoard]);
+
+  const totalKanbanValue = useMemo(() => {
+    if (!dashboardActiveBoard?.lists) return 0;
+
+    const sumList = (list: any) =>
+      list?.cards?.reduce(
+        (sum: number, card: any) => sum + (Number(card.value) || 0),
+        0
+      ) || 0;
+
+    return dashboardActiveBoard.lists.reduce(
+      (total: number, list: any) => total + sumList(list),
+      0
+    );
+  }, [dashboardActiveBoard]);
 
   const conversionRate = useMemo(() => {
     if (totalKanbanValue === 0) return 0;

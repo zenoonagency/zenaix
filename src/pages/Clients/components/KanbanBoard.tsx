@@ -212,7 +212,7 @@ function SortModal({ isOpen, onClose, onSort, lists }: SortModalProps) {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 !mt-0"
       onClick={onClose}
     >
       <div

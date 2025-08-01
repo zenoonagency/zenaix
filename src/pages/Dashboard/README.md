@@ -83,7 +83,7 @@ Gerencia toda a lógica de dados do dashboard:
 
 Responsável pelos cálculos do dashboard:
 
-- Valores do Kanban (andamento + pendente)
+- Valores do Kanban (todas as listas do board ativo)
 - Vendas concluídas
 - Taxa de conversão
 - Dados de contratos

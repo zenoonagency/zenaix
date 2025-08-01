@@ -1,11 +1,11 @@
 // src/pages/DataTables/components/CreateContactModal.tsx
-import React, { useState } from 'react';
-import { X, Tag } from 'lucide-react';
-import { useContactsStore } from '../../../store/contactsStore';
-import { useTagStore } from '../../../store/tagStore';
-import { DataColumn } from '../../../types/dataTables';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '../../../hooks/useToast';
+import React, { useState } from "react";
+import { X, Tag } from "lucide-react";
+import { useContactsStore } from "../../../store/contactsStore";
+import { useTagStore } from "../../../store/tagStore";
+import { DataColumn } from "../../../types/dataTables";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "../../../hooks/useToast";
 
 interface CreateContactModalProps {
   isOpen: boolean;
@@ -14,42 +14,47 @@ interface CreateContactModalProps {
   columns: DataColumn[];
 }
 
-export function CreateContactModal({ isOpen, onClose, rowsData, columns }: CreateContactModalProps) {
+export function CreateContactModal({
+  isOpen,
+  onClose,
+  rowsData,
+  columns,
+}: CreateContactModalProps) {
   const navigate = useNavigate();
   const { addContact } = useContactsStore();
   const { tags } = useTagStore();
   const { showToast } = useToast();
   const [selectedFields, setSelectedFields] = useState<Record<string, string>>({
-    name: '',
-    phone: '',
+    name: "",
+    phone: "",
   });
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   const handleFieldSelect = (field: string, mappedField: string) => {
-    setSelectedFields(prev => ({
+    setSelectedFields((prev) => ({
       ...prev,
-      [field]: mappedField
+      [field]: mappedField,
     }));
   };
 
   const handleTagToggle = (tagId: string) => {
-    setSelectedTagIds(prev => 
-      prev.includes(tagId) 
-        ? prev.filter(id => id !== tagId)
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId)
+        ? prev.filter((id) => id !== tagId)
         : [...prev, tagId]
     );
   };
 
   const handleCreateContacts = () => {
     if (!selectedFields.name || !selectedFields.phone) {
-      showToast('Por favor, selecione os campos de nome e telefone', 'error');
+      showToast("Por favor, selecione os campos de nome e telefone", "error");
       return;
     }
 
     let createdCount = 0;
     let errorCount = 0;
 
-    rowsData.forEach(rowData => {
+    rowsData.forEach((rowData) => {
       try {
         const name = rowData[selectedFields.name];
         const phone = rowData[selectedFields.phone];
@@ -59,7 +64,7 @@ export function CreateContactModal({ isOpen, onClose, rowsData, columns }: Creat
           return;
         }
 
-        const normalizedPhone = phone.toString().replace(/\D/g, '');
+        const normalizedPhone = phone.toString().replace(/\D/g, "");
         const contactData = {
           name: name.toString().trim(),
           phone: normalizedPhone,
@@ -71,30 +76,39 @@ export function CreateContactModal({ isOpen, onClose, rowsData, columns }: Creat
         createdCount++;
       } catch (error) {
         errorCount++;
-        console.error('Erro ao criar contato:', error);
+        console.error("Erro ao criar contato:", error);
       }
     });
 
     if (createdCount > 0) {
       showToast(
-        `${createdCount} contato${createdCount > 1 ? 's' : ''} criado${createdCount > 1 ? 's' : ''} com sucesso${errorCount > 0 ? `. ${errorCount} falha${errorCount > 1 ? 's' : ''}.` : '!'}`,
-        'success'
+        `${createdCount} contato${createdCount > 1 ? "s" : ""} criado${
+          createdCount > 1 ? "s" : ""
+        } com sucesso${
+          errorCount > 0
+            ? `. ${errorCount} falha${errorCount > 1 ? "s" : ""}.`
+            : "!"
+        }`,
+        "success"
       );
       onClose();
-      navigate('/dashboard/contacts'); // Changed from /messaging to /contacts
+      navigate("/dashboard/contacts"); // Changed from /messaging to /contacts
     } else {
-      showToast('Não foi possível criar nenhum contato. Verifique os dados.', 'error');
+      showToast(
+        "Não foi possível criar nenhum contato. Verifique os dados.",
+        "error"
+      );
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 !mt-0">
       <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-            Criar {rowsData.length} Contato{rowsData.length > 1 ? 's' : ''}
+            Criar {rowsData.length} Contato{rowsData.length > 1 ? "s" : ""}
           </h2>
           <button
             onClick={onClose}
@@ -111,7 +125,7 @@ export function CreateContactModal({ isOpen, onClose, rowsData, columns }: Creat
             </label>
             <select
               value={selectedFields.name}
-              onChange={(e) => handleFieldSelect('name', e.target.value)}
+              onChange={(e) => handleFieldSelect("name", e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff] dark:bg-gray-700 dark:text-gray-100"
               required
             >
@@ -130,7 +144,7 @@ export function CreateContactModal({ isOpen, onClose, rowsData, columns }: Creat
             </label>
             <select
               value={selectedFields.phone}
-              onChange={(e) => handleFieldSelect('phone', e.target.value)}
+              onChange={(e) => handleFieldSelect("phone", e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff] dark:bg-gray-700 dark:text-gray-100"
               required
             >
@@ -156,14 +170,16 @@ export function CreateContactModal({ isOpen, onClose, rowsData, columns }: Creat
                   onClick={() => handleTagToggle(tag.id)}
                   className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                     selectedTagIds.includes(tag.id)
-                      ? 'bg-opacity-100'
-                      : 'bg-opacity-20 hover:bg-opacity-30'
+                      ? "bg-opacity-100"
+                      : "bg-opacity-20 hover:bg-opacity-30"
                   }`}
                   style={{
-                    backgroundColor: selectedTagIds.includes(tag.id) ? tag.color : undefined,
+                    backgroundColor: selectedTagIds.includes(tag.id)
+                      ? tag.color
+                      : undefined,
                     borderColor: tag.color,
-                    borderWidth: '1px',
-                    color: selectedTagIds.includes(tag.id) ? '#fff' : tag.color,
+                    borderWidth: "1px",
+                    color: selectedTagIds.includes(tag.id) ? "#fff" : tag.color,
                   }}
                 >
                   {tag.name}
