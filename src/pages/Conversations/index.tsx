@@ -846,9 +846,12 @@ export function Conversations() {
     return (
       <div className="p-6 h-[95vh] flex flex-col">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Conversas
-          </h1>
+          <div className="flex items-center space-x-4">
+            <MessageCircle className="w-6 h-6 text-[#7f00ff]" />
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] text-transparent bg-clip-text">
+              Conversas
+            </h1>
+          </div>
         </div>
         <div className="text-center py-12">Carregando instâncias...</div>
       </div>
@@ -862,9 +865,12 @@ export function Conversations() {
   return (
     <div className="p-6 h-[95vh] flex flex-col">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          Conversas
-        </h1>
+        <div className="flex items-center space-x-4">
+          <MessageCircle className="w-6 h-6 text-[#7f00ff]" />
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] text-transparent bg-clip-text">
+            Conversas
+          </h1>
+        </div>
       </div>
 
       {instances.length === 0 ? (
@@ -901,7 +907,6 @@ export function Conversations() {
             />
             {/* Área de mensagens */}
             <div className="flex-1 relative bg-white dark:bg-dark-900 flex flex-col overflow-auto">
-             
               {selectedContactId ? (
                 <>
                   {/* Cabeçalho do contato */}

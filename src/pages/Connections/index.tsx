@@ -172,13 +172,11 @@ export function Connections() {
     return (
       <div className="p-6 space-y-6 min-h-screen bg-gray-50 dark:bg-dark-900">
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="flex items-center space-x-4">
+            <Settings className="w-6 h-6 text-[#7f00ff]" />
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] text-transparent bg-clip-text">
               Conexões
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Gerencie suas integrações e conexões com plataformas externas
-            </p>
           </div>
         </div>
         <div className="flex items-center justify-center h-64">
@@ -201,13 +199,11 @@ export function Connections() {
   return (
     <div className="p-6 space-y-6 min-h-screen bg-gray-50 dark:bg-dark-900">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="flex items-center space-x-4">
+          <Settings className="w-6 h-6 text-[#7f00ff]" />
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] text-transparent bg-clip-text">
             Conexões
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Gerencie suas integrações e conexões com plataformas externas
-          </p>
         </div>
         <button
           onClick={() => {

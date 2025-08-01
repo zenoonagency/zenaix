@@ -45,7 +45,7 @@ export function InstanceTabs({
                   </button>
                   <button
                     onClick={(e) => handleMenuClick(e, instance.id)}
-                    className="conversations-tab-menu absolute -top-1 -right-1 w-6 h-6 bg-gray-200 dark:bg-dark-600 rounded-full flex items-center justify-center hover:bg-gray-300 dark:hover:bg-dark-500 transition-colors"
+                    className="conversations-tab-menu absolute top-1 -right-1 w-4 h-4 bg-gray-200 dark:bg-dark-600 rounded-full flex items-center justify-center hover:bg-gray-300 dark:hover:bg-dark-500 transition-colors"
                     title="Mais informações"
                   >
                     <MoreVertical className="w-3 h-3 text-gray-600 dark:text-gray-300" />

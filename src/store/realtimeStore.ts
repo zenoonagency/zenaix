@@ -11,6 +11,7 @@ import { useBoardStore } from "./boardStore";
 import { useWhatsAppInstanceStore } from "./whatsAppInstanceStore";
 import { useWhatsappMessageStore } from "./whatsapp/whatsappMessageStore";
 import { useWhatsappContactStore } from "./whatsapp/whatsappContactStore";
+import { useEmbedPagesStore } from "./embedPagesStore";
 
 interface RealtimeState {
   userChannel: RealtimeChannel | null;
@@ -351,6 +352,18 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
       }
       break;
     }
+    case "EMBED_PAGE_CREATED":
+      console.log("[RealtimeStore] 📄 Página embed criada:", payload.data);
+      useEmbedPagesStore.getState().addPage(payload.data);
+      break;
+    case "EMBED_PAGE_UPDATED":
+      console.log("[RealtimeStore] 📄 Página embed atualizada:", payload.data);
+      useEmbedPagesStore.getState().updatePage(payload.data);
+      break;
+    case "EMBED_PAGE_DELETED":
+      console.log("[RealtimeStore] 📄 Página embed deletada:", payload.data);
+      useEmbedPagesStore.getState().deletePage(payload.data.id);
+      break;
     default:
       break;
   }

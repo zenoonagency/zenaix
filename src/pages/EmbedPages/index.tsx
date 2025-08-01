@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { Modal } from "../../components/Modal";
 import { InputCreateEmbedDTO, InputUpdateEmbedDTO } from "../../types/embed";
 import { embedService } from "../../services/embed/embed.service";
@@ -29,6 +29,12 @@ export function EmbedPages() {
 
   const { pages, isLoading } = useEmbedPagesStore();
   const { showToast } = useToast();
+
+  useEffect(() => {
+    if (token && organizationId) {
+      useEmbedPagesStore.getState().fetchAllEmbedPages(token, organizationId);
+    }
+  }, [token, organizationId]);
 
   useEffect(() => {
     if (!activePage && pages.length > 0) {
@@ -135,26 +141,27 @@ export function EmbedPages() {
   };
 
   if (!canAccessEmbed) {
-    return (
-      <ModalCanAcess
-        title="Páginas Embed"
-      />
-    );
+    return <ModalCanAcess title="Páginas Embed" />;
   }
 
   return (
     <div className="p-6 h-[95vh] flex flex-col">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          Páginas Embed
-        </h1>
+        <div className="flex items-center space-x-4">
+          <ExternalLink className="w-6 h-6 text-[#7f00ff]" />
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] text-transparent bg-clip-text">
+            Páginas Embed
+          </h1>
+        </div>
         <button
           onClick={() => {
             setFormData({ name: "", url: "" });
             setShowCreateModal(true);
           }}
-          disabled={!hasPermission(PERMISSIONS.EMBED_CREATE)}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          style={{
+            display: hasPermission(PERMISSIONS.EMBED_CREATE) ? "flex" : "none",
+          }}
         >
           <Plus size={20} />
           Nova Página
@@ -170,8 +177,12 @@ export function EmbedPages() {
           </p>
           <button
             onClick={() => setShowCreateModal(true)}
-            disabled={!hasPermission(PERMISSIONS.EMBED_CREATE)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            style={{
+              display: hasPermission(PERMISSIONS.EMBED_CREATE)
+                ? "inline-flex"
+                : "none",
+            }}
           >
             <Plus size={20} />
             Criar Primeira Página
@@ -200,8 +211,12 @@ export function EmbedPages() {
                       e.stopPropagation();
                       openEditModal(page);
                     }}
-                    disabled={!hasPermission(PERMISSIONS.EMBED_UPDATE)}
-                    className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 disabled:text-gray-300 dark:disabled:text-gray-600"
+                    className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                    style={{
+                      display: hasPermission(PERMISSIONS.EMBED_UPDATE)
+                        ? "block"
+                        : "none",
+                    }}
                   >
                     <Pencil size={14} />
                   </button>
@@ -211,8 +226,12 @@ export function EmbedPages() {
                       setActivePage(page);
                       setShowDeleteModal(true);
                     }}
-                    disabled={!hasPermission(PERMISSIONS.EMBED_DELETE)}
-                    className="p-1 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 disabled:text-gray-300 dark:disabled:text-gray-600"
+                    className="p-1 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
+                    style={{
+                      display: hasPermission(PERMISSIONS.EMBED_DELETE)
+                        ? "block"
+                        : "none",
+                    }}
                   >
                     <Trash2 size={14} />
                   </button>
