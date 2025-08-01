@@ -11,6 +11,9 @@ import {
   Zap,
   Settings,
   Trello,
+  Users,
+  UserCheck,
+  User,
 } from "lucide-react";
 import { useBoardStore } from "../../store/boardStore";
 import { KanbanBoard } from "./components/KanbanBoard";
@@ -29,6 +32,8 @@ import { InputCreateBoardDTO } from "../../types/board";
 import { OutputCardDTO } from "../../types/card";
 import { CardModal } from "./components/CardModal";
 import { ModalCanAcess } from "../../components/ModalCanAcess";
+import { useTeamMembersStore } from "../../store/teamMembersStore";
+import { BoardAccessLevel } from "../../types/board";
 
 export function Clients() {
   const { theme } = useThemeStore();
@@ -67,6 +72,15 @@ export function Clients() {
   const [isEditingBoard, setIsEditingBoard] = useState(false);
   const [isDeletingBoard, setIsDeletingBoard] = useState(false);
   const [isDuplicatingBoard, setIsDuplicatingBoard] = useState(false);
+  const [createTab, setCreateTab] = useState<"inicio" | "acesso">("inicio");
+
+  const { members } = useTeamMembersStore();
+
+  const [goalName, setGoalName] = useState("");
+  const [goalDescription, setGoalDescription] = useState("");
+  const [goalValue, setGoalValue] = useState("");
+  const [accessLevel, setAccessLevel] = useState<BoardAccessLevel>("TEAM_WIDE");
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
 
   const handleAddBoard = () => {
     setShowCreateModal(true);
@@ -78,19 +92,29 @@ export function Clients() {
     setIsCreatingBoard(true);
     try {
       if (!token || !organization?.id) throw new Error("Sem autenticação");
-      const dto: InputCreateBoardDTO = {
+      const dto: any = {
         name: newBoardTitle.trim(),
-        description: "",
-        access_level: "TEAM_WIDE",
+        description: "", // omitido
+        access_level: accessLevel,
       };
-      const newBoard = await boardService.createBoard(
-        token,
-        organization.id,
-        dto
-      );
-
+      if (accessLevel === "SELECTED_MEMBERS") {
+        dto.member_ids = selectedMemberIds;
+      }
+      if (goalName.trim() && goalValue) {
+        dto.goal = {
+          name: goalName.trim(),
+          description: goalDescription.trim(),
+          value: Number(goalValue),
+        };
+      }
+      await boardService.createBoard(token, organization.id, dto);
       showToast("Quadro criado com sucesso!", "success");
       setNewBoardTitle("");
+      setGoalName("");
+      setGoalDescription("");
+      setGoalValue("");
+      setAccessLevel("TEAM_WIDE");
+      setSelectedMemberIds([]);
       setShowCreateModal(false);
     } catch (err: any) {
       showToast(err.message || "Erro ao criar quadro", "error");
@@ -401,18 +425,6 @@ export function Clients() {
           </div>
         ) : activeBoardId && currentBoard ? (
           <KanbanBoard />
-        ) : boards.length === 0 ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center">
-              <button
-                onClick={handleAddBoard}
-                className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md mx-auto"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Criar Novo Quadro
-              </button>
-            </div>
-          </div>
         ) : (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
@@ -446,22 +458,58 @@ export function Clients() {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]">
           <div
-            className={`w-full max-w-md p-6 rounded-lg shadow-xl ${
+            className={`w-full max-w-4xl p-0 rounded-lg shadow-xl ${
               isDark ? "bg-dark-800" : "bg-white"
             }`}
           >
-            <div className="flex justify-between items-center mb-4">
-              <h3
-                className={`text-lg font-medium ${
-                  isDark ? "text-gray-100" : "text-gray-900"
-                }`}
-              >
-                Novo Quadro
-              </h3>
+            <div className="flex justify-between items-center px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center space-x-6">
+                <h3
+                  className={`text-lg font-medium ${
+                    isDark ? "text-gray-100" : "text-gray-900"
+                  }`}
+                >
+                  Novo Quadro
+                </h3>
+                <div className="flex space-x-1">
+                  <button
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      createTab === "inicio"
+                        ? "bg-[#7f00ff] text-white"
+                        : isDark
+                        ? "text-gray-400 hover:text-gray-300"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                    onClick={() => setCreateTab("inicio")}
+                    disabled={isCreatingBoard}
+                  >
+                    Início
+                  </button>
+                  <button
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      createTab === "acesso"
+                        ? "bg-[#7f00ff] text-white"
+                        : isDark
+                        ? "text-gray-400 hover:text-gray-300"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                    onClick={() => setCreateTab("acesso")}
+                    disabled={isCreatingBoard}
+                  >
+                    Visibilidade
+                  </button>
+                </div>
+              </div>
               <button
                 onClick={() => {
                   setShowCreateModal(false);
                   setNewBoardTitle("");
+                  setGoalName("");
+                  setGoalDescription("");
+                  setGoalValue("");
+                  setAccessLevel("TEAM_WIDE");
+                  setSelectedMemberIds([]);
+                  setCreateTab("inicio");
                 }}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-full"
                 disabled={isCreatingBoard}
@@ -470,36 +518,416 @@ export function Clients() {
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label
-                  className={`block text-sm font-medium mb-1 ${
-                    isDark ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  Nome do quadro
-                </label>
-                <input
-                  type="text"
-                  value={newBoardTitle}
-                  onChange={(e) => setNewBoardTitle(e.target.value)}
-                  className={`w-full px-4 py-2.5 rounded-lg border ${
-                    isDark
-                      ? "bg-dark-700 border-gray-600 text-gray-100"
-                      : "bg-white border-gray-300 text-gray-900"
-                  } focus:outline-none focus:ring-2 focus:ring-[#7f00ff]`}
-                  placeholder="Digite o nome do novo quadro"
-                  autoFocus
-                  disabled={isCreatingBoard}
-                />
-              </div>
+            <div className="p-6">
+              {createTab === "inicio" && (
+                <div className="space-y-6">
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        isDark ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
+                      Nome do quadro
+                    </label>
+                    <input
+                      type="text"
+                      value={newBoardTitle}
+                      onChange={(e) => setNewBoardTitle(e.target.value)}
+                      className={`w-full px-4 py-2.5 rounded-lg border ${
+                        isDark
+                          ? "bg-dark-700 border-gray-600 text-gray-100"
+                          : "bg-white border-gray-300 text-gray-900"
+                      } focus:outline-none focus:ring-2 focus:ring-[#7f00ff]`}
+                      placeholder="Digite o nome do novo quadro"
+                      autoFocus
+                      disabled={isCreatingBoard}
+                    />
+                  </div>
+
+                  <div
+                    className="rounded-lg border p-4"
+                    style={{
+                      borderColor: isDark ? "#7f00ff55" : "#7f00ff22",
+                      background: isDark ? "#1a1a2e" : "#faf7ff",
+                    }}
+                  >
+                    <div className="mb-4 font-semibold text-[#7f00ff]">
+                      Meta do quadro (opcional)
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          className={`block text-xs font-medium mb-1 ${
+                            isDark ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          Nome da meta
+                        </label>
+                        <input
+                          type="text"
+                          value={goalName}
+                          onChange={(e) => setGoalName(e.target.value)}
+                          className={`w-full px-3 py-2 rounded-lg border ${
+                            isDark
+                              ? "bg-dark-700 border-gray-600 text-gray-100"
+                              : "bg-white border-gray-300 text-gray-900"
+                          } focus:outline-none focus:ring-2 focus:ring-[#7f00ff]`}
+                          placeholder="Ex: Atingir 1.000 usuários ativos"
+                          disabled={isCreatingBoard}
+                        />
+                      </div>
+                      <div>
+                        <label
+                          className={`block text-xs font-medium mb-1 ${
+                            isDark ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          Valor da meta
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={goalValue}
+                          onChange={(e) => setGoalValue(e.target.value)}
+                          className={`w-full px-3 py-2 rounded-lg border ${
+                            isDark
+                              ? "bg-dark-700 border-gray-600 text-gray-100"
+                              : "bg-white border-gray-300 text-gray-900"
+                          } focus:outline-none focus:ring-2 focus:ring-[#7f00ff]`}
+                          placeholder="Ex: 1000"
+                          disabled={isCreatingBoard}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <label
+                        className={`block text-xs font-medium mb-1 ${
+                          isDark ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        Descrição da meta
+                      </label>
+                      <input
+                        type="text"
+                        value={goalDescription}
+                        onChange={(e) => setGoalDescription(e.target.value)}
+                        className={`w-full px-3 py-2 rounded-lg border ${
+                          isDark
+                            ? "bg-dark-700 border-gray-600 text-gray-100"
+                            : "bg-white border-gray-300 text-gray-900"
+                        } focus:outline-none focus:ring-2 focus:ring-[#7f00ff]`}
+                        placeholder="Ex: Meta para o primeiro mês de lançamento."
+                        disabled={isCreatingBoard}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {createTab === "acesso" && (
+                <div className="space-y-6">
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-3 ${
+                        isDark ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
+                      Visibilidade
+                    </label>
+                    <div className="space-y-3">
+                      <label
+                        className={`flex items-center space-x-3 p-4 rounded-lg cursor-pointer ${
+                          accessLevel === "TEAM_WIDE"
+                            ? isDark
+                              ? "bg-dark-700 border border-[#7f00ff]/50"
+                              : "bg-purple-50 border border-[#7f00ff]/20"
+                            : isDark
+                            ? "bg-dark-900 hover:bg-dark-700"
+                            : "bg-gray-50 hover:bg-gray-100"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="visibility"
+                          checked={accessLevel === "TEAM_WIDE"}
+                          onChange={() => setAccessLevel("TEAM_WIDE")}
+                          className="sr-only"
+                        />
+                        <div
+                          className={`flex items-center justify-center w-5 h-5 rounded-full ${
+                            accessLevel === "TEAM_WIDE"
+                              ? "bg-[#7f00ff] ring-2 ring-[#7f00ff]/20"
+                              : isDark
+                              ? "bg-dark-600 border border-gray-600"
+                              : "bg-white border border-gray-300"
+                          }`}
+                        >
+                          {accessLevel === "TEAM_WIDE" && (
+                            <div className="w-2 h-2 rounded-full bg-white" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <span
+                            className={`font-medium ${
+                              isDark ? "text-gray-200" : "text-gray-800"
+                            }`}
+                          >
+                            Visível para todos
+                          </span>
+                          <p
+                            className={`text-xs ${
+                              isDark ? "text-gray-400" : "text-gray-500"
+                            }`}
+                          >
+                            Todos os membros da equipe podem ver este quadro
+                          </p>
+                        </div>
+                        <Users
+                          className={`w-5 h-5 ${
+                            accessLevel === "TEAM_WIDE"
+                              ? "text-[#7f00ff]"
+                              : isDark
+                              ? "text-gray-400"
+                              : "text-gray-500"
+                          }`}
+                        />
+                      </label>
+                      <label
+                        className={`flex items-center space-x-3 p-4 rounded-lg cursor-pointer ${
+                          accessLevel === "CREATOR_ONLY"
+                            ? isDark
+                              ? "bg-dark-700 border border-[#7f00ff]/50"
+                              : "bg-purple-50 border border-[#7f00ff]/20"
+                            : isDark
+                            ? "bg-dark-900 hover:bg-dark-700"
+                            : "bg-gray-50 hover:bg-gray-100"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="visibility"
+                          checked={accessLevel === "CREATOR_ONLY"}
+                          onChange={() => setAccessLevel("CREATOR_ONLY")}
+                          className="sr-only"
+                        />
+                        <div
+                          className={`flex items-center justify-center w-5 h-5 rounded-full ${
+                            accessLevel === "CREATOR_ONLY"
+                              ? "bg-[#7f00ff] ring-2 ring-[#7f00ff]/20"
+                              : isDark
+                              ? "bg-dark-600 border border-gray-600"
+                              : "bg-white border border-gray-300"
+                          }`}
+                        >
+                          {accessLevel === "CREATOR_ONLY" && (
+                            <div className="w-2 h-2 rounded-full bg-white" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <span
+                            className={`font-medium ${
+                              isDark ? "text-gray-200" : "text-gray-800"
+                            }`}
+                          >
+                            Apenas eu
+                          </span>
+                          <p
+                            className={`text-xs ${
+                              isDark ? "text-gray-400" : "text-gray-500"
+                            }`}
+                          >
+                            Somente você poderá ver este quadro
+                          </p>
+                        </div>
+                        <UserCheck
+                          className={`w-5 h-5 ${
+                            accessLevel === "CREATOR_ONLY"
+                              ? "text-[#7f00ff]"
+                              : isDark
+                              ? "text-gray-400"
+                              : "text-gray-500"
+                          }`}
+                        />
+                      </label>
+                      <label
+                        className={`flex items-center space-x-3 p-4 rounded-lg cursor-pointer ${
+                          accessLevel === "SELECTED_MEMBERS"
+                            ? isDark
+                              ? "bg-dark-700 border border-[#7f00ff]/50"
+                              : "bg-purple-50 border border-[#7f00ff]/20"
+                            : isDark
+                            ? "bg-dark-900 hover:bg-dark-700"
+                            : "bg-gray-50 hover:bg-gray-100"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="visibility"
+                          checked={accessLevel === "SELECTED_MEMBERS"}
+                          onChange={() => setAccessLevel("SELECTED_MEMBERS")}
+                          className="sr-only"
+                        />
+                        <div
+                          className={`flex items-center justify-center w-5 h-5 rounded-full ${
+                            accessLevel === "SELECTED_MEMBERS"
+                              ? "bg-[#7f00ff] ring-2 ring-[#7f00ff]/20"
+                              : isDark
+                              ? "bg-dark-600 border border-gray-600"
+                              : "bg-white border border-gray-300"
+                          }`}
+                        >
+                          {accessLevel === "SELECTED_MEMBERS" && (
+                            <div className="w-2 h-2 rounded-full bg-white" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <span
+                            className={`font-medium ${
+                              isDark ? "text-gray-200" : "text-gray-800"
+                            }`}
+                          >
+                            Membros selecionados
+                          </span>
+                          <p
+                            className={`text-xs ${
+                              isDark ? "text-gray-400" : "text-gray-500"
+                            }`}
+                          >
+                            Apenas membros selecionados poderão ver este quadro
+                          </p>
+                        </div>
+                        <Users
+                          className={`w-5 h-5 ${
+                            accessLevel === "SELECTED_MEMBERS"
+                              ? "text-[#7f00ff]"
+                              : isDark
+                              ? "text-gray-400"
+                              : "text-gray-500"
+                          }`}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {accessLevel === "SELECTED_MEMBERS" && (
+                    <div className="max-h-64 overflow-auto">
+                      <label
+                        className={`block text-sm font-medium mb-3 ${
+                          isDark ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        Selecione os membros
+                      </label>
+                      <div className="space-y-2">
+                        {members.length === 0 ? (
+                          <p
+                            className={`text-sm italic ${
+                              isDark ? "text-gray-400" : "text-gray-500"
+                            }`}
+                          >
+                            Nenhum membro na equipe
+                          </p>
+                        ) : (
+                          members
+                            .filter((member) => member.role !== "MASTER")
+                            .map((member) => (
+                              <label
+                                key={member.id}
+                                className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                                  selectedMemberIds.includes(member.id)
+                                    ? isDark
+                                      ? "bg-dark-700 border border-[#7f00ff]/50"
+                                      : "bg-purple-50 border border-[#7f00ff]/20"
+                                    : isDark
+                                    ? "bg-dark-900 hover:bg-dark-700"
+                                    : "bg-gray-50 hover:bg-gray-100"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedMemberIds.includes(
+                                    member.id
+                                  )}
+                                  onChange={() =>
+                                    setSelectedMemberIds((prev) =>
+                                      prev.includes(member.id)
+                                        ? prev.filter((id) => id !== member.id)
+                                        : [...prev, member.id]
+                                    )
+                                  }
+                                  className="sr-only"
+                                />
+                                <div
+                                  className={`flex items-center justify-center w-5 h-5 rounded border-2 transition-colors ${
+                                    selectedMemberIds.includes(member.id)
+                                      ? "border-[#7f00ff] bg-[#7f00ff]"
+                                      : isDark
+                                      ? "border-gray-600 bg-transparent"
+                                      : "border-gray-300 bg-transparent"
+                                  }`}
+                                >
+                                  {selectedMemberIds.includes(member.id) && (
+                                    <svg
+                                      className="w-3 h-3 text-white"
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  )}
+                                </div>
+                                {member.avatar_url ? (
+                                  <img
+                                    src={member.avatar_url}
+                                    alt={member.name}
+                                    className="w-8 h-8 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-[#7f00ff]/10 flex items-center justify-center">
+                                    <User className="w-5 h-5 text-[#7f00ff]" />
+                                  </div>
+                                )}
+                                <div className="flex flex-col">
+                                  <span
+                                    className={`font-medium ${
+                                      isDark ? "text-gray-200" : "text-gray-800"
+                                    }`}
+                                  >
+                                    {member.name}
+                                  </span>
+                                  <span
+                                    className={`text-xs ${
+                                      isDark ? "text-gray-400" : "text-gray-500"
+                                    }`}
+                                  >
+                                    {member.email} • {member.role}
+                                  </span>
+                                </div>
+                              </label>
+                            ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-end gap-3 px-6 pb-6">
               <button
                 onClick={() => {
                   setShowCreateModal(false);
                   setNewBoardTitle("");
+                  setGoalName("");
+                  setGoalDescription("");
+                  setGoalValue("");
+                  setAccessLevel("TEAM_WIDE");
+                  setSelectedMemberIds([]);
+                  setCreateTab("inicio");
                 }}
                 className={`px-4 py-2 rounded-lg ${
                   isDark

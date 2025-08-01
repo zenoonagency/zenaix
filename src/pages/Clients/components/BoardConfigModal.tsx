@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Users, UserCheck, Settings } from "lucide-react";
+import { X, Users, UserCheck, Settings, User } from "lucide-react";
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
@@ -416,6 +416,17 @@ export function BoardConfigModal({
                                     </svg>
                                   )}
                                 </div>
+                                {member.avatar_url ? (
+                                  <img
+                                    src={member.avatar_url}
+                                    alt={member.name}
+                                    className="w-8 h-8 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-[#7f00ff]/10 flex items-center justify-center">
+                                    <User className="w-5 h-5 text-[#7f00ff]" />
+                                  </div>
+                                )}
                                 <div className="flex flex-col">
                                   <span
                                     className={`font-medium ${
