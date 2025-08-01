@@ -22,6 +22,7 @@ import {
   ArrowRight,
   Phone,
   Trash2,
+  MessageSquare,
 } from "lucide-react";
 import { ProfileModal } from "../../components/ProfileModal";
 // import { Contact, MessageContent } from "./types";
@@ -564,7 +565,8 @@ export function Messaging() {
         <div className="mb-8 relative">
           <div>
             <div className="flex items-center gap-4">
-              <div>
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-6 h-6 text-[#7f00ff]" />
                 <h1
                   className={`text-2xl font-bold ${
                     isDark ? "text-white" : "text-gray-800"

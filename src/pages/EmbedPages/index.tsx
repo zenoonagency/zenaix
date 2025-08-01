@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink, Globe } from "lucide-react";
 import { Modal } from "../../components/Modal";
 import { InputCreateEmbedDTO, InputUpdateEmbedDTO } from "../../types/embed";
 import { embedService } from "../../services/embed/embed.service";
@@ -148,7 +148,7 @@ export function EmbedPages() {
     <div className="p-6 h-[95vh] flex flex-col">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-4">
-          <ExternalLink className="w-6 h-6 text-[#7f00ff]" />
+          <Globe className="w-6 h-6 text-[#7f00ff]" />
           <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] text-transparent bg-clip-text">
             Páginas Embed
           </h1>

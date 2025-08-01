@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BanknotesIcon } from "@heroicons/react/24/outline";
+import { DollarSign } from "lucide-react";
 import { useTransactionStore } from "../../store/transactionStore";
 import { useAuthStore } from "../../store/authStore";
 import { NewTransactionModal } from "./components/NewTransactionModal";
@@ -83,13 +83,7 @@ export function Financial() {
         setIsFetching(false);
       }
     }
-  }, [
-    token,
-    organizationId,
-    filterDate,
-    viewMode,
-    transactions.length,
-  ]);
+  }, [token, organizationId, filterDate, viewMode, transactions.length]);
 
   const formatLastUpdated = (dateString: string | null) => {
     if (!dateString) return "Nunca atualizado";
@@ -187,7 +181,7 @@ export function Financial() {
       <div className="p-8 pb-0">
         <div className="flex items-center gap-2 mb-4">
           <div className="p-2 border border-purple-500 rounded-lg">
-            <BanknotesIcon className="w-5 h-5 text-purple-600" />
+            <DollarSign className="w-5 h-5 text-purple-600" />
           </div>
           <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-purple-700 text-transparent bg-clip-text">
             Financeiro
