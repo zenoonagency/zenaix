@@ -31,6 +31,14 @@ export function EditTransactionModal({
   const [isSaving, setIsSaving] = useState(false);
 
   const { updateTransaction } = useTransactionStore();
+  const { hasPermission } = useAuthStore((state) => ({
+    hasPermission: state.hasPermission,
+  }));
+
+  // Verificar se o usuário tem permissão para editar transações
+  if (!hasPermission("finance:update")) {
+    return null;
+  }
 
   useEffect(() => {
     if (transaction) {
@@ -49,6 +57,9 @@ export function EditTransactionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hasPermission("finance:update")) {
+      return;
+    }
     setIsSaving(true);
     const { token, user } = useAuthStore.getState();
     if (!token || !user?.organization_id) {
@@ -196,22 +207,7 @@ export function EditTransactionModal({
           >
             {isSaving ? (
               <span className="flex items-center">
-                <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v8z"
-                  />
-                </svg>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                 Salvando...
               </span>
             ) : (

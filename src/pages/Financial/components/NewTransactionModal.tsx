@@ -59,14 +59,20 @@ export function NewTransactionModal({
   );
   const [isLoading, setIsLoading] = useState(false);
 
-  const { token, organizationId } = useAuthStore((state) => ({
+  const { token, organizationId, hasPermission } = useAuthStore((state) => ({
     token: state.token,
     organizationId: state.user?.organization_id,
+    hasPermission: state.hasPermission,
   }));
+
+  // Verificar se o usuário tem permissão para criar transações
+  if (!hasPermission("finance:create")) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token || !organizationId) return;
+    if (!token || !organizationId || !hasPermission("finance:create")) return;
     setIsLoading(true);
     try {
       // Mapear campos para o DTO da API
@@ -232,7 +238,14 @@ export function NewTransactionModal({
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             disabled={isLoading}
           >
-            {isLoading ? "Salvando..." : "Salvar"}
+            {isLoading ? (
+              <span className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Salvando...
+              </span>
+            ) : (
+              "Salvar"
+            )}
           </button>
         </div>
       </form>

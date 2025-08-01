@@ -28,11 +28,13 @@ export function Financial() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"month" | "year" | "all">("month");
   const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
-  const { token, organizationId } = useAuthStore((state) => ({
+  const { token, organizationId, hasPermission } = useAuthStore((state) => ({
     token: state.token,
     organizationId: state.user?.organization_id,
+    hasPermission: state.hasPermission,
   }));
   const {
     transactions,
@@ -41,6 +43,22 @@ export function Financial() {
     fetchAllTransactions,
     fetchSummary,
   } = useTransactionStore();
+
+  // Verificar se o usuário tem permissão para visualizar o financeiro
+  if (!hasPermission("finance:read")) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Acesso Negado
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Você não tem permissão para acessar esta página.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const now = new Date();
@@ -55,9 +73,8 @@ export function Financial() {
 
   useEffect(() => {
     if (token && organizationId) {
-      // Só mostrar loading se realmente não tem dados em cache
-      const hasCache = transactions.length > 0 || summary;
-      if (!hasCache) {
+      // Para mudanças de filtro, usar isFetching
+      if (!isInitialLoading) {
         setIsFetching(true);
       }
 
@@ -78,12 +95,16 @@ export function Financial() {
         Promise.all([
           fetchAllTransactions(token, organizationId, filters),
           fetchSummary(token, organizationId, filters),
-        ]).finally(() => setIsFetching(false));
+        ]).finally(() => {
+          setIsFetching(false);
+          setIsInitialLoading(false);
+        });
       } else {
         setIsFetching(false);
+        setIsInitialLoading(false);
       }
     }
-  }, [token, organizationId, filterDate, viewMode, transactions.length]);
+  }, [token, organizationId, filterDate, viewMode]);
 
   const formatLastUpdated = (dateString: string | null) => {
     if (!dateString) return "Nunca atualizado";
@@ -92,6 +113,9 @@ export function Financial() {
   };
 
   const handleClearTransactions = async () => {
+    if (!hasPermission("finance:delete")) {
+      return;
+    }
     setIsClearing(true);
     try {
       const { token, user } = useAuthStore.getState();
@@ -122,6 +146,9 @@ export function Financial() {
   };
 
   const handleDeleteTransaction = async () => {
+    if (!hasPermission("finance:delete")) {
+      return;
+    }
     if (selectedTransaction) {
       setIsDeleting(true);
       const { token, user } = useAuthStore.getState();
@@ -146,11 +173,17 @@ export function Financial() {
   };
 
   const handleEditClick = (transaction: any) => {
+    if (!hasPermission("finance:update")) {
+      return;
+    }
     setSelectedTransaction(transaction);
     setShowEditTransactionModal(true);
   };
 
   const handleDeleteClick = (transaction: any) => {
+    if (!hasPermission("finance:delete")) {
+      return;
+    }
     setSelectedTransaction(transaction);
     setShowDeleteModal(true);
   };
@@ -194,7 +227,9 @@ export function Financial() {
         {/* Filtros de data e modo */}
         <div
           className={`flex items-center justify-between mb-6 ${
-            isFetching ? "opacity-50 pointer-events-none" : ""
+            isInitialLoading || isFetching
+              ? "opacity-50 pointer-events-none"
+              : ""
           }`}
         >
           <div className="flex items-center gap-3">
@@ -221,7 +256,7 @@ export function Financial() {
                         onFocus={() => setYearDropdownOpen(true)}
                         onBlur={() => setYearDropdownOpen(false)}
                         className="pl-10 pr-8 py-2 h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-800 text-gray-600 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 appearance-none w-full cursor-pointer"
-                        disabled={isLoading || isFetching}
+                        disabled={isLoading || isInitialLoading || isFetching}
                         style={{ zIndex: 1 }}
                       >
                         {Array.from(
@@ -273,7 +308,7 @@ export function Financial() {
                       value={filterDate}
                       onChange={handleFilterChange}
                       className="pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-800 text-gray-600 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-                      disabled={isLoading || isFetching}
+                      disabled={isLoading || isInitialLoading || isFetching}
                     />
                   )}
                 </>
@@ -315,16 +350,27 @@ export function Financial() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setShowClearModal(true)}
+              onClick={() =>
+                hasPermission("finance:delete") && setShowClearModal(true)
+              }
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
-              disabled={isLoading}
+              disabled={isLoading || isInitialLoading || isFetching}
+              style={{
+                display: hasPermission("finance:delete") ? "flex" : "none",
+              }}
             >
               <Trash2 className="w-4 h-4" />
               Limpar Transações
             </button>
             <button
-              onClick={() => setShowNewTransactionModal(true)}
+              onClick={() =>
+                hasPermission("finance:create") &&
+                setShowNewTransactionModal(true)
+              }
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-2"
+              style={{
+                display: hasPermission("finance:create") ? "flex" : "none",
+              }}
             >
               <Plus className="w-4 h-4" />
               Nova Transação
@@ -338,8 +384,11 @@ export function Financial() {
               <div className="w-2 h-2 rounded-full bg-green-500" />
               <span className="text-sm">Receitas</span>
             </div>
-            {isFetching ? (
-              <div className="h-8 w-24 bg-gray-200 dark:bg-dark-700 rounded animate-pulse" />
+            {isInitialLoading || isFetching ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500 mr-2"></div>
+                <span className="text-gray-400 text-sm">Carregando...</span>
+              </div>
             ) : (
               <span className="text-2xl font-semibold text-gray-900 dark:text-white">
                 {formatCurrency(summary?.income ?? 0)}
@@ -352,8 +401,11 @@ export function Financial() {
               <div className="w-2 h-2 rounded-full bg-red-500" />
               <span className="text-sm">Despesas</span>
             </div>
-            {isFetching ? (
-              <div className="h-8 w-24 bg-gray-200 dark:bg-dark-700 rounded animate-pulse" />
+            {isInitialLoading || isFetching ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500 mr-2"></div>
+                <span className="text-gray-400 text-sm">Carregando...</span>
+              </div>
             ) : (
               <span className="text-2xl font-semibold text-gray-900 dark:text-white">
                 {formatCurrency(summary?.expenses ?? 0)}
@@ -366,8 +418,11 @@ export function Financial() {
               <div className="w-2 h-2 rounded-full bg-purple-500" />
               <span className="text-sm">Saldo</span>
             </div>
-            {isFetching ? (
-              <div className="h-8 w-24 bg-gray-200 dark:bg-dark-700 rounded animate-pulse" />
+            {isInitialLoading || isFetching ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500 mr-2"></div>
+                <span className="text-gray-400 text-sm">Carregando...</span>
+              </div>
             ) : (
               <span
                 className={`text-2xl font-semibold ${
@@ -384,28 +439,14 @@ export function Financial() {
 
         <Box className="rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
-            {isFetching ? (
+            {isInitialLoading || isFetching ? (
               <div className="flex justify-center items-center py-10">
-                <svg
-                  className="animate-spin h-8 w-8 text-purple-600"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v8z"
-                  />
-                </svg>
-                <span className="ml-2 text-purple-600">Carregando...</span>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+                <span className="text-purple-600">
+                  {isInitialLoading
+                    ? "Carregando dados..."
+                    : "Carregando transações..."}
+                </span>
               </div>
             ) : (
               <table className="w-full">
@@ -473,14 +514,30 @@ export function Financial() {
                       <td className="py-3 px-4 text-center text-sm">
                         <div className="flex justify-center space-x-2">
                           <button
-                            onClick={() => handleEditClick(transaction)}
+                            onClick={() =>
+                              hasPermission("finance:update") &&
+                              handleEditClick(transaction)
+                            }
                             className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                            style={{
+                              display: hasPermission("finance:update")
+                                ? "block"
+                                : "none",
+                            }}
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDeleteClick(transaction)}
+                            onClick={() =>
+                              hasPermission("finance:delete") &&
+                              handleDeleteClick(transaction)
+                            }
                             className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                            style={{
+                              display: hasPermission("finance:delete")
+                                ? "block"
+                                : "none",
+                            }}
                           >
                             <Trash className="w-4 h-4" />
                           </button>
@@ -496,7 +553,7 @@ export function Financial() {
       </div>
 
       <NewTransactionModal
-        isOpen={showNewTransactionModal}
+        isOpen={showNewTransactionModal && hasPermission("finance:create")}
         onClose={() => setShowNewTransactionModal(false)}
         filterDate={filterDate}
         onTransactionCreated={handleTransactionDateChange}
@@ -504,7 +561,7 @@ export function Financial() {
 
       {selectedTransaction && (
         <EditTransactionModal
-          isOpen={showEditTransactionModal}
+          isOpen={showEditTransactionModal && hasPermission("finance:update")}
           onClose={() => {
             setShowEditTransactionModal(false);
             setSelectedTransaction(null);
@@ -515,18 +572,20 @@ export function Financial() {
       )}
 
       <CustomModal
-        isOpen={showClearModal}
+        isOpen={showClearModal && hasPermission("finance:delete")}
         onClose={() => setShowClearModal(false)}
         title="Limpar Transações"
         message="Tem certeza que deseja limpar todas as transações? Esta ação não pode ser desfeita."
         type="confirm"
-        onConfirm={handleClearTransactions}
+        onConfirm={
+          hasPermission("finance:delete") ? handleClearTransactions : undefined
+        }
         confirmLoading={isClearing}
         confirmDisabled={isClearing}
       />
 
       <CustomModal
-        isOpen={showDeleteModal}
+        isOpen={showDeleteModal && hasPermission("finance:delete")}
         onClose={() => {
           setShowDeleteModal(false);
           setSelectedTransaction(null);
@@ -534,7 +593,9 @@ export function Financial() {
         title="Excluir Transação"
         message="Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita."
         type="confirm"
-        onConfirm={handleDeleteTransaction}
+        onConfirm={
+          hasPermission("finance:delete") ? handleDeleteTransaction : undefined
+        }
         confirmLoading={isDeleting}
         confirmDisabled={isDeleting}
       />
