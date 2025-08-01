@@ -174,7 +174,6 @@ function getCurrentDateFromScroll(
     dateKey?: string;
   }>
 ): string | null {
-  // Sua implementação atual desta função está boa
   const containerRect = container.getBoundingClientRect();
   const containerTop = containerRect.top;
 
@@ -201,7 +200,6 @@ function getCurrentDateFromScroll(
     }
   });
 
-  // Se não houver separador visível, pegue o último que passou
   if (!firstVisibleSeparator) {
     for (let i = groupedMessages.length - 1; i >= 0; i--) {
       const item = groupedMessages[i];
@@ -298,10 +296,19 @@ export function Conversations() {
     instances.find((i) => i.id === activeInstanceId) || null;
 
   useEffect(() => {
-    if (lastActiveInstanceId && !activeInstanceId) {
-      setActiveInstanceId(lastActiveInstanceId);
+    if (!activeInstanceId) {
+      if (lastActiveInstanceId) {
+        setActiveInstanceId(lastActiveInstanceId);
+      } else if (instances.length > 0) {
+        const connected = instances.filter((i) => i.status === "CONNECTED");
+        if (connected.length > 0) {
+          setActiveInstanceId(connected[0].id);
+        } else {
+          setActiveInstanceId(instances[0].id);
+        }
+      }
     }
-  }, [lastActiveInstanceId, activeInstanceId]);
+  }, [lastActiveInstanceId, activeInstanceId, instances]);
 
   useEffect(() => {
     setInstancesFetched(false);
@@ -382,6 +389,7 @@ export function Conversations() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [showImageModal]);
+
   useEffect(() => {
     previousHeightRef.current = 0;
     hasInitialScrollRef.current = false;
@@ -588,13 +596,11 @@ export function Conversations() {
       showToast("Erro ao processar arquivo", "error");
     }
 
-    // Limpar input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
-  // Função para enviar arquivo
   const handleSendFile = async () => {
     if (
       !selectedFile ||
@@ -680,7 +686,6 @@ export function Conversations() {
     setShowFileModal(false);
   };
 
-  // Função para enviar áudio
   const handleSendAudio = async (audioBlob: Blob) => {
     if (
       !selectedContactId ||
@@ -706,18 +711,15 @@ export function Conversations() {
         return;
       }
 
-      // Converter Blob para File
       const audioFile = new File([audioBlob], `audio_${Date.now()}.ogg`, {
         type: "audio/ogg",
       });
 
-      // Verificar se o arquivo de áudio é válido
       if (audioFile.size === 0) {
         showToast("Arquivo de áudio inválido", "error");
         return;
       }
 
-      // Comprimir e converter formato se necessário
       const compressionResult = await compressFile(audioFile);
       if (!compressionResult.success) {
         showToast(
@@ -835,7 +837,6 @@ export function Conversations() {
     }
   };
 
-  // Reimplementando handleInstanceChange, pois foi removida na última alteração
   const handleInstanceChange = (instanceId: string) => {
     setActiveInstanceId(instanceId);
     setLastActiveInstance(instanceId);
@@ -892,19 +893,41 @@ export function Conversations() {
             getStatusInfo={getStatusInfo}
           />
           <div className="flex flex-1 min-h-0">
-            <ContactList
-              contacts={instanceContacts}
-              selectedContactId={selectedContactId}
-              setSelectedContactId={setSelectedContactId}
-              handleContactMenuClick={handleContactMenuClick}
-              processWhatsAppImageUrl={processWhatsAppImageUrl}
-              instanceId={activeInstanceId}
-              onCreateContact={(contact) => {
-                if (activeInstanceId) {
-                  updateContactInStore(activeInstanceId, contact.id, contact);
-                }
-              }}
-            />
+            {activeInstance && activeInstance.status !== "CONNECTED" ? (
+              <div className="flex flex-col items-center justify-center w-full h-full p-4">
+                <div className="text-2xl mb-2">🔌</div>
+                <span className="text-sm text-gray-500 mb-4 text-center">
+                  Você precisa conectar a instância para visualizar os contatos.
+                </span>
+                <button
+                  className="px-4 py-2 bg-[#7f00ff] text-white rounded hover:bg-[#6200cc] transition-colors"
+                  onClick={() => navigate("/dashboard/connections")}
+                >
+                  Ir para Conexões
+                </button>
+              </div>
+            ) : isLoadingContacts ? (
+              <div className="flex flex-col items-center justify-center w-72 h-full p-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7f00ff] mb-2" />
+                <span className="text-sm text-gray-500">
+                  Carregando contatos...
+                </span>
+              </div>
+            ) : (
+              <ContactList
+                contacts={instanceContacts}
+                selectedContactId={selectedContactId}
+                setSelectedContactId={setSelectedContactId}
+                handleContactMenuClick={handleContactMenuClick}
+                processWhatsAppImageUrl={processWhatsAppImageUrl}
+                instanceId={activeInstanceId}
+                onCreateContact={(contact) => {
+                  if (activeInstanceId) {
+                    updateContactInStore(activeInstanceId, contact.id, contact);
+                  }
+                }}
+              />
+            )}
             {/* Área de mensagens */}
             <div className="flex-1 relative bg-white dark:bg-dark-900 flex flex-col overflow-auto">
               {selectedContactId ? (

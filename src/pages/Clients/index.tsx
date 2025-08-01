@@ -48,11 +48,10 @@ export function Clients() {
     isLoading: boardStoreLoading,
     activeBoardId,
     selectAndLoadKanbanBoard,
+    updateBoard,
   } = useBoardStore();
 
   const { modal, customConfirm } = useCustomModal();
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editBoardTitle, setEditBoardTitle] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -68,10 +67,10 @@ export function Clients() {
   const [showAutomationModal, setShowAutomationModal] = useState(false);
   const [showBoardConfigModal, setShowBoardConfigModal] = useState(false);
   const [isCreatingBoard, setIsCreatingBoard] = useState(false);
-  const [isEditingBoard, setIsEditingBoard] = useState(false);
   const [isDeletingBoard, setIsDeletingBoard] = useState(false);
   const [isDuplicatingBoard, setIsDuplicatingBoard] = useState(false);
   const [createTab, setCreateTab] = useState<"inicio" | "acesso">("inicio");
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const { members } = useTeamMembersStore();
 
@@ -83,7 +82,7 @@ export function Clients() {
 
   const handleAddBoard = () => {
     setShowCreateModal(true);
-    setShowBoardSelector(false); // Fecha o BoardSelector quando abre a modal de criar
+    setShowBoardSelector(false);
   };
 
   const handleCreateNewBoard = async () => {
@@ -106,44 +105,34 @@ export function Clients() {
           value: Number(goalValue),
         };
       }
-      await boardService.createBoard(token, organization.id, dto);
-      showToast("Quadro criado com sucesso!", "success");
+
+      if (isEditMode && activeBoardId) {
+        const updatedBoard = await boardService.updateBoard(
+          token,
+          organization.id,
+          activeBoardId,
+          dto
+        );
+        // Atualizar o store com o quadro atualizado
+        updateBoard(updatedBoard);
+        showToast("Quadro atualizado com sucesso!", "success");
+      } else {
+        await boardService.createBoard(token, organization.id, dto);
+        showToast("Quadro criado com sucesso!", "success");
+      }
+
       setNewBoardTitle("");
       setGoalName("");
       setGoalDescription("");
       setGoalValue("");
       setAccessLevel("TEAM_WIDE");
       setSelectedMemberIds([]);
+      setIsEditMode(false);
       setShowCreateModal(false);
     } catch (err: any) {
-      showToast(err.message || "Erro ao criar quadro", "error");
+      showToast(err.message || "Erro ao salvar quadro", "error");
     } finally {
       setIsCreatingBoard(false);
-    }
-  };
-
-  const handleEditBoard = async () => {
-    if (editBoardTitle.trim() && activeBoardId) {
-      setIsEditingBoard(true);
-      try {
-        if (!token || !organization?.id) throw new Error("Sem autenticação");
-
-        // Atualizar no backend
-        const updatedBoard = await boardService.updateBoard(
-          token,
-          organization.id,
-          activeBoardId,
-          { name: editBoardTitle.trim() }
-        );
-
-        showToast("Quadro atualizado com sucesso!", "success");
-        setEditBoardTitle("");
-        setShowEditModal(false);
-      } catch (err: any) {
-        showToast(err.message || "Erro ao atualizar quadro", "error");
-      } finally {
-        setIsEditingBoard(false);
-      }
     }
   };
 
@@ -298,25 +287,6 @@ export function Clients() {
               <span className="mr-2">Criar Automação</span>
               <Zap className="w-4 h-4" />
             </button>
-            <button
-              onClick={() => {
-                if (!activeBoardId || !currentBoard) {
-                  showToast(
-                    "Nenhum quadro encontrado. Crie um quadro primeiro!",
-                    "warning"
-                  );
-                  return;
-                }
-                setShowBoardConfigModal(true);
-              }}
-              className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
-              style={{
-                display: hasPermission("boards:update") ? "flex" : "none",
-              }}
-            >
-              <span className="mr-2">Configurar Quadro</span>
-              <Settings className="w-4 h-4" />
-            </button>
           </div>
           <div className="flex  space-x-2">
             <button
@@ -340,8 +310,18 @@ export function Clients() {
                 }
                 const board = boards.find((b) => b.id === activeBoardId);
                 if (board) {
-                  setEditBoardTitle(board.name || "");
-                  setShowEditModal(true);
+                  setNewBoardTitle(board.name || "");
+                  setGoalName(board.goal?.name || "");
+                  setGoalDescription(board.goal?.description || "");
+                  setGoalValue(board.goal?.value?.toString() || "");
+                  setAccessLevel(board.access_level || "TEAM_WIDE");
+                  // Extrair IDs dos membros com acesso
+                  const memberIds =
+                    board.members_with_access?.map((member) => member.id) || [];
+                  setSelectedMemberIds(memberIds);
+                  setCreateTab("inicio");
+                  setShowCreateModal(true);
+                  setIsEditMode(true);
                 }
               }}
               className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
@@ -468,7 +448,7 @@ export function Clients() {
                     isDark ? "text-gray-100" : "text-gray-900"
                   }`}
                 >
-                  Novo Quadro
+                  {isEditMode ? "Editar Quadro" : "Novo Quadro"}
                 </h3>
                 <div className="flex space-x-1">
                   <button
@@ -509,6 +489,7 @@ export function Clients() {
                   setAccessLevel("TEAM_WIDE");
                   setSelectedMemberIds([]);
                   setCreateTab("inicio");
+                  setIsEditMode(false);
                 }}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-full"
                 disabled={isCreatingBoard}
@@ -927,6 +908,7 @@ export function Clients() {
                   setAccessLevel("TEAM_WIDE");
                   setSelectedMemberIds([]);
                   setCreateTab("inicio");
+                  setIsEditMode(false);
                 }}
                 className={`px-4 py-2 rounded-lg ${
                   isDark
@@ -942,86 +924,13 @@ export function Clients() {
                 disabled={!newBoardTitle.trim() || isCreatingBoard}
                 className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isCreatingBoard ? "Criando..." : "Criar"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]">
-          <div
-            className={`w-full max-w-md p-6 rounded-lg shadow-xl ${
-              isDark ? "bg-dark-800" : "bg-white"
-            }`}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3
-                className={`text-lg font-medium ${
-                  isDark ? "text-gray-100" : "text-gray-900"
-                }`}
-              >
-                Editar Quadro
-              </h3>
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditBoardTitle("");
-                }}
-                disabled={isEditingBoard}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label
-                  className={`block text-sm font-medium mb-1 ${
-                    isDark ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  Nome do quadro
-                </label>
-                <input
-                  type="text"
-                  value={editBoardTitle}
-                  onChange={(e) => setEditBoardTitle(e.target.value)}
-                  disabled={isEditingBoard}
-                  className={`w-full px-4 py-2.5 rounded-lg border ${
-                    isDark
-                      ? "bg-dark-700 border-gray-600 text-gray-100"
-                      : "bg-white border-gray-300 text-gray-900"
-                  } focus:outline-none focus:ring-2 focus:ring-[#7f00ff] disabled:opacity-50 disabled:cursor-not-allowed`}
-                  placeholder="Digite o novo nome do quadro"
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditBoardTitle("");
-                }}
-                disabled={isEditingBoard}
-                className={`px-4 py-2 rounded-lg ${
-                  isDark
-                    ? "text-gray-300 hover:bg-gray-700"
-                    : "text-gray-700 hover:bg-gray-100"
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleEditBoard}
-                disabled={!editBoardTitle.trim() || isEditingBoard}
-                className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isEditingBoard ? "Salvando..." : "Salvar"}
+                {isCreatingBoard
+                  ? isEditMode
+                    ? "Salvando..."
+                    : "Criando..."
+                  : isEditMode
+                  ? "Salvar"
+                  : "Criar"}
               </button>
             </div>
           </div>

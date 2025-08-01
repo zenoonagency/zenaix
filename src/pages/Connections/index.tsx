@@ -260,9 +260,6 @@ export function Connections() {
                       <h3 className="font-semibold text-gray-900 dark:text-white">
                         {instance.name}
                       </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        WhatsApp Business
-                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
