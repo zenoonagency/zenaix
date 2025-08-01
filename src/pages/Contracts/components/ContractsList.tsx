@@ -251,6 +251,13 @@ export function ContractsList({ itensFiltrados }: ContractsListProps) {
                         onClick={() => setSelectedContractId(contract.id)}
                         className="text-[#7f00ff] hover:text-[#7f00ff]/80 transition-colors"
                         title="Editar"
+                        style={{
+                          display: useAuthStore
+                            .getState()
+                            .hasPermission("contracts:update")
+                            ? "inline-flex"
+                            : "none",
+                        }}
                       >
                         <Edit className="h-5 w-5" />
                       </button>
@@ -259,26 +266,16 @@ export function ContractsList({ itensFiltrados }: ContractsListProps) {
                         className="text-red-500 hover:text-red-400 transition-colors"
                         title="Excluir"
                         disabled={deletingId === contract.id}
+                        style={{
+                          display: useAuthStore
+                            .getState()
+                            .hasPermission("contracts:delete")
+                            ? "inline-flex"
+                            : "none",
+                        }}
                       >
                         {deletingId === contract.id ? (
-                          <svg
-                            className="animate-spin h-5 w-5"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8v8z"
-                            ></path>
-                          </svg>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-500"></div>
                         ) : (
                           <Trash2 className="h-5 w-5" />
                         )}

@@ -62,7 +62,12 @@ export function Contracts() {
   };
 
   if (!canAccess) {
-    return <ModalCanAcess title="Contratos" description="Gerencie todos os seus contratos"/>;
+    return (
+      <ModalCanAcess
+        title="Contratos"
+        description="Gerencie todos os seus contratos"
+      />
+    );
   }
 
   return (
@@ -74,6 +79,11 @@ export function Contracts() {
         <button
           onClick={() => setShowModal(true)}
           className="flex items-center px-4 py-2 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90 transition-colors"
+          style={{
+            display: useAuthStore.getState().hasPermission("contracts:create")
+              ? "flex"
+              : "none",
+          }}
         >
           <Plus className="w-5 h-5 mr-2" />
           Novo contrato

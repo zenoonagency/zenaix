@@ -12,6 +12,7 @@ import { useWhatsAppInstanceStore } from "./whatsAppInstanceStore";
 import { useWhatsappMessageStore } from "./whatsapp/whatsappMessageStore";
 import { useWhatsappContactStore } from "./whatsapp/whatsappContactStore";
 import { useEmbedPagesStore } from "./embedPagesStore";
+import { useCalendarStore } from "./calendarStore";
 
 interface RealtimeState {
   userChannel: RealtimeChannel | null;
@@ -353,16 +354,28 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
       break;
     }
     case "EMBED_PAGE_CREATED":
-      console.log("[RealtimeStore] 📄 Página embed criada:", payload.data);
       useEmbedPagesStore.getState().addPage(payload.data);
       break;
     case "EMBED_PAGE_UPDATED":
-      console.log("[RealtimeStore] 📄 Página embed atualizada:", payload.data);
       useEmbedPagesStore.getState().updatePage(payload.data);
       break;
     case "EMBED_PAGE_DELETED":
-      console.log("[RealtimeStore] 📄 Página embed deletada:", payload.data);
       useEmbedPagesStore.getState().deletePage(payload.data.id);
+      break;
+    case "CALENDAR_CREATED":
+      useCalendarStore.getState().addEvent(payload.data);
+      break;
+    case "CALENDAR_UPDATED":
+      useCalendarStore.getState().updateEvent(payload.data);
+      break;
+    case "CALENDAR_DELETED":
+      useCalendarStore.getState().removeEvent(payload.data.id);
+      break;
+    case "CALENDAR_EVENTS_DELETED":
+      useCalendarStore.getState().removeEventsByFilter(payload.data);
+      break;
+    case "CALENDAR_ALL_EVENTS_DELETED":
+      useCalendarStore.getState().removeAllEvents();
       break;
     default:
       break;

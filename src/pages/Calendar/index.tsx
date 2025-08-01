@@ -22,7 +22,7 @@ import { useAuthStore } from "../../store/authStore";
 import { useTeamMembersStore } from "../../store/teamMembersStore";
 import { calendarService } from "../../services/calendar";
 import { EventModal } from "./components/EventModal";
-import { CalendarDaysIcon } from "@heroicons/react/24/outline";
+import { Calendar } from "lucide-react";
 import { SearchEventsModal } from "./components/SearchEventsModal";
 import { UpcomingEvents } from "./components/UpcomingEvents";
 import { EventDetailModal } from "./components/EventDetailModal";
@@ -105,9 +105,10 @@ export function Calendar() {
   const canAccess = hasPermission("calendar:read");
 
   useEffect(() => {
-    if (!token || !organizationId) return;
-    fetchEvents();
-  }, [fetchEvents, token, organizationId]);
+    if (token && organizationId) {
+      fetchEvents();
+    }
+  }, [token, organizationId]);
 
   useEffect(() => {
     if (token && organizationId) {
@@ -140,6 +141,14 @@ export function Calendar() {
     }) => {
       if (!token || !organizationId) {
         showToast("Erro de autenticação", "error");
+        return;
+      }
+
+      if (!hasPermission("calendar:update")) {
+        showToast(
+          "Você não tem permissão para mover eventos no calendário",
+          "error"
+        );
         return;
       }
 
@@ -215,6 +224,14 @@ export function Calendar() {
     }) => {
       if (!token || !organizationId) {
         showToast("Erro de autenticação", "error");
+        return;
+      }
+
+      if (!hasPermission("calendar:update")) {
+        showToast(
+          "Você não tem permissão para redimensionar eventos no calendário",
+          "error"
+        );
         return;
       }
 
@@ -427,6 +444,7 @@ export function Calendar() {
   const eventPropGetter: EventPropGetter<CalendarEvent> = useCallback(
     (event) => {
       const isThisEventUpdating = updatingEventIds.has(event.id);
+      const canUpdate = hasPermission("calendar:update");
 
       return {
         className: `rbc-event ${
@@ -436,12 +454,12 @@ export function Calendar() {
           backgroundColor: event.color || "#7f00ff",
           color: "white",
           opacity: isThisEventUpdating ? 0.7 : 1,
-          cursor: isThisEventUpdating ? "not-allowed" : "pointer",
-          pointerEvents: isThisEventUpdating ? "none" : "auto",
+          cursor: isThisEventUpdating || !canUpdate ? "not-allowed" : "pointer",
+          pointerEvents: isThisEventUpdating || !canUpdate ? "none" : "auto",
         },
       };
     },
-    [updatingEventIds]
+    [updatingEventIds, hasPermission]
   );
 
   const handleShowMore = useCallback((events: CalendarEvent[], date: Date) => {
@@ -541,6 +559,9 @@ export function Calendar() {
                 setIsEditing(false);
               }}
               className="flex items-center px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 transition-colors"
+              style={{
+                display: hasPermission("calendar:create") ? "flex" : "none",
+              }}
             >
               <Plus className="w-5 h-5 mr-1" />
               Novo Evento
@@ -549,6 +570,11 @@ export function Calendar() {
               onClick={() => setShowDeleteConfigModal(true)}
               className="p-2 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition-colors"
               title="Excluir eventos em massa"
+              style={{
+                display: hasPermission("calendar:delete")
+                  ? "inline-flex"
+                  : "none",
+              }}
             >
               <Trash2 className="w-5 h-5" />
             </button>
@@ -595,7 +621,12 @@ export function Calendar() {
                     onEventResize={handleEventResize}
                     eventPropGetter={eventPropGetter}
                     resizableAccessor={(event) =>
-                      !updatingEventIds.has((event as CalendarEvent).id)
+                      !updatingEventIds.has((event as CalendarEvent).id) &&
+                      hasPermission("calendar:update")
+                    }
+                    draggableAccessor={(event) =>
+                      !updatingEventIds.has((event as CalendarEvent).id) &&
+                      hasPermission("calendar:update")
                     }
                     messages={{
                       allDay: "Dia inteiro",

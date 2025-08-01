@@ -23,7 +23,7 @@ import { Modal } from "../../../components/Modal";
 
 export function UpcomingEvents() {
   const { events } = useCalendarStore();
-  const { token, user } = useAuthStore();
+  const { token, user, hasPermission } = useAuthStore();
   const { showToast } = useToast();
   const organizationId = user?.organization_id;
 
@@ -227,6 +227,11 @@ export function UpcomingEvents() {
                   disabled={isDeleting}
                   className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                   title="Editar evento"
+                  style={{
+                    display: hasPermission("calendar:update")
+                      ? "inline-flex"
+                      : "none",
+                  }}
                 >
                   <Pencil size={14} />
                 </button>
@@ -235,6 +240,11 @@ export function UpcomingEvents() {
                   disabled={isDeleting}
                   className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                   title="Excluir evento"
+                  style={{
+                    display: hasPermission("calendar:delete")
+                      ? "inline-flex"
+                      : "none",
+                  }}
                 >
                   {isDeleting ? (
                     <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>

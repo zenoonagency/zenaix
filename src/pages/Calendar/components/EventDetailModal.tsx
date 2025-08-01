@@ -1,5 +1,5 @@
-import  { useState } from "react";
-import {  Edit, Trash2, Calendar, Clock, User, Hash } from "lucide-react";
+import { useState } from "react";
+import { Edit, Trash2, Calendar, Clock, User, Hash } from "lucide-react";
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarEvent } from "../../../types/calendar";
@@ -22,7 +22,7 @@ export function EventDetailModal({
   event,
   onEdit,
 }: EventDetailModalProps) {
-  const { token, user } = useAuthStore();
+  const { token, user, hasPermission } = useAuthStore();
   const { members } = useTeamMembersStore();
   const { showToast } = useToast();
   const organizationId = user?.organization_id;
@@ -178,6 +178,11 @@ export function EventDetailModal({
               onClick={() => setShowConfirmModal(true)}
               disabled={isDeleting}
               className="px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
+              style={{
+                display: hasPermission("calendar:delete")
+                  ? "inline-flex"
+                  : "none",
+              }}
             >
               <Trash2 className="w-4 h-4 inline mr-2" />
               Excluir
@@ -187,6 +192,11 @@ export function EventDetailModal({
                 type="button"
                 onClick={onEdit}
                 className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 transition-colors"
+                style={{
+                  display: hasPermission("calendar:update")
+                    ? "inline-flex"
+                    : "none",
+                }}
               >
                 <Edit className="w-4 h-4 inline mr-2" />
                 Editar
