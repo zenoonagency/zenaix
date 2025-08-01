@@ -28,10 +28,18 @@ interface ListProps {
   isOver?: boolean;
   activeCard?: BoardCard | null;
   loadingCardIds?: string[];
+  completedListId?: string;
 }
 
 export const List = React.memo(
-  ({ list, boardId, isOver, activeCard, loadingCardIds = [] }: ListProps) => {
+  ({
+    list,
+    boardId,
+    isOver,
+    activeCard,
+    loadingCardIds = [],
+    completedListId,
+  }: ListProps) => {
     const { theme } = useThemeStore();
     const { showToast } = useToast();
     const { customConfirm, modal } = useCustomModal();
@@ -50,9 +58,7 @@ export const List = React.memo(
     const [isCreatingCard, setIsCreatingCard] = useState(false);
     const [temporaryCard, setTemporaryCard] = useState<BoardCard | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
-    const isCompletedList =
-      list.name.toLowerCase().includes("concluído") ||
-      list.name.toLowerCase().includes("concluido");
+    const isCompletedList = list.id === completedListId;
     const containerRef = useRef<HTMLDivElement>(null);
     const [showListMenuModal, setShowListMenuModal] = useState(false);
     const { setNodeRef, isOver: isDroppableOver } = useDroppable({
@@ -133,10 +139,6 @@ export const List = React.memo(
       }
     };
     const handleDelete = async () => {
-      if (isCompletedList) {
-        showToast("A lista 'Concluído' não pode ser excluída", "warning");
-        return;
-      }
       setIsDeleting(true);
       try {
         await listService.deleteList(token, organization.id, boardId, list.id);

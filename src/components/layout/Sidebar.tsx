@@ -626,6 +626,7 @@ interface ProfileMenuModalProps {
   name: string;
   photo: string | null;
   plan: string;
+  user: any;
 }
 
 function ProfileMenuModal({
@@ -637,6 +638,7 @@ function ProfileMenuModal({
   photo,
   plan,
   organization,
+  user,
 }: ProfileMenuModalProps & { organization: any }) {
   const navigate = useNavigate();
 
@@ -707,16 +709,19 @@ function ProfileMenuModal({
             Editar Perfil
           </button>
 
-          <button
-            onClick={() => {
-              navigate("/dashboard/plans");
-              onClose();
-            }}
-            className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center"
-          >
-            <CreditCard className="w-5 h-5 mr-3 text-[#7f00ff]" />
-            Upgrade do plano
-          </button>
+          {/* Só mostra o botão de planos se o usuário for MASTER ou não tiver organizationId */}
+          {(user.role === "MASTER" || !user?.organization_id) && (
+            <button
+              onClick={() => {
+                navigate("/dashboard/plans");
+                onClose();
+              }}
+              className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center"
+            >
+              <CreditCard className="w-5 h-5 mr-3 text-[#7f00ff]" />
+              Upgrade do plano
+            </button>
+          )}
 
           <button
             onClick={() => {
@@ -1085,6 +1090,7 @@ export function Sidebar() {
         photo={user?.avatar_url || null}
         plan={planName}
         organization={organization}
+        user={user}
       />
     </>
   );

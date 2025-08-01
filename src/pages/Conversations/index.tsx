@@ -720,6 +720,36 @@ export function Conversations() {
         return;
       }
 
+      // Mensagem temporária ANTES do envio
+      const tempMessage = {
+        id: `temp_${Date.now()}`,
+        wa_message_id: "",
+        from: `${activeInstance?.phone_number}@c.us`,
+        to: `${contact.phone}@c.us`,
+        body: "",
+        media_url: URL.createObjectURL(audioBlob),
+        media_type: "audio/ogg",
+        message_type: "ptt",
+        timestamp: new Date().toISOString(),
+        read: false,
+        ack: 0,
+        file_name: audioFile.name,
+        file_size_bytes: audioFile.size,
+        media_duration_sec: null,
+        whatsapp_instance_id: activeInstanceId,
+        organization_id: user.organization_id,
+        whatsapp_contact_id: selectedContactId,
+        created_at: new Date().toISOString(),
+        direction: "OUTGOING" as WhatsappMessageDirection,
+        status: "sending" as const,
+      };
+      const messageStore = useWhatsappMessageStore.getState();
+      messageStore.addTemporaryMessage(
+        activeInstanceId,
+        selectedContactId,
+        tempMessage
+      );
+
       const compressionResult = await compressFile(audioFile);
       if (!compressionResult.success) {
         showToast(
@@ -742,34 +772,7 @@ export function Conversations() {
       showToast("Áudio enviado com sucesso!", "success");
       setShowAudioModal(false);
 
-      const tempMessage = {
-        id: `temp_${Date.now()}`,
-        wa_message_id: "",
-        from: `${activeInstance?.phone_number}@c.us`,
-        to: `${contact.phone}@c.us`,
-        body: "",
-        media_url: null,
-        media_type: "audio/ogg",
-        message_type: "ptt",
-        timestamp: new Date().toISOString(),
-        read: false,
-        ack: 0,
-        file_name: audioFile.name,
-        file_size_bytes: audioFile.size,
-        media_duration_sec: null,
-        whatsapp_instance_id: activeInstanceId,
-        organization_id: user.organization_id,
-        whatsapp_contact_id: selectedContactId,
-        created_at: new Date().toISOString(),
-        direction: "OUTGOING" as WhatsappMessageDirection,
-        status: "sending" as const,
-      };
-      const messageStore = useWhatsappMessageStore.getState();
-      messageStore.addTemporaryMessage(
-        activeInstanceId,
-        selectedContactId,
-        tempMessage
-      );
+      // Remover o bloco duplicado de tempMessage após o envio
     } catch (error: any) {
       console.error("Erro ao enviar áudio:", error);
       showToast(error.message || "Erro ao enviar áudio", "error");
@@ -1091,7 +1094,6 @@ export function Conversations() {
           })()}
         </div>
       )}
-
       {/* Menu de opções de contato */}
       {showContactMenu &&
         (() => {
@@ -1110,7 +1112,6 @@ export function Conversations() {
             />
           ) : null;
         })()}
-
       {/* Modal de edição de contato */}
       <EditContactModal
         isOpen={showEditModal}
@@ -1122,7 +1123,6 @@ export function Conversations() {
         instanceId={activeInstanceId!}
         onUpdate={handleUpdateContact}
       />
-
       {/* Modal de gravação de áudio */}
       <AudioRecorderModal
         isOpen={
@@ -1134,7 +1134,6 @@ export function Conversations() {
         onSend={handleSendAudio}
         isSending={isSendingAudio}
       />
-
       {/* Modal de perfil do contato */}
       <ContactProfileModal
         isOpen={showContactProfileModal}
@@ -1155,13 +1154,11 @@ export function Conversations() {
           }
         }}
         onViewMedia={(mediaUrl) => {
-          console.log("onViewMedia chamado:", mediaUrl);
           setSelectedImage(mediaUrl);
           setShowImageModal(true);
           setShowContactProfileModal(false);
         }}
       />
-
       <ImageModal
         isOpen={showImageModal && !!selectedImage}
         selectedImage={selectedImage}

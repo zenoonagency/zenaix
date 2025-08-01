@@ -33,6 +33,73 @@ import { CardModal } from "./components/CardModal";
 import { ModalCanAcess } from "../../components/ModalCanAcess";
 import { useTeamMembersStore } from "../../store/teamMembersStore";
 import { BoardAccessLevel } from "../../types/board";
+import { List } from "./components/List";
+
+// Modal para selecionar lista de concluídos
+function CompletedListSelectorModal({
+  isOpen,
+  onClose,
+  lists,
+  currentCompletedId,
+  onSelect,
+}) {
+  const [selectedId, setSelectedId] = useState(currentCompletedId);
+  const [isLoading, setIsLoading] = useState(false);
+  return isOpen ? (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[10000]">
+      <div className="bg-white dark:bg-dark-800 rounded-lg p-6 w-full max-w-md">
+        <h2 className="text-lg font-bold mb-4">
+          Selecionar lista de concluídos
+        </h2>
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {lists.map((list) => (
+            <label
+              key={list.id}
+              className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                selectedId === list.id ? "bg-[#7f00ff]/10" : ""
+              }`}
+            >
+              <input
+                type="radio"
+                checked={selectedId === list.id}
+                onChange={() => setSelectedId(list.id)}
+                className="accent-[#7f00ff]"
+                disabled={isLoading}
+              />
+              <span>{list.name}</span>
+            </label>
+          ))}
+        </div>
+        <div className="flex justify-end gap-2 mt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded bg-gray-200 dark:bg-dark-700 text-gray-700 dark:text-gray-300"
+            disabled={isLoading}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={async () => {
+              setIsLoading(true);
+              try {
+                await onSelect(selectedId);
+              } finally {
+                setIsLoading(false);
+                onClose();
+              }
+            }}
+            className="px-4 py-2 rounded bg-[#7f00ff] text-white"
+            disabled={
+              !selectedId || selectedId === currentCompletedId || isLoading
+            }
+          >
+            {isLoading ? "Salvando..." : "Salvar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+}
 
 export function Clients() {
   const { theme } = useThemeStore();
@@ -71,6 +138,7 @@ export function Clients() {
   const [isDuplicatingBoard, setIsDuplicatingBoard] = useState(false);
   const [createTab, setCreateTab] = useState<"inicio" | "acesso">("inicio");
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showCompletedListModal, setShowCompletedListModal] = useState(false);
 
   const { members } = useTeamMembersStore();
 
@@ -243,7 +311,16 @@ export function Clients() {
               <LayoutGrid className="w-4 h-4" />
             </button>
             <button
-              onClick={handleAddList}
+              onClick={() => {
+                if (!activeBoardId || !currentBoard) {
+                  showToast(
+                    "Nenhum quadro encontrado. Crie um quadro primeiro!",
+                    "warning"
+                  );
+                  return;
+                }
+                setShowCompletedListModal(true);
+              }}
               className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
               style={{
                 display: hasPermission("boards:update") ? "flex" : "none",
@@ -1076,6 +1153,30 @@ export function Clients() {
           isOpen={showBoardConfigModal}
           onClose={() => setShowBoardConfigModal(false)}
           boardId={activeBoardId}
+        />
+      )}
+
+      {/* Modal de seleção de lista de concluídos */}
+      {showCompletedListModal && (
+        <CompletedListSelectorModal
+          isOpen={showCompletedListModal}
+          onClose={() => setShowCompletedListModal(false)}
+          lists={currentBoard?.lists || []}
+          currentCompletedId={currentBoard?.completed_list_id}
+          onSelect={async (listId) => {
+            if (!token || !organization?.id || !currentBoard) return;
+            try {
+              await boardService.updateBoard(
+                token,
+                organization.id,
+                currentBoard.id,
+                { completed_list_id: listId }
+              );
+              // Não atualiza a store manualmente, o realtime faz isso
+            } catch (err) {
+              showToast("Erro ao atualizar lista de concluídos", "error");
+            }
+          }}
         />
       )}
     </div>

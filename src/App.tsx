@@ -35,10 +35,7 @@ function FullScreenLoader() {
 
 export function App() {
   const hasFetchedGlobals = useRef(false);
-  // NOVO: Estado para controlar o carregamento inicial da aplicação.
   const [isInitializing, setIsInitializing] = useState(true);
-  // Removido: const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  // Removido: const location = useLocation();
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -65,11 +62,9 @@ export function App() {
 
             if (event === "SIGNED_IN" && !hasFetchedGlobals.current) {
               hasFetchedGlobals.current = true;
-              console.log(
-                "[App] First sign-in detected. Fetching all global data..."
-              );
+              usePlanStore.getState().fetchAllPlans(session.access_token);
+
               if (organizationId) {
-                usePlanStore.getState().fetchAllPlans(session.access_token);
                 useSystemPermissionsStore
                   .getState()
                   .fetchAllSystemPermissions(session.access_token);
@@ -106,7 +101,6 @@ export function App() {
           );
           await logout();
         } finally {
-          // MODIFICADO: Garante que a aplicação seja exibida após a primeira verificação.
           setIsInitializing(false);
         }
       }
@@ -118,11 +112,10 @@ export function App() {
     };
   }, []);
 
-  // NOVO: Renderiza o loader enquanto a verificação inicial não termina.
   if (isInitializing) {
     return <FullScreenLoader />;
   }
-  // Removido: redirecionamento global para /login
+
   return (
     <>
       <NetworkStatus />

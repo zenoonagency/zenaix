@@ -113,6 +113,7 @@ export interface InputUpdateBoardDTO {
     description?: string;
     value?: any;
   };
+  completed_list_id?: string;
 }
 
 export interface InputSetCompletedListDTO {
