@@ -28,7 +28,6 @@ import { AutomationModal } from "./components/AutomationModal";
 import { BoardConfigModal } from "./components/BoardConfigModal";
 import { boardService } from "../../services/board.service";
 import { useAuthStore } from "../../store/authStore";
-import { InputCreateBoardDTO } from "../../types/board";
 import { OutputCardDTO } from "../../types/card";
 import { CardModal } from "./components/CardModal";
 import { ModalCanAcess } from "../../components/ModalCanAcess";

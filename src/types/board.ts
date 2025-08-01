@@ -17,6 +17,17 @@ export interface BoardMember {
   created_at: string;
   updated_at: string;
   avatar_url?: string | null;
+  language?: string;
+  timezone?: string;
+  organization?: any | null;
+  organization_mastered?: any | null;
+}
+
+export interface BoardGoal {
+  id: string;
+  name: string;
+  description: string;
+  value: any; // Pode ser um objeto vazio {} ou qualquer outro tipo conforme a API
 }
 
 export interface BoardList {
@@ -73,9 +84,11 @@ export interface Board {
   created_at: string;
   updated_at: string;
   completed_list_id?: string;
+  creator?: BoardMember;
   lists: BoardList[];
   membersWithAccess?: BoardMember[];
   members_with_access?: BoardMember[]; // compatível com a nova resposta da API
+  goal?: BoardGoal;
 }
 
 export interface InputCreateBoardDTO {
@@ -83,6 +96,11 @@ export interface InputCreateBoardDTO {
   description: string;
   access_level: BoardAccessLevel;
   member_ids?: string[];
+  goal?: {
+    name: string;
+    description: string;
+    value: any;
+  };
 }
 
 export interface InputUpdateBoardDTO {
@@ -90,6 +108,11 @@ export interface InputUpdateBoardDTO {
   description?: string;
   access_level?: BoardAccessLevel;
   member_ids?: string[];
+  goal?: {
+    name?: string;
+    description?: string;
+    value?: any;
+  };
 }
 
 export interface InputSetCompletedListDTO {
