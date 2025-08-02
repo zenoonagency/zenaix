@@ -12,6 +12,7 @@ interface ContactOptionsMenuProps {
   instanceId: string;
   onEdit: (contact: WhatsappContact) => void;
   onDelete: (contactId: string) => void;
+  onDeleteClick: (contact: WhatsappContact) => void;
   isOpen: boolean;
   onToggle: () => void;
   position: { top: number; left: number };
@@ -22,6 +23,7 @@ export function ContactOptionsMenu({
   instanceId,
   onEdit,
   onDelete,
+  onDeleteClick,
   isOpen,
   onToggle,
   position,
@@ -94,35 +96,9 @@ export function ContactOptionsMenu({
     }
   };
 
-  const handleDelete = async () => {
-    if (!token || !user?.organization_id) {
-      showToast("Erro de autenticação", "error");
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Tem certeza que deseja excluir o contato "${contact.name}"?`
-    );
-
-    if (!confirmed) return;
-
-    setIsLoading(true);
-    try {
-      await whatsappContactService.delete(
-        token,
-        user.organization_id,
-        instanceId,
-        contact.id
-      );
-      onDelete(contact.id);
-      showToast("Contato excluído com sucesso!", "success");
-    } catch (error: any) {
-      console.error("Erro ao excluir contato:", error);
-      showToast(error.message || "Erro ao excluir contato", "error");
-    } finally {
-      setIsLoading(false);
-      onToggle();
-    }
+  const handleDeleteClick = () => {
+    onDeleteClick(contact);
+    onToggle();
   };
 
   if (!isOpen || !contact) return null;
@@ -159,12 +135,12 @@ export function ContactOptionsMenu({
       </button>
 
       <button
-        onClick={handleDelete}
-        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+        onClick={handleDeleteClick}
+        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
         disabled={isLoading}
       >
         <Trash2 className="w-4 h-4" />
-        {isLoading ? "Excluindo..." : "Excluir"}
+        Excluir
       </button>
     </div>
   );

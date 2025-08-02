@@ -51,7 +51,7 @@ export function DashboardHeader({
           <button
             onClick={onShowBoardSelector}
             disabled={isLoadingBoard}
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center h-[40px] gap-2 px-4 py-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoadingBoard ? (
               <>
@@ -67,14 +67,14 @@ export function DashboardHeader({
                     <span className="inline-block w-32 h-5 bg-gray-200 rounded animate-pulse" />
                   )}
                 </span>
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="w-5 h-5" />
               </>
             )}
           </button>
 
           <button
             onClick={onShowExportModal}
-            className="flex items-center gap-2 px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 transition-colors"
+            className="flex items-center h-[40px] gap-2 px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 transition-colors"
           >
             <Download className="w-5 h-5" />
             Exportar Relatório

@@ -34,10 +34,12 @@ import { useNavigate } from "react-router-dom";
 import { ContactOptionsMenu } from "../../components/ContactOptionsMenu";
 import { EditContactModal } from "../../components/EditContactModal";
 import { whatsappMessageService } from "../../services/whatsapp/whatsappMessage.service";
+import { whatsappContactService } from "../../services/whatsapp/whatsappContact.service";
 import { compressFile } from "../../utils/fileCompression";
 import { ContactProfileModal } from "../../components/ContactProfileModal";
 import { processWhatsAppMediaUrl } from "../../utils/imageUtils";
 import { ModalCanAcess } from "../../components/ModalCanAcess";
+import { ConfirmationModal } from "../../components/ConfirmationModal";
 import { InstanceTabs } from "./components/InstanceTabs";
 import { ContactList } from "./components/ContactList";
 import { MessagesArea } from "./components/MessagesArea";
@@ -273,6 +275,9 @@ export function Conversations() {
   const [isSendingAudio, setIsSendingAudio] = useState(false);
   const [showContactProfileModal, setShowContactProfileModal] = useState(false);
   const [isLoadingContactsLocal, setIsLoadingContactsLocal] = useState(false);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [contactToDelete, setContactToDelete] = useState<string | null>(null);
+  const [isDeletingContact, setIsDeletingContact] = useState(false);
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -849,12 +854,38 @@ export function Conversations() {
   };
 
   const handleDeleteContact = (contactId: string) => {
-    if (activeInstanceId) {
-      deleteContactFromStore(activeInstanceId, contactId);
-      if (selectedContactId === contactId) {
+    setContactToDelete(contactId);
+    setShowConfirmationModal(true);
+  };
+
+  const handleConfirmDeleteContact = async () => {
+    if (!contactToDelete || !activeInstanceId) return;
+
+    setIsDeletingContact(true);
+    try {
+      await whatsappContactService.delete(
+        token!,
+        user!.organization_id,
+        activeInstanceId,
+        contactToDelete
+      );
+      deleteContactFromStore(activeInstanceId, contactToDelete);
+      setShowConfirmationModal(false);
+      setContactToDelete(null);
+      showToast("Contato excluído com sucesso!", "success");
+      if (selectedContactId === contactToDelete) {
         setSelectedContactId(null);
       }
+    } catch (error: any) {
+      showToast(error.message || "Erro ao excluir contato", "error");
+    } finally {
+      setIsDeletingContact(false);
     }
+  };
+
+  const handleDeleteContactClick = (contact: WhatsappContact) => {
+    setContactToDelete(contact.id);
+    setShowConfirmationModal(true);
   };
 
   const handleInstanceChange = (instanceId: string) => {
@@ -931,13 +962,6 @@ export function Conversations() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7f00ff] mb-2" />
                 <span className="text-sm text-gray-500">
                   Carregando contatos...
-                </span>
-              </div>
-            ) : instanceContacts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center w-72 h-full p-4">
-                <div className="text-gray-400 mb-2">📱</div>
-                <span className="text-sm text-gray-500 text-center">
-                  Nenhum contato encontrado
                 </span>
               </div>
             ) : (
@@ -1138,6 +1162,7 @@ export function Conversations() {
               instanceId={activeInstanceId!}
               onEdit={handleEditContact}
               onDelete={handleDeleteContact}
+              onDeleteClick={handleDeleteContactClick}
               isOpen={true}
               onToggle={() => setShowContactMenu(null)}
               position={contactMenuPosition}
@@ -1198,6 +1223,20 @@ export function Conversations() {
           setShowImageModal(false);
           setSelectedImage(null);
         }}
+      />
+      <ConfirmationModal
+        isOpen={showConfirmationModal}
+        onClose={() => setShowConfirmationModal(false)}
+        onConfirm={handleConfirmDeleteContact}
+        title="Confirmar Exclusão"
+        message={`Tem certeza que deseja excluir o contato "${
+          instanceContacts.find((c) => c.id === contactToDelete)?.name ||
+          contactToDelete?.slice(-2) ||
+          "este contato"
+        }"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        isLoading={isDeletingContact}
       />
     </div>
   );
