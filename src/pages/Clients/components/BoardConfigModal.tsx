@@ -132,7 +132,7 @@ export function BoardConfigModal({
           <div className="modal-container bg-black/30" />
         </Transition.Child>
 
-        <div className="fixed inset-0 overflow-y-auto">
+        <div className="fixed inset-0 overflow-y-auto z-[9999]">
           <div className="flex min-h-full items-center justify-center p-4 text-center">
             <Transition.Child
               as={Fragment}
@@ -143,7 +143,7 @@ export function BoardConfigModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="modal-content w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-dark-800 p-6 text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="modal-content w-full max-w-md  transform overflow-hidden rounded-2xl bg-white dark:bg-dark-800 p-6 text-left align-middle shadow-xl transition-all">
                 <div className="flex items-start justify-between mb-4">
                   <Dialog.Title
                     as="h3"

@@ -651,7 +651,7 @@ function ProfileMenuModal({
   return (
     <>
       <div className="modal-container z-50" onClick={onClose}></div>
-      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-dark-800 rounded-xl shadow-2xl z-50 w-80 overflow-hidden">
+      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-dark-800 rounded-xl shadow-2xl z-[99999] w-80 overflow-hidden">
         {/* Cabeçalho do modal */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-dark-700 flex justify-between items-center">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">

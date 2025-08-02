@@ -2,11 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Modal } from "./Modal";
 import { Input } from "./ui/Input";
 import { useAuthStore } from "../store/authStore";
-import {
-  Camera,
-  X,
-  Loader,
-} from "lucide-react";
+import { Camera, X, Loader } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { userService } from "../services/user/user.service";
 import { compressImage } from "../utils/imageCompression";
@@ -46,7 +42,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     }
   }, [isOpen, user]);
 
-
   const handlePhotoChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -84,7 +79,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       );
       updateUser({ avatar_url: updatedUserFromApi.avatar_url });
 
-  
       showToast("Avatar atualizado com sucesso!", "success");
     } catch (error) {
       const message =
@@ -147,7 +141,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       setIsLoadingProfile(false);
     }
   };
-
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Editar Perfil">
@@ -238,13 +231,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               O email é sincronizado automaticamente com sua conta
-            </p>
-          </div>
-
-          <div className="pt-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Plano atual:{" "}
-              <span className="font-medium text-[#7f00ff]">{user?.plan}</span>
             </p>
           </div>
         </div>
