@@ -318,16 +318,10 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
       break;
     }
     case "WHATSAPP_MESSAGE_ACK_UPDATED": {
-      console.log(
-        "[RealtimeStore] ✅ Atualização de ACK recebida:",
-        payload.data
-      );
-
       const { ack, contact_phone, wa_message_id } = payload.data;
       const messageStore = useWhatsappMessageStore.getState();
       const contactStore = useWhatsappContactStore.getState();
 
-      // Encontrar a instância e contato baseado no número do telefone
       const instances = useWhatsAppInstanceStore.getState().instances;
 
       for (const instance of instances) {
@@ -335,7 +329,6 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         const contact = contacts.find((c) => c.phone === contact_phone);
 
         if (contact) {
-          // Atualizar o ack da mensagem
           messageStore.updateMessageAck(
             instance.id,
             contact.id,
@@ -385,7 +378,7 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
       const { user } = useAuthStore.getState();
       if (user?.id === id) {
         useAuthStore.getState().fetchAndSyncUser();
-      } 
+      }
       break;
     }
     default:

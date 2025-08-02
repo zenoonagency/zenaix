@@ -42,54 +42,62 @@ export function App() {
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        const {
-          setSession,
-          updateUserDataSilently,
-          setLoading,
-          logout,
-          clearAuth,
-        } = useAuthStore.getState();
+        const { setSession, updateUserDataSilently, logout, clearAuth } =
+          useAuthStore.getState();
         const { connect, disconnect } = useRealtimeStore.getState();
 
         try {
-          console.log(`[App] Auth event: ${event}`);
+          if (event === "INITIAL_SESSION") setIsInitializing(true);
 
           if (session && session.access_token) {
             setSession(session);
-            const freshUserData = await userService.getMe(session.access_token);
-            updateUserDataSilently(freshUserData);
+            try {
+              const freshUserData = await userService.getMe(
+                session.access_token
+              );
+              updateUserDataSilently(freshUserData);
 
-            const organizationId = freshUserData.organization?.id;
-            connect(session.user.id, organizationId);
+              const organizationId = freshUserData.organization?.id;
+              connect(session.user.id, organizationId);
 
-            if (event === "SIGNED_IN" && !hasFetchedGlobals.current) {
-              hasFetchedGlobals.current = true;
-              usePlanStore.getState().fetchAllPlans(session.access_token);
+              if (event === "SIGNED_IN" && !hasFetchedGlobals.current) {
+                hasFetchedGlobals.current = true;
+                usePlanStore.getState().fetchAllPlans(session.access_token);
 
-              if (organizationId) {
-                useSystemPermissionsStore
-                  .getState()
-                  .fetchAllSystemPermissions(session.access_token);
-                useEmbedPagesStore
-                  .getState()
-                  .fetchAllEmbedPages(session.access_token, organizationId);
-                useTagStore
-                  .getState()
-                  .fetchAllTags(session.access_token, organizationId);
-                useContractStore
-                  .getState()
-                  .fetchAllContracts(session.access_token, organizationId);
-                useTeamMembersStore
-                  .getState()
-                  .fetchAllMembers(session.access_token, organizationId);
-                useBoardStore
-                  .getState()
-                  .fetchAllBoards(session.access_token, organizationId);
-                useWhatsAppInstanceStore
-                  .getState()
-                  .fetchAllInstances(session.access_token, organizationId);
-                useCalendarStore.getState().fetchEvents();
+                if (organizationId) {
+                  useSystemPermissionsStore
+                    .getState()
+                    .fetchAllSystemPermissions(session.access_token);
+                  useEmbedPagesStore
+                    .getState()
+                    .fetchAllEmbedPages(session.access_token, organizationId);
+                  useTagStore
+                    .getState()
+                    .fetchAllTags(session.access_token, organizationId);
+                  useContractStore
+                    .getState()
+                    .fetchAllContracts(session.access_token, organizationId);
+                  useTeamMembersStore
+                    .getState()
+                    .fetchAllMembers(session.access_token, organizationId);
+                  useBoardStore
+                    .getState()
+                    .fetchAllBoards(session.access_token, organizationId);
+                  useWhatsAppInstanceStore
+                    .getState()
+                    .fetchAllInstances(session.access_token, organizationId);
+                  useCalendarStore.getState().fetchEvents();
+                }
               }
+            } catch (err) {
+              // Se for erro de autenticação, desloga só no boot inicial
+              if (
+                event === "INITIAL_SESSION" &&
+                (err?.status === 401 || err?.status === 403)
+              ) {
+                clearAuth();
+              }
+              // Se for erro de rede, timeout, etc, NÃO desloga!
             }
           } else if (event === "SIGNED_OUT") {
             hasFetchedGlobals.current = false;
@@ -103,13 +111,12 @@ export function App() {
           );
           await logout();
         } finally {
-          setIsInitializing(false);
+          if (event === "INITIAL_SESSION") setIsInitializing(false);
         }
       }
     );
 
     return () => {
-      console.log("[App] Unmounting. Unsubscribing from auth listener.");
       authListener.subscription.unsubscribe();
     };
   }, []);

@@ -177,7 +177,7 @@ export function EventDetailModal({
               type="button"
               onClick={() => setShowConfirmModal(true)}
               disabled={isDeleting}
-              className="px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50 items-center"
               style={{
                 display: hasPermission("calendar:delete")
                   ? "inline-flex"
@@ -191,7 +191,7 @@ export function EventDetailModal({
               <button
                 type="button"
                 onClick={onEdit}
-                className="px-4 py-2 bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 transition-colors"
+                className="px-4 py-2 items-center bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 transition-colors"
                 style={{
                   display: hasPermission("calendar:update")
                     ? "inline-flex"

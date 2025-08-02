@@ -13,20 +13,20 @@ function LogoutLoader() {
 }
 
 export function ProtectedRoute() {
-  const { isAuthenticated, isLoading, isLoggingOut } = useAuthStore();
+  const { isAuthenticated, _hasHydrated, isLoggingOut } = useAuthStore();
 
-  // Se está fazendo logout, mostra loading
-  if (isLoggingOut()) {
-    return <LogoutLoader />;
-  }
-
-  // Se está carregando, não renderiza nada
-  if (isLoading) {
+  if (isLoggingOut && isLoggingOut()) {
     return null;
   }
 
-  if (!isAuthenticated) {
+  // Só bloqueia se já hidratou e não está autenticado
+  if (_hasHydrated && !isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Enquanto não hidratou, renderiza null
+  if (!_hasHydrated) {
+    return null;
   }
 
   return <Outlet />;
