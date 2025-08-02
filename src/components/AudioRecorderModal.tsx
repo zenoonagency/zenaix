@@ -94,7 +94,7 @@ export const AudioRecorderModal: React.FC<AudioRecorderModalProps> = ({
     navigator.mediaDevices.getUserMedia;
 
   return (
-    <div className="modal-overlay">
+    <div className="modal-container">
       <div className="bg-white dark:bg-dark-800 rounded-lg p-6 max-w-md w-full mx-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">

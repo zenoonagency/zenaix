@@ -21,7 +21,7 @@ export function OrganizationRequiredModal({
   };
 
   return (
-    <div className="modal-overlay z-[9999]">
+    <div className="modal-container z-[9999]">
       <div className="bg-white dark:bg-dark-800 rounded-xl p-6 w-full max-w-md shadow-xl m-4 border border-gray-200 dark:border-dark-700">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">

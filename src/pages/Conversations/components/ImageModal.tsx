@@ -13,7 +13,7 @@ export function ImageModal({ isOpen, selectedImage, onClose }) {
     selectedImage.toLowerCase().includes(".webm") ||
     selectedImage.toLowerCase().includes("video/");
   return (
-    <div className="modal-overlay bg-black/80" onClick={onClose}>
+    <div className="modal-container bg-black/80" onClick={onClose}>
       <div className="relative max-w-6xl max-h-[95vh] overflow-hidden">
         <div className="absolute top-4 right-4 flex gap-2 z-10">
           <button

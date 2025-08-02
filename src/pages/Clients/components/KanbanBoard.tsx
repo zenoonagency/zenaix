@@ -211,7 +211,7 @@ function SortModal({ isOpen, onClose, onSort, lists }: SortModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-container" onClick={onClose}>
       <div
         className={`${
           isDark ? "bg-dark-600" : "bg-white"
@@ -821,7 +821,7 @@ export function KanbanBoard() {
               </div>
             </div>
             {showCreateListModal && (
-              <div className="modal-overlay">
+              <div className="modal-container">
                 <div
                   className={`bg-white dark:bg-dark-800 rounded-lg p-6 w-full max-w-md ${
                     isDark ? "text-gray-100" : "text-gray-900"
@@ -871,7 +871,7 @@ export function KanbanBoard() {
               </div>
             )}
             {showCreateBoardModal && (
-              <div className="modal-overlay">
+              <div className="modal-container">
                 <div
                   className={`bg-white dark:bg-dark-800 rounded-lg p-6 w-full max-w-md ${
                     isDark ? "text-gray-100" : "text-gray-900"

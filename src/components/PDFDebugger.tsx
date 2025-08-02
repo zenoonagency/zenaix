@@ -104,7 +104,7 @@ export function PDFDebugger({ fileUrl, onClose }: PDFDebuggerProps) {
   };
 
   return (
-    <div className="modal-overlay z-[9999] p-4">
+    <div className="modal-container z-[9999]">
       <div
         className={`w-full max-w-3xl ${
           isDark ? "bg-dark-800 text-gray-200" : "bg-white text-gray-800"

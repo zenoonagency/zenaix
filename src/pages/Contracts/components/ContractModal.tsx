@@ -148,7 +148,7 @@ export function ContractModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="modal-overlay bg-black/30">
+    <div className="modal-container bg-black/30">
       <div className="w-full max-w-2xl bg-white dark:bg-dark-800 rounded-lg shadow-xl p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">

@@ -24,6 +24,7 @@ import { useWhatsAppInstanceStore } from "../../store/whatsAppInstanceStore";
 import { supabase } from "../../lib/supabaseClient";
 import { ModalCanAcess } from "../../components/ModalCanAcess";
 import { ConfirmationModal } from "../../components/ConfirmationModal";
+import { useNavigate } from "react-router-dom";
 
 export function Connections() {
   const { theme } = useThemeStore();
@@ -51,6 +52,7 @@ export function Connections() {
     useState<WhatsAppInstanceOutput | null>(null);
 
   const setSession = useAuthStore((state) => state.setSession);
+  const navigate = useNavigate();
 
   const deleteInstance = useCallback(
     async (token: string, organizationId: string, instanceId: string) => {
@@ -352,12 +354,11 @@ export function Connections() {
                   {instance.status === "CONNECTED" ? (
                     <button
                       onClick={() => {
-                        // Salvar a instância ativa no localStorage e redirecionar para conversas
                         localStorage.setItem(
                           "zenaix_active_whatsapp_instance",
                           instance.id
                         );
-                        window.location.href = "/dashboard/conversations";
+                        navigate("/dashboard/conversations");
                       }}
                       className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
                     >

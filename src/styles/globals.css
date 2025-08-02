@@ -26,5 +26,24 @@
 
 /* Overlay padrão para modais */
 .modal-overlay {
-  @apply fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] !mt-0;
+  @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999];
+}
+
+/* Container completo para modais customizadas */
+.modal-container {
+  @apply fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 !mt-0;
+}
+
+/* Fallback CSS puro para garantir que o modal funcione mesmo sem Tailwind */
+.modal-container {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(4px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 9999 !important;
+  padding: 1rem !important;
+  margin-top: 0 !important;
 }

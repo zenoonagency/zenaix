@@ -138,7 +138,7 @@ export function AIAgent() {
 
       {/* Modal de Confirmação de Deleção */}
       {isDeleteModalOpen && (
-        <div className="modal-overlay">
+        <div className="modal-container">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
               Confirmar Deleção de Memória

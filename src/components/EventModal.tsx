@@ -66,7 +66,7 @@ export function EventModal({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
+    <div className="modal-container">
       <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-gray-200">Novo Evento</h2>

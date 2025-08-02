@@ -131,7 +131,7 @@ export function TableModal({ isOpen, onClose }: TableModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay p-4">
+    <div className="modal-container">
       <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-3xl max-h-[90vh] flex flex-col">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center">

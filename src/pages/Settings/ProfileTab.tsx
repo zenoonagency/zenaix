@@ -318,7 +318,7 @@ export function ProfileTab() {
 
       {/* Modal de Confirmação */}
       {showDeleteModal && (
-        <div className="modal-overlay">
+        <div className="modal-container">
           <div className="bg-white dark:bg-dark-800 rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Confirmar Deletação

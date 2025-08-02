@@ -198,7 +198,7 @@ export const ContactProfileModal: React.FC<ContactProfileModalProps> = ({
   };
 
   return (
-    <div className="modal-overlay">
+    <div className="modal-container">
       <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md mx-4 max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
@@ -376,7 +376,7 @@ export const ContactProfileModal: React.FC<ContactProfileModalProps> = ({
       {/* Modal universal de mídia */}
       {modalMedia && (
         <div
-          className="modal-overlay bg-black/80"
+          className="modal-container bg-black/80"
           onClick={() => setModalMedia(null)}
         >
           <div

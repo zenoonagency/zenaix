@@ -16,7 +16,7 @@ export function TransactionDetailModal({
   onClose,
 }: TransactionDetailModalProps) {
   return (
-    <div className="modal-overlay">
+    <div className="modal-container">
       <div className="bg-white dark:bg-dark-800 rounded-lg w-full max-w-lg p-6 border border-gray-200 dark:border-dark-700">
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center">

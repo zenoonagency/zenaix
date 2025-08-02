@@ -126,7 +126,7 @@ export function EditInstanceModal({
   if (!isOpen || !instance || !isSynced) return null;
 
   return (
-    <div className="modal-overlay">
+    <div className="modal-container">
       <div
         className={`w-full max-w-md p-6 rounded-xl shadow-xl ${
           isDark ? "bg-dark-800" : "bg-white"
