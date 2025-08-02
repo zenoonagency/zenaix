@@ -7,9 +7,9 @@ interface OrganizationRequiredModalProps {
   onClose: () => void;
 }
 
-export function OrganizationRequiredModal({ 
-  isOpen, 
-  onClose 
+export function OrganizationRequiredModal({
+  isOpen,
+  onClose,
 }: OrganizationRequiredModalProps) {
   const navigate = useNavigate();
 
@@ -21,7 +21,7 @@ export function OrganizationRequiredModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
+    <div className="modal-overlay z-[9999]">
       <div className="bg-white dark:bg-dark-800 rounded-xl p-6 w-full max-w-md shadow-xl m-4 border border-gray-200 dark:border-dark-700">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -47,14 +47,15 @@ export function OrganizationRequiredModal({
             <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center">
               <Crown className="w-8 h-8 text-purple-600 dark:text-purple-400" />
             </div>
-            
+
             <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
               Acesso Restrito
             </h4>
-            
+
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Este recurso está disponível apenas para usuários com plano ativo. 
-              Para acessar todas as funcionalidades da plataforma, você precisa fazer parte de uma organização.
+              Este recurso está disponível apenas para usuários com plano ativo.
+              Para acessar todas as funcionalidades da plataforma, você precisa
+              fazer parte de uma organização.
             </p>
 
             <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/10 dark:to-indigo-900/10 rounded-lg p-4 mb-4">
@@ -81,7 +82,7 @@ export function OrganizationRequiredModal({
             Conhecer Nossos Planos
             <ArrowRight className="w-4 h-4" />
           </button>
-          
+
           <button
             onClick={onClose}
             className="w-full px-4 py-2 bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600 transition-colors"
@@ -92,4 +93,4 @@ export function OrganizationRequiredModal({
       </div>
     </div>
   );
-} 
+}

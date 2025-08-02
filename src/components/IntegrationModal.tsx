@@ -1,5 +1,5 @@
-import { Dialog } from '@headlessui/react';
-import { Calendar } from 'lucide-react';
+import { Dialog } from "@headlessui/react";
+import { Calendar } from "lucide-react";
 
 interface IntegrationModalProps {
   isOpen: boolean;
@@ -7,7 +7,11 @@ interface IntegrationModalProps {
   onConfirm: () => void;
 }
 
-export function IntegrationModal({ isOpen, onClose, onConfirm }: IntegrationModalProps) {
+export function IntegrationModal({
+  isOpen,
+  onClose,
+  onConfirm,
+}: IntegrationModalProps) {
   return (
     <Dialog
       open={isOpen}
@@ -15,7 +19,7 @@ export function IntegrationModal({ isOpen, onClose, onConfirm }: IntegrationModa
       className="fixed inset-0 z-10 overflow-y-auto"
     >
       <div className="flex min-h-screen items-center justify-center">
-        <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+        <Dialog.Overlay className="modal-overlay bg-black/30" />
 
         <div className="relative bg-white rounded-lg p-8 max-w-md w-full mx-4">
           <div className="absolute top-4 right-4">
@@ -24,8 +28,18 @@ export function IntegrationModal({ isOpen, onClose, onConfirm }: IntegrationModa
               className="text-gray-400 hover:text-gray-500"
             >
               <span className="sr-only">Fechar</span>
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -48,13 +62,14 @@ export function IntegrationModal({ isOpen, onClose, onConfirm }: IntegrationModa
 
           <div className="space-y-4 text-gray-600 mb-8">
             <p>
-              O processo de sincronia ou dessincronia pode demorar um pouco, 
-              fique à vontade para navegar no sistema enquanto trabalhamos nisso.
+              O processo de sincronia ou dessincronia pode demorar um pouco,
+              fique à vontade para navegar no sistema enquanto trabalhamos
+              nisso.
             </p>
             <p>
-              Após a conclusão da sincronização, todos os eventos em que você é 
-              consultor ou participante serão adicionados à sua agenda. Além disso, 
-              novos eventos também serão automaticamente incluídos.
+              Após a conclusão da sincronização, todos os eventos em que você é
+              consultor ou participante serão adicionados à sua agenda. Além
+              disso, novos eventos também serão automaticamente incluídos.
             </p>
           </div>
 
@@ -78,4 +93,4 @@ export function IntegrationModal({ isOpen, onClose, onConfirm }: IntegrationModa
       </div>
     </Dialog>
   );
-} 
+}

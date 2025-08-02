@@ -48,10 +48,7 @@ export function SearchCardModal({
   }, [searchTerm, cards]);
   if (!isOpen) return null;
   return (
-    <div
-      className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[9998]"
-      onClick={onClose}
-    >
+    <div className="modal-overlay bg-black/30 z-[9998]" onClick={onClose}>
       <div
         className="w-full max-w-2xl p-6 bg-white dark:bg-dark-900 rounded-lg shadow-xl border dark:border-white/10 border-gray-200"
         onClick={(e) => e.stopPropagation()}

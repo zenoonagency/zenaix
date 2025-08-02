@@ -110,7 +110,7 @@ export function Team() {
       )}
 
       {isInvitesModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 !mt-0">
+        <div className="modal-overlay p-4">
           <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl w-full max-w-4xl">
             <div className="flex items-center justify-between p-4 border-b border-gray-200/10 dark:border-gray-700/10">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">

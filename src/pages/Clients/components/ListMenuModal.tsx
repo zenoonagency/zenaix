@@ -39,7 +39,7 @@ export function ListMenuModal({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="modal-overlay bg-black/30" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">

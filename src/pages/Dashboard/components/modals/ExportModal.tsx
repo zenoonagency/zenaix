@@ -24,7 +24,7 @@ export function ExportModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] !mt-0">
+    <div className="modal-overlay z-[9999]">
       <div className="bg-white dark:bg-dark-800 rounded-lg p-6 w-96 shadow-xl m-4">
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-dark-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">

@@ -96,7 +96,7 @@ export function DayEventsModal({
             leaveTo="opacity-0"
           >
             <div
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+              className="modal-overlay"
               onClick={(e) => {
                 e.stopPropagation();
                 // Não fechar se o ConfirmationModal estiver aberto

@@ -40,7 +40,7 @@ export function BoardSelector({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] !mt-0">
+    <div className="modal-overlay z-[9999]">
       <div
         className={`w-full max-w-md p-6 rounded-lg shadow-xl m-4 ${
           isDark ? "bg-dark-800" : "bg-white"

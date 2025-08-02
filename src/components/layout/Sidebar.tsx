@@ -341,7 +341,7 @@ function ChatModal({ isOpen, onClose }: ChatModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 !mt-0">
+    <div className="modal-overlay">
       <div className="rounded-lg pt-16 shadow-lg w-full max-w-2xl h-[700px] relative bg-white text-black glass-effect">
         <button
           onClick={onClose}
@@ -650,10 +650,7 @@ function ProfileMenuModal({
 
   return (
     <>
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-        onClick={onClose}
-      ></div>
+      <div className="modal-overlay z-50" onClick={onClose}></div>
       <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-dark-800 rounded-xl shadow-2xl z-50 w-80 overflow-hidden">
         {/* Cabeçalho do modal */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-dark-700 flex justify-between items-center">
