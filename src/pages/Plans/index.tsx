@@ -73,6 +73,7 @@ export function Plans() {
     extra_team_members: organization?.extra_team_members || 0,
     extra_boards: organization?.extra_boards || 0,
     extra_triggers: organization?.extra_triggers || 0,
+    extra_whatsapp_instances: organization?.extra_whatsapp_instances || 0,
   });
   const [orgLoading, setOrgLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"planos" | "recursos">("planos");
@@ -91,6 +92,8 @@ export function Plans() {
   const triggerAddOn = addOns.find((p) =>
     p.name.toLowerCase().includes("disparo")
   );
+  const whatsappAddOn =
+    addOns.find((p) => p.name.toLowerCase().includes("whatsapp")) || null;
 
   // Ao clicar em pagamento, abrir modal de organização
   const handlePayment = () => {
@@ -108,6 +111,7 @@ export function Plans() {
           extra_boards: orgForm.extra_boards,
           extra_team_members: orgForm.extra_team_members,
           extra_triggers: orgForm.extra_triggers,
+          extra_whatsapp_instances: orgForm.extra_whatsapp_instances,
         };
 
         const res = await subscriptionService.createCheckoutSession(
@@ -127,6 +131,7 @@ export function Plans() {
           extra_boards: orgForm.extra_boards,
           extra_team_members: orgForm.extra_team_members,
           extra_triggers: orgForm.extra_triggers,
+          extra_whatsapp_instances: orgForm.extra_whatsapp_instances,
         };
         const res = await organizationService.createCheckoutSessionForNewOrg(
           data,
@@ -219,7 +224,7 @@ export function Plans() {
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900">
       <div className="px-4 py-4 border-b border-gray-200 dark:border-dark-700">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          Gerenciamento de Planos
+          Gerenciamento de Assinaturas
         </h1>
       </div>
 
@@ -404,6 +409,7 @@ export function Plans() {
                 memberAddOn={memberAddOn}
                 boardAddOn={boardAddOn}
                 triggerAddOn={triggerAddOn}
+                whatsappAddOn={whatsappAddOn}
                 onSubmit={(form) => {
                   // Se for compra de disparo único, abrir modal direto com o link
                   if (form && form.oneTimePaymentUrl) {
@@ -627,6 +633,16 @@ export function Plans() {
                   disparos
                 </li>
                 <li>
+                  <b>{selectedPlanData?.max_whatsapp_instances ?? "-"}</b>
+                  {orgForm.extra_whatsapp_instances > 0 && (
+                    <span className="text-purple-600 dark:text-purple-300 font-bold">
+                      {" "}
+                      + {orgForm.extra_whatsapp_instances}
+                    </span>
+                  )}{" "}
+                  instâncias WhatsApp
+                </li>
+                <li>
                   <b>{selectedPlanData?.max_contacts ?? "-"}</b> contatos
                 </li>
                 <li>Disparo em massa padrão</li>
@@ -749,6 +765,28 @@ export function Plans() {
                     </span>
                   )}
                 </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-1">
+                    Instâncias WhatsApp adicionais
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={orgForm.extra_whatsapp_instances}
+                    onChange={(e) =>
+                      setOrgForm((f) => ({
+                        ...f,
+                        extra_whatsapp_instances: Number(e.target.value),
+                      }))
+                    }
+                    className="w-full px-3 py-2 rounded border"
+                  />
+                  {whatsappAddOn && (
+                    <span className="text-xs text-gray-500">
+                      {formatCurrency(whatsappAddOn.price)} cada
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex justify-end mt-4 gap-2">
                 <button
@@ -805,6 +843,14 @@ export function Plans() {
                 disparos/mês
               </li>
             )}
+            {pendingAddonsForm?.extra_whatsapp_instances > 0 && (
+              <li>
+                <span className="text-purple-600 dark:text-purple-400 font-bold">
+                  +{pendingAddonsForm.extra_whatsapp_instances}
+                </span>{" "}
+                instâncias WhatsApp
+              </li>
+            )}
           </ul>
           {/* Cálculo dos valores total atual e novo total */}
           {(() => {
@@ -838,7 +884,9 @@ export function Plans() {
               (boardAddOn?.price || 0) *
                 (pendingAddonsForm?.extra_boards || 0) +
               (triggerAddOn?.price || 0) *
-                (pendingAddonsForm?.extra_triggers || 0);
+                (pendingAddonsForm?.extra_triggers || 0) +
+              (whatsappAddOn?.price || 0) *
+                (pendingAddonsForm?.extra_whatsapp_instances || 0);
             return (
               <div className="flex flex-col gap-1 mt-4">
                 {/* <span className="text-gray-500 line-through text-base">
@@ -886,6 +934,14 @@ export function Plans() {
                       subscriptionService.addSlots(token, organization.id, {
                         slot_type: "trigger",
                         quantity: pendingAddonsForm.extra_triggers,
+                      })
+                    );
+                  }
+                  if (pendingAddonsForm.extra_whatsapp_instances > 0) {
+                    promises.push(
+                      subscriptionService.addSlots(token, organization.id, {
+                        slot_type: "whatsapp_instance",
+                        quantity: pendingAddonsForm.extra_whatsapp_instances,
                       })
                     );
                   }

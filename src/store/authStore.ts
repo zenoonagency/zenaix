@@ -22,16 +22,10 @@ export const useAuthStore = create<AuthState>()(
       setLoading: (loading: boolean) => set({ isLoading: loading }),
 
       setSession: (session: Session) => {
-        console.log(
-          "[AuthStore] Session token received. User is NOT authenticated yet."
-        );
         set({ token: session.access_token, isLoading: true });
       },
 
       updateUserDataSilently: (meData: User) => {
-        console.log(
-          "[AuthStore] User data received. Setting as AUTHENTICATED."
-        );
         const { organization, permissions, ...userData } = meData;
         set((state) => ({
           isAuthenticated: true,

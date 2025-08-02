@@ -924,6 +924,14 @@ export function Sidebar() {
                 collapsed={collapsed}
                 exact
               />
+              {(user?.role === "MASTER" || !user?.organization_id) && (
+                <SidebarLink
+                  to="/dashboard/plans"
+                  icon={<CreditCard size={22} />}
+                  label="Assinaturas"
+                  collapsed={collapsed}
+                />
+              )}
               <SidebarLink
                 to="/dashboard/calendar"
                 icon={<Calendar size={22} />}

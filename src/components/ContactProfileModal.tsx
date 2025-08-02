@@ -306,11 +306,11 @@ export const ContactProfileModal: React.FC<ContactProfileModalProps> = ({
 
               {/* Action Buttons */}
               <div className="flex gap-3 mb-6">
-                <button className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button disabled className=" opacity-45 flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                   <Video className="w-4 h-4" />
                   Vídeo
                 </button>
-                <button className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button disabled className="flex-1 opacity-45 flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                   <Phone className="w-4 h-4" />
                   Voz
                 </button>

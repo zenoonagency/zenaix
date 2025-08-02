@@ -35,10 +35,6 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
     case "USER_UPDATED_IN_ORGANIZATION":
     case "USER_PROFILE_UPDATED":
     case "USER_REMOVED_FROM_ORG":
-      console.log(
-        "[RealtimeStore] 🔄 Evento de usuário recebido, atualizando dados..."
-      );
-      // TODO: Implementar sincronização de usuário se necessário
       break;
 
     case "ORGANIZATION_UPDATED":
@@ -162,15 +158,8 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         .addContact(payload.data.whatsapp_instance_id, payload.data);
       break;
     case "NEW_WHATSAPP_MESSAGE": {
-      console.log(
-        "[RealtimeStore] 📱 Nova mensagem WhatsApp recebida:",
-        payload.data
-      );
-
       const messageStore = useWhatsappMessageStore.getState();
       const contactStore = useWhatsappContactStore.getState();
-
-      // Extrair informações da mensagem
       const {
         id,
         body,
@@ -191,16 +180,12 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         ack,
         wa_message_id,
       } = payload.data;
-
-      // Determinar a direção da mensagem
       const instance = useWhatsAppInstanceStore
         .getState()
         .instances.find((i) => i.id === whatsapp_instance_id);
       const instanceNumber = instance?.phone_number;
       const direction: "INCOMING" | "OUTGOING" =
         from === `${instanceNumber}@c.us` ? "OUTGOING" : "INCOMING";
-
-      // Criar objeto da mensagem no formato correto
       const message = {
         id,
         wa_message_id,
@@ -223,9 +208,7 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         direction,
       };
 
-      // Se temos o contact_id, adicionar a mensagem diretamente
       if (whatsapp_contact_id) {
-        // Verificar se já existe uma mensagem temporária com o mesmo conteúdo
         const existingMessages =
           messageStore.messages[whatsapp_instance_id]?.[whatsapp_contact_id] ||
           [];
@@ -237,14 +220,12 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         );
 
         if (tempMessage) {
-          // Atualizar a mensagem temporária com o ID real e status 'sent'
           messageStore.updateMessageStatus(
             whatsapp_instance_id,
             whatsapp_contact_id,
             tempMessage.id,
             "sent"
           );
-          // Substituir o ID temporário pelo real
           const updatedMessages = existingMessages.map((msg) =>
             msg.id === tempMessage.id
               ? { ...message, status: "sent" as const }
@@ -256,14 +237,12 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
             updatedMessages
           );
         } else {
-          // Adicionar nova mensagem (incoming)
           messageStore.addMessage(whatsapp_instance_id, whatsapp_contact_id, {
             ...message,
             status: "delivered",
           });
         }
       } else {
-        // Se não temos contact_id, tentar encontrar o contato pelo número
         const contacts = contactStore.contacts[whatsapp_instance_id] || [];
         const contactNumber =
           direction === "INCOMING"
@@ -272,7 +251,6 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
 
         const contact = contacts.find((c) => c.phone === contactNumber);
         if (contact) {
-          // Verificar se já existe uma mensagem temporária com o mesmo conteúdo
           const existingMessages =
             messageStore.messages[whatsapp_instance_id]?.[contact.id] || [];
           const tempMessage = existingMessages.find(
@@ -283,7 +261,6 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
           );
 
           if (tempMessage) {
-            // Atualizar a mensagem temporária com o ID real e status 'sent'
             messageStore.updateMessageStatus(
               whatsapp_instance_id,
               contact.id,
@@ -302,7 +279,6 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
               updatedMessages
             );
           } else {
-            // Adicionar nova mensagem (incoming)
             messageStore.addMessage(whatsapp_instance_id, contact.id, {
               ...message,
               status: "delivered",
@@ -393,8 +369,6 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
 
   connect: (userId, organizationId) => {
     get().disconnect();
-
-    console.log("[RealtimeStore] 🔌 Iniciando nova conexão realtime...");
     if (!supabase) return console.error("Supabase client não configurado!");
 
     if (!supabase.realtime.isConnected()) {
@@ -402,16 +376,8 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
     }
 
     const handleSubscription = (status: string, channelName: string) => {
-      if (status === "SUBSCRIBED") {
-        console.log(
-          `[RealtimeStore] ✅ Canal ${channelName} conectado com sucesso.`
-        );
-      } else if (status === "CHANNEL_ERROR") {
-        console.error(
-          `[RealtimeStore] ❌ Erro ao conectar no canal ${channelName}. Tentando reconectar em 2s...`
-        );
+      if (status === "CHANNEL_ERROR") {
         setTimeout(() => {
-          // Tenta reconectar automaticamente
           const { user } = useAuthStore.getState();
           const orgId = user?.organization_id;
           if (user?.id) get().connect(user.id, orgId);
@@ -419,7 +385,6 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       }
     };
 
-    // --- Canal do Usuário ---
     const userChannelName = `user-updates-${userId}`;
     const newUserChannel = supabase.channel(userChannelName);
     newUserChannel
@@ -428,7 +393,6 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       )
       .subscribe((status) => handleSubscription(status, userChannelName));
 
-    // --- Canal da Organização ---
     let newOrgChannel: RealtimeChannel | null = null;
     if (organizationId) {
       const orgChannelName = `org-updates-${organizationId}`;
@@ -440,13 +404,11 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
         .subscribe((status) => handleSubscription(status, orgChannelName));
     }
 
-    // --- Heartbeat ---
     const newHeartbeatInterval = setInterval(() => {
       const isConnected = supabase.realtime.isConnected();
 
       if (!isConnected) {
         supabase.realtime.connect();
-        // Após reconectar, reestabelece os canais
         setTimeout(() => {
           const { user } = useAuthStore.getState();
           const orgId = user?.organization_id;
@@ -475,9 +437,6 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       Boolean
     ) as RealtimeChannel[];
     if (channelsToRemove.length > 0) {
-      console.log(
-        `[RealtimeStore] 🔌 Removendo ${channelsToRemove.length} canais...`
-      );
       channelsToRemove.forEach((ch) => supabase.removeChannel(ch));
     }
 

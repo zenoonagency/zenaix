@@ -32,8 +32,9 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isAudioLoaded, setIsAudioLoaded] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // Obter ack atualizado da store se tiver os dados necessários
@@ -48,6 +49,39 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
   // Usar ack da store se disponível, senão usar a prop
   const currentAck = storeAck !== undefined ? storeAck : propAck;
 
+  // Carregar áudio apenas quando necessário
+  const loadAudio = async () => {
+    if (!audioRef.current || isAudioLoaded) return;
+
+    setIsLoading(true);
+    setHasError(false);
+
+    const audio = audioRef.current;
+    audio.src = audioUrl;
+    audio.load(); // Força o carregamento
+
+    // Aguardar o carregamento e depois tocar automaticamente
+    const handleCanPlay = async () => {
+      try {
+        // Pausar todos os outros áudios antes de tocar este
+        const allAudios = document.querySelectorAll("audio");
+        allAudios.forEach((otherAudio) => {
+          if (otherAudio !== audio) {
+            otherAudio.pause();
+          }
+        });
+
+        await audio.play();
+        audio.removeEventListener("canplay", handleCanPlay);
+      } catch (error) {
+        console.error("Erro ao reproduzir áudio:", error);
+        setHasError(true);
+      }
+    };
+
+    audio.addEventListener("canplay", handleCanPlay);
+  };
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -56,6 +90,7 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
       setDuration(audio.duration);
       setIsLoading(false);
       setHasError(false);
+      setIsAudioLoaded(true);
     };
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleEnded = () => {
@@ -103,6 +138,12 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
 
   const handlePlayPause = async () => {
     if (!audioRef.current) return;
+
+    // Se o áudio não foi carregado ainda, carrega primeiro
+    if (!isAudioLoaded) {
+      loadAudio();
+      return;
+    }
 
     try {
       if (isPlaying) {
@@ -313,12 +354,7 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
       )}
       {/* Espaçamento para áudios recebidos para manter equilíbrio visual */}
       {!isOutgoing && <div className="h-4"></div>}
-      <audio
-        ref={audioRef}
-        src={audioUrl}
-        preload="metadata"
-        className="hidden"
-      />
+      <audio ref={audioRef} preload="none" className="hidden" />
     </div>
   );
 };

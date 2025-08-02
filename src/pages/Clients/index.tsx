@@ -227,7 +227,7 @@ export function Clients() {
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setShowBoardSelector(true)}
-              className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
+              className="flex items-center  min-h-[40px] px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
             >
               <LayoutGrid className="w-4 h-4 mr-2" />
               <span>

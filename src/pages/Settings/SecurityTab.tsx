@@ -40,15 +40,10 @@ export function SecurityTab() {
     setIsLoading(true);
 
     try {
-      // Primeiro verificar se a senha atual está correta
-      await authService.login({
-        email: user?.email || "",
-        password: currentPassword,
+      await authService.changePassword({
+        currentPassword,
+        newPassword,
       });
-
-      // Se chegou aqui, a senha atual está correta
-      // Agora atualizar para a nova senha
-      await authService.changePassword(token, currentPassword, newPassword);
 
       showToast("Senha alterada com sucesso!", "success");
 
@@ -172,12 +167,16 @@ export function SecurityTab() {
         </div>
       </motion.div>
 
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        Em breve
+      </h3>
+
       {/* Seção de Segurança Adicional */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-dark-700"
+        className="pointer-events-none !opacity-50 bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-dark-700"
       >
         <div className="px-6 py-4 border-b border-gray-200 dark:border-dark-700">
           <div className="flex items-center space-x-3">

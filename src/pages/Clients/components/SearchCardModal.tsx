@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Search, X } from "lucide-react";
-import { Card } from "../../types/card";
+import { OutputCardDTO } from "../../../types/card";
 
 interface SearchCardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  cards: Card[];
+  cards: OutputCardDTO[];
   onCardClick: (cardId: string) => void;
 }
 
@@ -16,7 +16,7 @@ export function SearchCardModal({
   onCardClick,
 }: SearchCardModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredCards, setFilteredCards] = useState<Card[]>([]);
+  const [filteredCards, setFilteredCards] = useState<OutputCardDTO[]>([]);
   useEffect(() => {
     if (isOpen) {
       setFilteredCards(cards);

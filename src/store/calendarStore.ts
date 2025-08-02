@@ -62,7 +62,6 @@ export const useCalendarStore = create<CalendarState>()(
 
         if (get().isLoading) return;
 
-        // Se já tem dados em cache e foi buscado recentemente (últimos 3 minutos), não buscar novamente
         const now = Date.now();
         const lastFetched = get().lastFetched;
         const threeMinutes = 3 * 60 * 1000;
@@ -73,12 +72,8 @@ export const useCalendarStore = create<CalendarState>()(
           lastFetched &&
           now - lastFetched < threeMinutes
         ) {
-          console.log("[CalendarStore] Usando dados do cache");
-
-          // Fazer refresh em background após 10 minutos sem mostrar loading
           const tenMinutes = 10 * 60 * 1000;
           if (now - lastFetched > tenMinutes) {
-            console.log("[CalendarStore] Fazendo refresh em background");
             setTimeout(() => {
               get().fetchEvents(filters, true);
             }, 100);

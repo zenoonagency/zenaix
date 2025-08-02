@@ -15,6 +15,9 @@ export function ManageResourcesForm({
   const [kanbans, setKanbans] = useState(organization?.extra_boards || 0);
   const [members, setMembers] = useState(organization?.extra_team_members || 0);
   const [triggers, setTriggers] = useState(organization?.extra_triggers || 0);
+  const [whatsappInstances, setWhatsappInstances] = useState(
+    organization?.extra_whatsapp_instances || 0
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState([]);
   const { token, user, fetchAndSyncUser } = useAuthStore();
@@ -25,21 +28,25 @@ export function ManageResourcesForm({
   const minKanbans = 0;
   const minMembers = 0;
   const minTriggers = 0;
+  const minWhatsappInstances = 0;
 
   // Valores atuais
   const currentKanbans = organization?.extra_boards || 0;
   const currentMembers = organization?.extra_team_members || 0;
   const currentTriggers = organization?.extra_triggers || 0;
+  const currentWhatsappInstances = organization?.extra_whatsapp_instances || 0;
 
   // Detecta se está aumentando ou diminuindo
   const isAdding =
     kanbans > currentKanbans ||
     members > currentMembers ||
-    triggers > currentTriggers;
+    triggers > currentTriggers ||
+    whatsappInstances > currentWhatsappInstances;
   const isRemoving =
     kanbans < currentKanbans ||
     members < currentMembers ||
-    triggers < currentTriggers;
+    triggers < currentTriggers ||
+    whatsappInstances < currentWhatsappInstances;
 
   // Texto do botão
   let confirmText = "Confirmar";
@@ -76,11 +83,18 @@ export function ManageResourcesForm({
     addOns?.find?.((p) => p.name?.includes("Membro"))?.price || 0;
   const triggerAddOnPrice =
     addOns?.find?.((p) => p.name?.includes("Disparo"))?.price || 0;
+  const whatsappAddOnPrice =
+    addOns?.find?.((p) => p.name?.includes("WhatsApp"))?.price || 0;
   const extraBoardsCost = (kanbans || 0) * boardAddOnPrice;
   const extraMembersCost = (members || 0) * memberAddOnPrice;
   const extraTriggersCost = (triggers || 0) * triggerAddOnPrice;
+  const extraWhatsappCost = (whatsappInstances || 0) * whatsappAddOnPrice;
   const finalValue =
-    basePrice + extraBoardsCost + extraMembersCost + extraTriggersCost;
+    basePrice +
+    extraBoardsCost +
+    extraMembersCost +
+    extraTriggersCost +
+    extraWhatsappCost;
 
   // Função para atualizar recursos
   const handleSubmit = async () => {
@@ -106,6 +120,12 @@ export function ManageResourcesForm({
           quantity: triggers - currentTriggers,
         });
       }
+      if (whatsappInstances > currentWhatsappInstances) {
+        await subscriptionService.addSlots(token, organization.id, {
+          slot_type: "whatsapp_instance",
+          quantity: whatsappInstances - currentWhatsappInstances,
+        });
+      }
       // Remover recursos
       if (kanbans < currentKanbans) {
         await subscriptionService.removeSlots(token, organization.id, {
@@ -123,6 +143,12 @@ export function ManageResourcesForm({
         await subscriptionService.removeSlots(token, organization.id, {
           slot_type: "trigger",
           quantity_to_remove: currentTriggers - triggers,
+        });
+      }
+      if (whatsappInstances < currentWhatsappInstances) {
+        await subscriptionService.removeSlots(token, organization.id, {
+          slot_type: "whatsapp_instance",
+          quantity_to_remove: currentWhatsappInstances - whatsappInstances,
         });
       }
       showToast("Recursos atualizados com sucesso!", "success");
@@ -168,6 +194,16 @@ export function ManageResourcesForm({
       current: currentTriggers,
       planValue: plan?.max_triggers,
     },
+    {
+      key: "whatsapp",
+      label: "Instâncias WhatsApp adicionais",
+      descricao: `Adicione mais instâncias WhatsApp para expandir sua comunicação!`,
+      value: whatsappInstances,
+      setValue: setWhatsappInstances,
+      min: minWhatsappInstances,
+      current: currentWhatsappInstances,
+      planValue: plan?.max_whatsapp_instances,
+    },
   ];
 
   return (
@@ -211,6 +247,10 @@ export function ManageResourcesForm({
                 {recurso.current} {" | "}
                 <span className="text-xs text-blue-700 text-center mt-1">
                   Adicionais atualizados: <b>{recurso.value}</b>
+                </span>
+                {" | "}
+                <span className="text-xs text-green-700 text-center mt-1">
+                  Total: <b>{(recurso.planValue || 0) + recurso.value}</b>
                 </span>
               </p>
             </div>

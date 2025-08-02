@@ -4,6 +4,7 @@ export interface PlanInput {
   max_team_members: number;
   max_triggers: number;
   max_contacts: number;
+  max_whatsapp_instances: number;
   price: number;
   stripe_price_id: string;
   description?: string;

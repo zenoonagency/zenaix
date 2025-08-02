@@ -15,6 +15,7 @@ type Props = {
   memberAddOn: any;
   boardAddOn: any;
   triggerAddOn: any;
+  whatsappAddOn: any;
   onSubmit: any;
   onResetForm?: () => void;
 };
@@ -26,6 +27,7 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
     memberAddOn,
     boardAddOn,
     triggerAddOn,
+    whatsappAddOn,
     onSubmit,
     onResetForm,
   }: Props,
@@ -35,6 +37,7 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
     extra_boards: 0,
     extra_team_members: 0,
     extra_triggers: 0,
+    extra_whatsapp_instances: 0,
   });
 
   // Função para zerar o formulário
@@ -43,6 +46,7 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
       extra_boards: 0,
       extra_team_members: 0,
       extra_triggers: 0,
+      extra_whatsapp_instances: 0,
     });
     if (onResetForm) onResetForm();
   };
@@ -62,24 +66,36 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
       addOns.find((p) => p.name.includes("Membro"))?.price || 0;
     const triggerAddOnPrice =
       addOns.find((p) => p.name.includes("Disparo"))?.price || 0;
+    const whatsappAddOnPrice =
+      addOns.find((p) => p.name.includes("WhatsApp"))?.price || 0;
     const extraBoardsCost = (organization.extra_boards || 0) * boardAddOnPrice;
     const extraMembersCost =
       (organization.extra_team_members || 0) * memberAddOnPrice;
     const extraTriggersCost =
       (organization.extra_triggers || 0) * triggerAddOnPrice;
-    return basePrice + extraBoardsCost + extraMembersCost + extraTriggersCost;
+    const extraWhatsappCost =
+      (organization.extra_whatsapp_instances || 0) * whatsappAddOnPrice;
+    return (
+      basePrice +
+      extraBoardsCost +
+      extraMembersCost +
+      extraTriggersCost +
+      extraWhatsappCost
+    );
   })();
   const valorNovo =
     (memberAddOn?.price || 0) * form.extra_team_members +
     (boardAddOn?.price || 0) * form.extra_boards +
     (triggerAddOn?.price || 0) * form.extra_triggers +
+    (whatsappAddOn?.price || 0) * form.extra_whatsapp_instances +
     (organization?.plan?.price || 0);
 
   // Corrigir lógica do botão: liberar se qualquer campo > 0
   const recursosAlterados =
     form.extra_boards > 0 ||
     form.extra_team_members > 0 ||
-    form.extra_triggers > 0;
+    form.extra_triggers > 0 ||
+    form.extra_whatsapp_instances > 0;
 
   // Disparo único
   const [oneTimeTriggers, setOneTimeTriggers] = useState(0);
@@ -96,14 +112,17 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
       (form.extra_team_members > 0 ? form.extra_team_members : 0) +
     (boardAddOn?.price || 0) * (form.extra_boards > 0 ? form.extra_boards : 0) +
     (triggerAddOn?.price || 0) *
-      (form.extra_triggers > 0 ? form.extra_triggers : 0);
+      (form.extra_triggers > 0 ? form.extra_triggers : 0) +
+    (whatsappAddOn?.price || 0) *
+      (form.extra_whatsapp_instances > 0 ? form.extra_whatsapp_instances : 0);
 
   // Valor total atual (plano + extras já existentes)
   const valorTotalAtual =
     (organization?.plan?.price || 0) +
     (memberAddOn?.price || 0) * (organization?.extra_team_members || 0) +
     (boardAddOn?.price || 0) * (organization?.extra_boards || 0) +
-    (triggerAddOn?.price || 0) * (organization?.extra_triggers || 0);
+    (triggerAddOn?.price || 0) * (organization?.extra_triggers || 0) +
+    (whatsappAddOn?.price || 0) * (organization?.extra_whatsapp_instances || 0);
 
   // Novo valor total após compra
   const valorTotalNovo =
@@ -116,7 +135,12 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
         (form.extra_boards > 0 ? form.extra_boards : 0)) +
     (triggerAddOn?.price || 0) *
       ((organization?.extra_triggers || 0) +
-        (form.extra_triggers > 0 ? form.extra_triggers : 0));
+        (form.extra_triggers > 0 ? form.extra_triggers : 0)) +
+    (whatsappAddOn?.price || 0) *
+      ((organization?.extra_whatsapp_instances || 0) +
+        (form.extra_whatsapp_instances > 0
+          ? form.extra_whatsapp_instances
+          : 0));
 
   // Resumo do card selecionado
   const resumoCardSelecionado =
@@ -155,7 +179,8 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
         <ul className="text-base text-gray-700 dark:text-gray-300 space-y-1 font-medium">
           <li>
             <span className="text-black dark:text-white font-bold">
-              {organization?.extra_team_members || 0}
+              {(organization?.plan?.max_team_members || 0) +
+                (organization?.extra_team_members || 0)}
             </span>
             {form.extra_team_members > 0 && (
               <span className="text-purple-600 dark:text-purple-400 font-bold">
@@ -167,7 +192,8 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
           </li>
           <li>
             <span className="text-black dark:text-white font-bold">
-              {organization?.extra_boards || 0}
+              {(organization?.plan?.max_boards || 0) +
+                (organization?.extra_boards || 0)}
             </span>
             {form.extra_boards > 0 && (
               <span className="text-purple-600 dark:text-purple-400 font-bold">
@@ -179,7 +205,8 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
           </li>
           <li>
             <span className="text-black dark:text-white font-bold">
-              {organization?.extra_triggers || 0}
+              {(organization?.plan?.max_triggers || 0) +
+                (organization?.extra_triggers || 0)}
             </span>
             {form.extra_triggers > 0 && (
               <span className="text-purple-600 dark:text-purple-400 font-bold">
@@ -189,12 +216,29 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
             )}{" "}
             <span className="text-gray-500 font-normal">disparos</span>
           </li>
+          <li>
+            <span className="text-black dark:text-white font-bold">
+              {(organization?.plan?.max_whatsapp_instances || 0) +
+                (organization?.extra_whatsapp_instances || 0)}
+            </span>
+            {form.extra_whatsapp_instances > 0 && (
+              <span className="text-purple-600 dark:text-purple-400 font-bold">
+                {" + "}
+                {form.extra_whatsapp_instances}
+              </span>
+            )}{" "}
+            <span className="text-gray-500 font-normal">
+              instâncias WhatsApp
+            </span>
+          </li>
           {form.extra_boards === 0 &&
             form.extra_team_members === 0 &&
             form.extra_triggers === 0 &&
+            form.extra_whatsapp_instances === 0 &&
             (organization?.extra_boards || 0) === 0 &&
             (organization?.extra_team_members || 0) === 0 &&
-            (organization?.extra_triggers || 0) === 0 && (
+            (organization?.extra_triggers || 0) === 0 &&
+            (organization?.extra_whatsapp_instances || 0) === 0 && (
               <li className="text-gray-400">
                 Nenhum recurso adicional selecionado.
               </li>
@@ -244,11 +288,12 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
             Adicione mais recursos ao seu plano atual conforme a necessidade do
             seu negócio.
           </p>
+
           <form className="space-y-6">
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-1">
-                  Kanbans adicionais
+                  Boards adicionais
                 </label>
                 <input
                   type="number"
@@ -292,7 +337,8 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
                   </span>
                 )}
               </div>
-
+            </div>
+            <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-1">
                   Disparos adicionais
@@ -313,6 +359,29 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
                 {triggerAddOn && (
                   <span className="text-xs text-gray-500">
                     {formatCurrency(triggerAddOn.price)} cada
+                  </span>
+                )}
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-1">
+                  Instâncias WhatsApp adicionais
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.extra_whatsapp_instances}
+                  onFocus={() => setSelectedCard("addons")}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      extra_whatsapp_instances: Number(e.target.value),
+                    }))
+                  }
+                  className="w-full px-3 py-2 rounded border"
+                />
+                {whatsappAddOn && (
+                  <span className="text-xs text-gray-500">
+                    {formatCurrency(whatsappAddOn.price)} cada
                   </span>
                 )}
               </div>

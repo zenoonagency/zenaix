@@ -11,17 +11,21 @@ import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { QuickMessages } from "./QuickMessages";
+import { useAuthStore } from "../../store/authStore";
 
 type ChatState = "closed" | "minimized" | "open" | "maximized";
 
 export const ChatWidget = () => {
+  const { user, organization } = useAuthStore();
   const [chatState, setChatState] = useState<ChatState>("closed");
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Só mostra o chat se o usuário estiver logado e tiver uma organização
+  const shouldShowChat = user && organization?.id;
+
   const { messages, addMessage, updateMessage, clearMessages } =
     useChatStorage();
-  console.log("Mensagens no ChatWidget:", messages);
   const { sendMessage, sendMediaMessage, isLoading } = useChatApi();
   const { toast } = useToast();
 
@@ -193,6 +197,11 @@ export const ChatWidget = () => {
   const isVisible = chatState !== "closed";
   const isOpen = chatState === "open" || chatState === "maximized";
   const isMaximized = chatState === "maximized";
+
+  // Se não deve mostrar o chat, não renderiza nada
+  if (!shouldShowChat) {
+    return null;
+  }
 
   return (
     <>

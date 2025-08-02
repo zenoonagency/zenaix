@@ -34,14 +34,24 @@ export function SubscriptionTab() {
       addOns.find((p) => p.name.includes("Membro"))?.price || 0;
     const triggerAddOnPrice =
       addOns.find((p) => p.name.includes("Disparo"))?.price || 0;
+    const whatsappAddOnPrice =
+      addOns.find((p) => p.name.includes("WhatsApp"))?.price || 0;
 
     const extraBoardsCost = (organization.extra_boards || 0) * boardAddOnPrice;
     const extraMembersCost =
       (organization.extra_team_members || 0) * memberAddOnPrice;
     const extraTriggersCost =
       (organization.extra_triggers || 0) * triggerAddOnPrice;
+    const extraWhatsappCost =
+      (organization.extra_whatsapp_instances || 0) * whatsappAddOnPrice;
 
-    return basePrice + extraBoardsCost + extraMembersCost + extraTriggersCost;
+    return (
+      basePrice +
+      extraBoardsCost +
+      extraMembersCost +
+      extraTriggersCost +
+      extraWhatsappCost
+    );
   }, [plan, organization, addOns]);
 
   // --- NOVAS FUNÇÕES DE AÇÃO ---
@@ -292,13 +302,28 @@ export function SubscriptionTab() {
         </ul>
         <div className="flex flex-wrap gap-4 my-3 text-sm">
           <span>
-            Quadros Kanban adicionais: <b>{organization?.extra_boards}</b>
+            Quadros Kanban:{" "}
+            <b>{(plan?.max_boards || 0) + (organization?.extra_boards || 0)}</b>
           </span>
           <span>
-            Membros adicionais: <b>{organization?.extra_team_members}</b>
+            Membros:{" "}
+            <b>
+              {(plan?.max_team_members || 0) +
+                (organization?.extra_team_members || 0)}
+            </b>
           </span>
           <span>
-            Disparos adicionais: <b>{organization?.extra_triggers}</b>
+            Disparos:{" "}
+            <b>
+              {(plan?.max_triggers || 0) + (organization?.extra_triggers || 0)}
+            </b>
+          </span>
+          <span>
+            Instâncias WhatsApp:{" "}
+            <b>
+              {(plan?.max_whatsapp_instances || 0) +
+                (organization?.extra_whatsapp_instances || 0)}
+            </b>
           </span>
         </div>
         <div className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">
@@ -400,7 +425,6 @@ export function SubscriptionTab() {
           addOns={addOns}
           valorAtual={totalMonthlyCost}
           onClose={() => setShowAddonsModal(false)}
-          fetchAndSyncUser={fetchAndSyncUser}
         />
       </Modal>
 

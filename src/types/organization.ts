@@ -7,6 +7,7 @@ export interface InputCreateOrgAndSubscribeDTO {
   extra_boards?: number;
   extra_team_members?: number;
   extra_triggers?: number;
+  extra_whatsapp_instances?: number;
 }
 
 export interface CreateOrgResponse {
