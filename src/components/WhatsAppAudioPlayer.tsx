@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Play, Pause } from "lucide-react";
+import { useWhatsappMessageStore } from "../store/whatsapp/whatsappMessageStore";
 
 interface WhatsAppAudioPlayerProps {
   audioUrl: string;
@@ -10,6 +11,9 @@ interface WhatsAppAudioPlayerProps {
   contactName?: string;
   messageTime?: string;
   ack?: number;
+  waMessageId?: string;
+  instanceId?: string;
+  contactId?: string;
 }
 
 export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
@@ -20,7 +24,10 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
   avatarUrl,
   contactName,
   messageTime,
-  ack,
+  ack: propAck,
+  waMessageId,
+  instanceId,
+  contactId,
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -28,6 +35,18 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Obter ack atualizado da store se tiver os dados necessários
+  const messageStore = useWhatsappMessageStore();
+  const storeAck =
+    instanceId && contactId && waMessageId
+      ? messageStore.messages[instanceId]?.[contactId]?.find(
+          (m) => m.wa_message_id === waMessageId
+        )?.ack
+      : undefined;
+
+  // Usar ack da store se disponível, senão usar a prop
+  const currentAck = storeAck !== undefined ? storeAck : propAck;
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -289,7 +308,7 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
               hour: "2-digit",
               minute: "2-digit",
             })}
-          {ack !== undefined && <AckIcon ack={ack} />}
+          {currentAck !== undefined && <AckIcon ack={currentAck} />}
         </div>
       )}
       {/* Espaçamento para áudios recebidos para manter equilíbrio visual */}

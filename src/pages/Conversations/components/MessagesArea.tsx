@@ -278,6 +278,9 @@ export function MessagesArea({
                               })()}
                               messageTime={item.message.timestamp}
                               ack={item.message.ack}
+                              waMessageId={item.message.wa_message_id}
+                              instanceId={activeInstanceId}
+                              contactId={item.message.whatsapp_contact_id}
                             />
                           ) : item.message.media_type?.startsWith(
                               "application/pdf"
