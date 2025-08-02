@@ -35,72 +35,6 @@ import { useTeamMembersStore } from "../../store/teamMembersStore";
 import { BoardAccessLevel } from "../../types/board";
 import { List } from "./components/List";
 
-// Modal para selecionar lista de concluídos
-function CompletedListSelectorModal({
-  isOpen,
-  onClose,
-  lists,
-  currentCompletedId,
-  onSelect,
-}) {
-  const [selectedId, setSelectedId] = useState(currentCompletedId);
-  const [isLoading, setIsLoading] = useState(false);
-  return isOpen ? (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[10000]">
-      <div className="bg-white dark:bg-dark-800 rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-lg font-bold mb-4">
-          Selecionar lista de concluídos
-        </h2>
-        <div className="space-y-2 max-h-64 overflow-y-auto">
-          {lists.map((list) => (
-            <label
-              key={list.id}
-              className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
-                selectedId === list.id ? "bg-[#7f00ff]/10" : ""
-              }`}
-            >
-              <input
-                type="radio"
-                checked={selectedId === list.id}
-                onChange={() => setSelectedId(list.id)}
-                className="accent-[#7f00ff]"
-                disabled={isLoading}
-              />
-              <span>{list.name}</span>
-            </label>
-          ))}
-        </div>
-        <div className="flex justify-end gap-2 mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded bg-gray-200 dark:bg-dark-700 text-gray-700 dark:text-gray-300"
-            disabled={isLoading}
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={async () => {
-              setIsLoading(true);
-              try {
-                await onSelect(selectedId);
-              } finally {
-                setIsLoading(false);
-                onClose();
-              }
-            }}
-            className="px-4 py-2 rounded bg-[#7f00ff] text-white"
-            disabled={
-              !selectedId || selectedId === currentCompletedId || isLoading
-            }
-          >
-            {isLoading ? "Salvando..." : "Salvar"}
-          </button>
-        </div>
-      </div>
-    </div>
-  ) : null;
-}
-
 export function Clients() {
   const { theme } = useThemeStore();
   const isDark = theme === "dark";
@@ -136,9 +70,10 @@ export function Clients() {
   const [isCreatingBoard, setIsCreatingBoard] = useState(false);
   const [isDeletingBoard, setIsDeletingBoard] = useState(false);
   const [isDuplicatingBoard, setIsDuplicatingBoard] = useState(false);
-  const [createTab, setCreateTab] = useState<"inicio" | "acesso">("inicio");
+  const [createTab, setCreateTab] = useState<
+    "inicio" | "acesso" | "concluidos"
+  >("inicio");
   const [isEditMode, setIsEditMode] = useState(false);
-  const [showCompletedListModal, setShowCompletedListModal] = useState(false);
 
   const { members } = useTeamMembersStore();
 
@@ -147,6 +82,9 @@ export function Clients() {
   const [goalValue, setGoalValue] = useState("");
   const [accessLevel, setAccessLevel] = useState<BoardAccessLevel>("TEAM_WIDE");
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [selectedCompletedListId, setSelectedCompletedListId] = useState<
+    string | null
+  >(null);
 
   const handleAddBoard = () => {
     setShowCreateModal(true);
@@ -173,6 +111,9 @@ export function Clients() {
           value: Number(goalValue),
         };
       }
+      if (selectedCompletedListId) {
+        dto.completed_list_id = selectedCompletedListId;
+      }
 
       if (isEditMode && activeBoardId) {
         const updatedBoard = await boardService.updateBoard(
@@ -195,6 +136,7 @@ export function Clients() {
       setGoalValue("");
       setAccessLevel("TEAM_WIDE");
       setSelectedMemberIds([]);
+      setSelectedCompletedListId(null);
       setIsEditMode(false);
       setShowCreateModal(false);
     } catch (err: any) {
@@ -274,109 +216,11 @@ export function Clients() {
   return (
     <div className="flex flex-col">
       <div className={`p-6 bg-background dark:bg-background`}>
-        <div className="flex items-center space-x-4 ">
+        <div className="flex items-center space-x-4 mb-4">
           <Trello className="w-6 h-6 text-[#7f00ff]" />
           <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] text-transparent bg-clip-text">
             Gestão de funil
           </h1>
-        </div>
-        <div className="flex items-center space-x-2 my-4">
-          {boardStoreLoading && boards.length > 0 ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#7f00ff]"></div>
-          ) : activeBoard ? (
-            <div className="w-full">
-              <div className="flex items-center space-x-2 mb-2">
-                <h2 className="text-xl font-bold bg-gradient-to-r inline-block from-[#7f00ff] to-[#e100ff] text-transparent bg-clip-text">
-                  Quadro:
-                </h2>{" "}
-                <h2 className="text-xl font-bold inline-block text-[#000] dark:text-white bg-clip-text">
-                  {activeBoard?.name}
-                </h2>
-              </div>
-
-              {/* Meta do quadro */}
-              {activeBoard?.goal && (
-                <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-700">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-[#7f00ff] rounded-full"></div>
-                      <h3 className="font-semibold text-gray-800 dark:text-gray-200">
-                        {activeBoard.goal.name}
-                      </h3>
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {activeBoard.goal.description}
-                    </div>
-                  </div>
-
-                  {/* Cálculo do progresso */}
-                  {(() => {
-                    const goalValue = activeBoard.goal.value || 0;
-                    const completedListId = activeBoard.completed_list_id;
-                    const completedList = activeBoard.lists?.find(
-                      (list) => list.id === completedListId
-                    );
-                    const completedCardsValue =
-                      completedList?.cards?.reduce(
-                        (sum, card) => sum + (card.value || 0),
-                        0
-                      ) || 0;
-                    const progressPercentage =
-                      goalValue > 0
-                        ? Math.min((completedCardsValue / goalValue) * 100, 100)
-                        : 0;
-
-                    return (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Progresso:{" "}
-                            {completedCardsValue.toLocaleString("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            })}{" "}
-                            /{" "}
-                            {goalValue.toLocaleString("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            })}
-                          </span>
-                          <span className="font-semibold text-[#7f00ff]">
-                            {progressPercentage.toFixed(1)}%
-                          </span>
-                        </div>
-
-                        {/* Barra de progresso */}
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-[#7f00ff] to-[#e100ff] rounded-full transition-all duration-500 ease-out"
-                            style={{ width: `${progressPercentage}%` }}
-                          ></div>
-                        </div>
-
-                        {/* Indicador visual adicional */}
-                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                          <span>R$ 0</span>
-                          <span>
-                            {goalValue.toLocaleString("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            })}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div>
-              <h2 className="text-xl font-bold text-gray-500 dark:text-gray-400">
-                Nenhum quadro selecionado
-              </h2>
-            </div>
-          )}
         </div>
 
         <div className="flex gap-4">
@@ -385,28 +229,18 @@ export function Clients() {
               onClick={() => setShowBoardSelector(true)}
               className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
             >
-              <span className="mr-2">Escolher Quadro</span>
-              <LayoutGrid className="w-4 h-4" />
+              <LayoutGrid className="w-4 h-4 mr-2" />
+              <span>
+                {boardStoreLoading && boards.length > 0 ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : activeBoard ? (
+                  activeBoard.name
+                ) : (
+                  "Escolher Quadro"
+                )}
+              </span>
             </button>
-            <button
-              onClick={() => {
-                if (!activeBoardId || !currentBoard) {
-                  showToast(
-                    "Nenhum quadro encontrado. Crie um quadro primeiro!",
-                    "warning"
-                  );
-                  return;
-                }
-                setShowCompletedListModal(true);
-              }}
-              className="flex items-center px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff]"
-              style={{
-                display: hasPermission("boards:update") ? "flex" : "none",
-              }}
-            >
-              <span className="mr-2">Lista de Concluídos</span>
-              <CheckSquare className="w-4 h-4" />
-            </button>
+
             <button
               onClick={() => {
                 if (!activeBoardId || !currentBoard) {
@@ -474,6 +308,7 @@ export function Clients() {
                   const memberIds =
                     board.members_with_access?.map((member) => member.id) || [];
                   setSelectedMemberIds(memberIds);
+                  setSelectedCompletedListId(board.completed_list_id || null);
                   setCreateTab("inicio");
                   setShowCreateModal(true);
                   setIsEditMode(true);
@@ -487,42 +322,7 @@ export function Clients() {
               <Edit2 className="w-4 h-4 mr-1" />
               Editar
             </button>
-            <button
-              onClick={async () => {
-                if (!token || !organization?.id) {
-                  showToast("Sem autenticação", "error");
-                  return;
-                }
-                if (!activeBoardId || boards.length === 0) {
-                  showToast(
-                    "Nenhum quadro encontrado. Crie um quadro primeiro!",
-                    "warning"
-                  );
-                  return;
-                }
-                setIsDuplicatingBoard(true);
-                try {
-                  await boardService.duplicateBoard(
-                    token,
-                    organization.id,
-                    activeBoardId
-                  );
-                  showToast("Quadro duplicado com sucesso!", "success");
-                } catch (err: any) {
-                  showToast(err?.message || "Erro ao duplicar quadro", "error");
-                } finally {
-                  setIsDuplicatingBoard(false);
-                }
-              }}
-              className="flex items-center px-4 py-2 text-sm bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600"
-              disabled={isDuplicatingBoard}
-              style={{
-                display: hasPermission("boards:update") ? "flex" : "none",
-              }}
-            >
-              <Copy className="w-4 h-4 mr-1" />
-              {isDuplicatingBoard ? "Duplicando..." : "Duplicar"}
-            </button>
+
             <button
               onClick={() => {
                 if (!activeBoardId || boards.length === 0) {
@@ -632,6 +432,21 @@ export function Clients() {
                   >
                     Visibilidade
                   </button>
+                  {isEditMode && (
+                    <button
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        createTab === "concluidos"
+                          ? "bg-[#7f00ff] text-white"
+                          : isDark
+                          ? "text-gray-400 hover:text-gray-300"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                      onClick={() => setCreateTab("concluidos")}
+                      disabled={isCreatingBoard}
+                    >
+                      Lista de Concluídos
+                    </button>
+                  )}
                 </div>
               </div>
               <button
@@ -643,6 +458,7 @@ export function Clients() {
                   setGoalValue("");
                   setAccessLevel("TEAM_WIDE");
                   setSelectedMemberIds([]);
+                  setSelectedCompletedListId(null);
                   setCreateTab("inicio");
                   setIsEditMode(false);
                 }}
@@ -1050,6 +866,88 @@ export function Clients() {
                   )}
                 </div>
               )}
+
+              {createTab === "concluidos" && (
+                <div className="space-y-6">
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-3 ${
+                        isDark ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
+                      Lista de Concluídos
+                    </label>
+                    <p
+                      className={`text-sm mb-4 ${
+                        isDark ? "text-gray-400" : "text-gray-500"
+                      }`}
+                    >
+                      Selecione qual lista será considerada como "concluída"
+                      para cálculos de vendas e metas.
+                    </p>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {currentBoard?.lists?.map((list) => (
+                        <label
+                          key={list.id}
+                          className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${
+                            selectedCompletedListId === list.id
+                              ? isDark
+                                ? "bg-dark-700 border border-[#7f00ff]/50"
+                                : "bg-purple-50 border border-[#7f00ff]/20"
+                              : isDark
+                              ? "bg-dark-900 hover:bg-dark-700"
+                              : "bg-gray-50 hover:bg-gray-100"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="completedList"
+                            checked={selectedCompletedListId === list.id}
+                            onChange={() => {
+                              setSelectedCompletedListId(list.id);
+                            }}
+                            className="sr-only"
+                          />
+                          <div
+                            className={`flex items-center justify-center w-5 h-5 rounded-full ${
+                              selectedCompletedListId === list.id
+                                ? "bg-[#7f00ff] ring-2 ring-[#7f00ff]/20"
+                                : isDark
+                                ? "bg-dark-600 border border-gray-600"
+                                : "bg-white border border-gray-300"
+                            }`}
+                          >
+                            {selectedCompletedListId === list.id && (
+                              <div className="w-2 h-2 rounded-full bg-white" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <span
+                              className={`font-medium ${
+                                isDark ? "text-gray-200" : "text-gray-800"
+                              }`}
+                            >
+                              {list.name}
+                            </span>
+                            <p
+                              className={`text-xs ${
+                                isDark ? "text-gray-400" : "text-gray-500"
+                              }`}
+                            >
+                              {list.cards?.length || 0} cartões
+                            </p>
+                          </div>
+                          {selectedCompletedListId === list.id && (
+                            <div className="text-[#7f00ff] text-xs font-medium">
+                              Selecionado
+                            </div>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-3 px-6 pb-6">
@@ -1074,6 +972,44 @@ export function Clients() {
               >
                 Cancelar
               </button>
+              {!isEditMode && activeBoardId && boards.length > 0 && (
+                <button
+                  onClick={async () => {
+                    if (!token || !organization?.id) {
+                      showToast("Sem autenticação", "error");
+                      return;
+                    }
+                    if (!activeBoardId || boards.length === 0) {
+                      showToast(
+                        "Nenhum quadro encontrado. Crie um quadro primeiro!",
+                        "warning"
+                      );
+                      return;
+                    }
+                    setIsDuplicatingBoard(true);
+                    try {
+                      await boardService.duplicateBoard(
+                        token,
+                        organization.id,
+                        activeBoardId
+                      );
+                      showToast("Quadro duplicado com sucesso!", "success");
+                      setShowCreateModal(false);
+                    } catch (err: any) {
+                      showToast(
+                        err?.message || "Erro ao duplicar quadro",
+                        "error"
+                      );
+                    } finally {
+                      setIsDuplicatingBoard(false);
+                    }
+                  }}
+                  disabled={isDuplicatingBoard}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDuplicatingBoard ? "Duplicando..." : "Duplicar"}
+                </button>
+              )}
               <button
                 onClick={handleCreateNewBoard}
                 disabled={!newBoardTitle.trim() || isCreatingBoard}
@@ -1231,30 +1167,6 @@ export function Clients() {
           isOpen={showBoardConfigModal}
           onClose={() => setShowBoardConfigModal(false)}
           boardId={activeBoardId}
-        />
-      )}
-
-      {/* Modal de seleção de lista de concluídos */}
-      {showCompletedListModal && (
-        <CompletedListSelectorModal
-          isOpen={showCompletedListModal}
-          onClose={() => setShowCompletedListModal(false)}
-          lists={currentBoard?.lists || []}
-          currentCompletedId={currentBoard?.completed_list_id}
-          onSelect={async (listId) => {
-            if (!token || !organization?.id || !currentBoard) return;
-            try {
-              await boardService.updateBoard(
-                token,
-                organization.id,
-                currentBoard.id,
-                { completed_list_id: listId }
-              );
-              // Não atualiza a store manualmente, o realtime faz isso
-            } catch (err) {
-              showToast("Erro ao atualizar lista de concluídos", "error");
-            }
-          }}
         />
       )}
     </div>

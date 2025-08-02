@@ -119,7 +119,7 @@
 .kanban-cards-area {
   flex: 1;
   min-height: 100px;
-  max-height: calc(100vh - 320px);
+  max-height: calc(100vh - 395px);
   overflow-y: auto;
 }
 

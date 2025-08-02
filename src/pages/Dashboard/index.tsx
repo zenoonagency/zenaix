@@ -14,6 +14,7 @@ import {
   UpcomingEvents,
   AllSellersModal,
   ExportModal,
+  EventDetailsModal,
 } from "./components";
 import { format } from "date-fns";
 import { useContractStore } from "../../store/contractStore";
@@ -136,15 +137,16 @@ export function Dashboard() {
 
     // Verificar se os filtros mudaram para evitar chamadas desnecessárias
     const lastFilters = currentStore.lastFilters;
-    const filtersChanged = !lastFilters || 
-      lastFilters.startDate !== filters.startDate || 
+    const filtersChanged =
+      !lastFilters ||
+      lastFilters.startDate !== filters.startDate ||
       lastFilters.endDate !== filters.endDate;
 
-          if (!filtersChanged) {
-        return;
-      }
+    if (!filtersChanged) {
+      return;
+    }
 
-      setLoadingOperation("dashboardTransactions", true);
+    setLoadingOperation("dashboardTransactions", true);
 
     const { fetchDashboardTransactions, fetchDashboardSummary } =
       useDashboardTransactionStore.getState();
@@ -381,6 +383,92 @@ export function Dashboard() {
             formatCurrency={formatCurrency}
           />
 
+          {dashboardActiveBoard?.goal && (
+            <div className="bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 text-purple-600 dark:text-purple-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {dashboardActiveBoard.goal.name}
+                    </h3>
+                    {dashboardActiveBoard.goal.description && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {dashboardActiveBoard.goal.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {formatCurrency(dashboardActiveBoard.goal.value)}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Meta
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Progresso
+                  </span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                    {Math.min(
+                      Math.round(
+                        (completedSalesValue /
+                          dashboardActiveBoard.goal.value) *
+                          100
+                      ),
+                      100
+                    )}
+                    %
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${Math.min(
+                        (completedSalesValue /
+                          dashboardActiveBoard.goal.value) *
+                          100,
+                        100
+                      )}%`,
+                    }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                  <span>
+                    {formatCurrency(completedSalesValue)} de{" "}
+                    {formatCurrency(dashboardActiveBoard.goal.value)}
+                  </span>
+                  <span>
+                    {formatCurrency(
+                      dashboardActiveBoard.goal.value - completedSalesValue
+                    )}{" "}
+                    restantes
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
             <FinancialChart
               startDate={startDate}
@@ -396,7 +484,11 @@ export function Dashboard() {
               formatCurrency={formatCurrency}
             />
 
-            <ContractChart contracts={contracts} theme={theme} isLoading={isContractsLoading} />
+            <ContractChart
+              contracts={contracts}
+              theme={theme}
+              isLoading={isContractsLoading}
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
@@ -427,6 +519,13 @@ export function Dashboard() {
             exportOptions={exportOptions}
             onExportOptionsChange={setExportOptions}
             onExport={handleExport}
+          />
+
+          <EventDetailsModal
+            isOpen={showEventDetails}
+            onClose={() => setShowEventDetails(false)}
+            event={selectedCalendarEvent}
+            members={members}
           />
         </div>
       </Suspense>

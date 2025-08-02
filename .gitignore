@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+chat-flow-wave-main
 dist
 dist-ssr
 *.local

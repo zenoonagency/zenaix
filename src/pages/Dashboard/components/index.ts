@@ -7,3 +7,4 @@ export { TopSellers } from "./TopSellers";
 export { UpcomingEvents } from "./UpcomingEvents";
 export { AllSellersModal } from "./modals/AllSellersModal";
 export { ExportModal } from "./modals/ExportModal";
+export { EventDetailsModal } from "./EventDetailsModal";
