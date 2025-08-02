@@ -380,6 +380,14 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
     case "CALENDAR_ALL_EVENTS_DELETED":
       useCalendarStore.getState().removeAllEvents();
       break;
+    case "PERMISSIONS_GRANTED": {
+      const { id } = payload.data;
+      const { user } = useAuthStore.getState();
+      if (user?.id === id) {
+        useAuthStore.getState().fetchAndSyncUser();
+      } 
+      break;
+    }
     default:
       break;
   }
@@ -442,7 +450,7 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
     // --- Heartbeat ---
     const newHeartbeatInterval = setInterval(() => {
       const isConnected = supabase.realtime.isConnected();
- 
+
       if (!isConnected) {
         supabase.realtime.connect();
         // Após reconectar, reestabelece os canais

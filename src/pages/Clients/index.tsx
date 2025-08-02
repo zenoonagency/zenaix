@@ -284,13 +284,91 @@ export function Clients() {
           {boardStoreLoading && boards.length > 0 ? (
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#7f00ff]"></div>
           ) : activeBoard ? (
-            <div>
-              <h2 className="text-xl font-bold bg-gradient-to-r inline-block  from-[#7f00ff] to-[#e100ff]   text-transparent bg-clip-text">
-                Quadro:
-              </h2>{" "}
-              <h2 className="text-xl font-bold inline-block text-[#000] bg-clip-text">
-                {activeBoard?.name}
-              </h2>
+            <div className="w-full">
+              <div className="flex items-center space-x-2 mb-2">
+                <h2 className="text-xl font-bold bg-gradient-to-r inline-block from-[#7f00ff] to-[#e100ff] text-transparent bg-clip-text">
+                  Quadro:
+                </h2>{" "}
+                <h2 className="text-xl font-bold inline-block text-[#000] dark:text-white bg-clip-text">
+                  {activeBoard?.name}
+                </h2>
+              </div>
+
+              {/* Meta do quadro */}
+              {activeBoard?.goal && (
+                <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-700">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-[#7f00ff] rounded-full"></div>
+                      <h3 className="font-semibold text-gray-800 dark:text-gray-200">
+                        {activeBoard.goal.name}
+                      </h3>
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      {activeBoard.goal.description}
+                    </div>
+                  </div>
+
+                  {/* Cálculo do progresso */}
+                  {(() => {
+                    const goalValue = activeBoard.goal.value || 0;
+                    const completedListId = activeBoard.completed_list_id;
+                    const completedList = activeBoard.lists?.find(
+                      (list) => list.id === completedListId
+                    );
+                    const completedCardsValue =
+                      completedList?.cards?.reduce(
+                        (sum, card) => sum + (card.value || 0),
+                        0
+                      ) || 0;
+                    const progressPercentage =
+                      goalValue > 0
+                        ? Math.min((completedCardsValue / goalValue) * 100, 100)
+                        : 0;
+
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            Progresso:{" "}
+                            {completedCardsValue.toLocaleString("pt-BR", {
+                              style: "currency",
+                              currency: "BRL",
+                            })}{" "}
+                            /{" "}
+                            {goalValue.toLocaleString("pt-BR", {
+                              style: "currency",
+                              currency: "BRL",
+                            })}
+                          </span>
+                          <span className="font-semibold text-[#7f00ff]">
+                            {progressPercentage.toFixed(1)}%
+                          </span>
+                        </div>
+
+                        {/* Barra de progresso */}
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-[#7f00ff] to-[#e100ff] rounded-full transition-all duration-500 ease-out"
+                            style={{ width: `${progressPercentage}%` }}
+                          ></div>
+                        </div>
+
+                        {/* Indicador visual adicional */}
+                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <span>R$ 0</span>
+                          <span>
+                            {goalValue.toLocaleString("pt-BR", {
+                              style: "currency",
+                              currency: "BRL",
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           ) : (
             <div>

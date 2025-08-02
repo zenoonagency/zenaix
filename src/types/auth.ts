@@ -69,5 +69,6 @@ export interface AuthState {
   hasPermission: (permission: string) => boolean;
   updateUser: (userData: Partial<User>) => void;
   updateUserDataSilently: (meData: User) => void;
-  setLoading: (loading: boolean) => void; // <-- NOVA AÇÃO
+  setLoading: (loading: boolean) => void;
+  fetchAndSyncUser: () => Promise<void>;
 }

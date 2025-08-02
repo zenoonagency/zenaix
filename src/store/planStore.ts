@@ -16,19 +16,24 @@ export const usePlanStore = create<PlanState>()(
       error: null,
       lastFetched: null,
 
-      fetchAllPlans: async (token: string) => {
+      fetchAllPlans: async (token: string, forceRefresh = false) => {
         const { plans, isLoading, lastFetched } = get();
 
         const now = Date.now();
         if (
+          !forceRefresh &&
           lastFetched &&
           now - lastFetched < CACHE_DURATION &&
           plans.length > 0
         ) {
+          set({ isLoading: false }); // Garante que nunca fique travado
           return;
         }
 
-        if (isLoading) return;
+        if (isLoading) {
+          set({ isLoading: false }); // Garante que nunca fique travado
+          return;
+        }
 
         set({ isLoading: true, error: null });
         try {

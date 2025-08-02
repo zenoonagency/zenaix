@@ -87,6 +87,23 @@ export const useAuthStore = create<AuthState>()(
       hasPermission: (permission: string) =>
         get().permissions.includes(permission),
       isLoggingOut: () => get()._isLoggingOut,
+
+      // Função para sincronizar dados do usuário
+      fetchAndSyncUser: async () => {
+        try {
+          const token = get().token;
+          if (!token) return;
+          const userData = await (
+            await import("../services/user/user.service")
+          ).userService.getMe(token);
+          get().updateUserDataSilently(userData);
+        } catch (error) {
+          console.error(
+            "[AuthStore] Erro ao sincronizar dados do usuário:",
+            error
+          );
+        }
+      },
     }),
     {
       name: "auth-storage",

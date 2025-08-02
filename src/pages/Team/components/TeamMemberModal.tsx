@@ -87,10 +87,10 @@ export function TeamMemberModal({
   }, [isOpen, isAddMode]);
 
   useEffect(() => {
-    if (isTeamMember(member)) {
+    if (isTeamMember(member) && !savingPerms) {
       setLocalPerms(permissions.map((p) => p.name));
     }
-  }, [permissions, member?.id]);
+  }, [permissions, member?.id, savingPerms]);
 
   const handleTogglePermission = (permName: string, checked: boolean) => {
     setLocalPerms((prev) =>

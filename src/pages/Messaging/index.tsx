@@ -12,26 +12,18 @@ import {
   Send,
   History,
   User,
-  Zap,
-  Bug,
-  RefreshCw,
   AlertCircle,
   X,
-  SmartphoneNfc,
-  QrCode,
-  ArrowRight,
   Phone,
   Trash2,
   MessageSquare,
 } from "lucide-react";
 import { ProfileModal } from "../../components/ProfileModal";
-// import { Contact, MessageContent } from "./types";
 import { useThemeStore } from "../../store/themeStore";
 
-// Estilos personalizados para o carrossel
 import "./carousel.css";
+import { Link } from "react-router-dom";
 
-// Webhook fixo para disparo
 const DISPARO_WEBHOOK =
   "https://fluxos-n8n.mgmxhs.easypanel.host/webhook/disparo";
 
@@ -46,7 +38,6 @@ export function Messaging() {
   } = useMessagingStore();
   const { contacts } = useContactsStore();
   const { tags, addTag } = useTagStore();
-  // const { isConnected: whatsAppIsConnected } = useWhatsAppConnectionStore();
   const [isSending, setIsSending] = useState(false);
   const [sendingProgress, setSendingProgress] = useState(0);
   const [showWhatsAppConnectModal, setShowWhatsAppConnectModal] =
@@ -57,6 +48,8 @@ export function Messaging() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const { theme } = useThemeStore();
   const isDark = theme === "dark";
+
+  const whatsAppIsConnected = "";
 
   // Substituir o hook antigo pelo Zustand principal
   const user = useAuthStore((state) => state.user);
@@ -151,19 +144,6 @@ export function Messaging() {
     };
   }, [showWhatsAppConnectModal, currentSlide]);
 
-  const handleCreateTestTags = () => {
-    const tagNames = ["Cliente", "Lead", "VIP", "Inativo", "Prospecto"];
-
-    tagNames.forEach((name) => {
-      addTag({
-        name,
-        color: "#" + Math.floor(Math.random() * 16777215).toString(16),
-      });
-    });
-
-    showToast("Tags de teste criadas com sucesso", "success");
-  };
-
   const handleReloadContacts = () => {
     showToast("Disparo em massa pronto para uso", "info");
   };
@@ -250,7 +230,6 @@ export function Messaging() {
     setSendingProgress(10); // Progresso inicial
 
     try {
-      // Tenta adicionar o lote ao histórico - se falhar, continuamos mesmo assim
       try {
         addBatch(batchId, context, messages, selectedContacts);
         // Se conseguir adicionar, tenta atualizar o progresso
@@ -563,41 +542,15 @@ export function Messaging() {
       >
         {/* Page Header - Redesenhado com mais destaque */}
         <div className="mb-8 relative">
-          <div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-6 h-6 text-[#7f00ff]" />
-                <h1
-                  className={`text-2xl font-bold ${
-                    isDark ? "text-white" : "text-gray-800"
-                  }`}
-                >
-                  Disparo em massa
-                </h1>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 mt-4 sm:mt-0 bg-transparent">
-              {!userName || !userPhone ? (
-                <button
-                  onClick={() => setShowProfileModal(true)}
-                  className="flex items-center bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium shadow-md shadow-[#7f00ff]/10 transition-all hover:shadow-lg hover:shadow-[#7f00ff]/20"
-                >
-                  <User className="w-4 h-4 mr-2" />
-                  Configurar
-                </button>
-              ) : (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleClearHistory}
-                    className="flex items-center bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-medium"
-                    title="Limpar histórico de disparos"
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Limpar histórico
-                  </button>
-                </div>
-              )}
-            </div>
+          <div className="flex items-center gap-2 mb-4">
+            <MessageSquare className="w-6 h-6 text-[#7f00ff]" />
+            <h1
+              className={`text-2xl font-bold ${
+                isDark ? "text-white" : "text-gray-800"
+              }`}
+            >
+              Disparo em massa
+            </h1>
           </div>
 
           {/* Notificação de configuração quando necessário */}
@@ -625,7 +578,7 @@ export function Messaging() {
                     }`}
                   >
                     Para utilizar o disparo em massa, você precisa configurar
-                    seu nome e número de telefone no perfil.
+                    uma instância em <Link to={"/dashboard/connections"}> conexões</Link>
                   </p>
                   <div className="mt-3"></div>
                 </div>
@@ -635,136 +588,93 @@ export function Messaging() {
         </div>
 
         {/* Main Content - Layout Melhorado */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
-          {/* Left Column - Main Composer */}
-          <div className="lg:col-span-8 space-y-6">
+        <div className="flex w-full gap-6 relative z-10">
+          <div
+            className={`${
+              isDark
+                ? "bg-dark-800 border-dark-700"
+                : "bg-gray-50 border-gray-200"
+            } rounded-xl shadow-xl border overflow-hidden w-full`}
+          >
             <div
-              className={`${
-                isDark
-                  ? "bg-dark-800 border-dark-700"
-                  : "bg-gray-50 border-gray-200"
-              } rounded-xl shadow-xl border overflow-hidden`}
+              className={`p-4 border-b ${
+                isDark ? "border-dark-700" : "border-gray-200"
+              } flex items-center justify-between`}
             >
-              <div
-                className={`p-4 border-b ${
-                  isDark ? "border-dark-700" : "border-gray-200"
-                } flex items-center justify-between`}
-              >
-                <div className="flex items-center gap-2">
-                  <Send className="w-5 h-5 text-[#7f00ff]" />
-                  <h2
-                    className={`font-medium ${
-                      isDark ? "text-gray-200" : "text-gray-800"
-                    }`}
-                  >
-                    Disparo em massa
-                  </h2>
-                </div>
-                {userName && userPhone && (
-                  <div
-                    className={`flex items-center gap-2 text-xs ${
-                      isDark
-                        ? "bg-dark-700/50 text-gray-400"
-                        : "bg-gray-100 text-gray-600"
-                    } py-1 px-2 rounded`}
-                  ></div>
-                )}
+              <div className="flex items-center gap-2">
+                <Send className="w-5 h-5 text-[#7f00ff]" />
+                <h2
+                  className={`font-medium ${
+                    isDark ? "text-gray-200" : "text-gray-800"
+                  }`}
+                >
+                  Disparo em massa
+                </h2>
               </div>
-              <div className={`p-6 ${isDark ? "bg-dark-800" : "bg-gray-50"}`}>
-                <div className="flex justify-between items-center mb-8">
-                  <h1
-                    className={`text-2xl font-bold ${
-                      isDark ? "text-white" : "text-gray-800"
-                    }`}
-                  >
-                    Disparo em Massa
-                  </h1>
-                  <div className="flex items-center gap-4">
-                    {/* Indicador de Status do WhatsApp */}
-                    <div
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-                        whatsAppIsConnected
-                          ? isDark
-                            ? "bg-green-900/20 text-green-400"
-                            : "bg-green-100 text-green-700"
-                          : isDark
-                          ? "bg-red-900/20 text-red-400"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          whatsAppIsConnected ? "bg-green-500" : "bg-red-500"
-                        }`}
-                      ></span>
-                      <span className="text-sm font-medium">
-                        {whatsAppIsConnected
-                          ? "WhatsApp Conectado"
-                          : "WhatsApp Desconectado"}
-                      </span>
-                      {!whatsAppIsConnected && (
-                        <button
-                          onClick={() => setShowProfileModal(true)}
-                          className={`ml-2 text-xs py-1 px-2 rounded ${
-                            isDark
-                              ? "bg-purple-900/30 text-purple-400 hover:bg-purple-900/40"
-                              : "bg-purple-100 text-purple-700 hover:bg-purple-200"
-                          }`}
-                        >
-                          Conectar
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <MessageComposer
-                  onSend={sendMessages}
-                  isSending={isSending}
-                  progress={sendingProgress}
-                  contacts={contacts}
-                />
-              </div>
+              {userName && userPhone && (
+                <div
+                  className={`flex items-center gap-2 text-xs ${
+                    isDark
+                      ? "bg-dark-700/50 text-gray-400"
+                      : "bg-gray-100 text-gray-600"
+                  } py-1 px-2 rounded`}
+                ></div>
+              )}
             </div>
-          </div>
-
-          {/* Right Column - Batch History */}
-          <div className="lg:col-span-4">
-            <div
-              className={`${
-                isDark
-                  ? "bg-dark-800 border-dark-700"
-                  : "bg-gray-50 border-gray-200"
-              } rounded-xl shadow-xl border overflow-hidden sticky top-6`}
-            >
-              <div
-                className={`p-4 border-b ${
-                  isDark ? "border-dark-700" : "border-gray-200"
-                } flex items-center justify-between`}
-              >
-                <div className="flex items-center gap-2">
-                  <History className="w-5 h-5 text-[#7f00ff]" />
-                  <h2
-                    className={`font-medium ${
-                      isDark ? "text-gray-200" : "text-gray-800"
+            <div className={`p-6 ${isDark ? "bg-dark-800" : "bg-gray-50"}`}>
+              <div className="flex justify-between items-center mb-8">
+                <h1
+                  className={`text-2xl font-bold ${
+                    isDark ? "text-white" : "text-gray-800"
+                  }`}
+                >
+                  Disparo em Massa
+                </h1>
+                <div className="flex items-center gap-4">
+                  {/* Indicador de Status do WhatsApp */}
+                  <div
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+                      whatsAppIsConnected
+                        ? isDark
+                          ? "bg-green-900/20 text-green-400"
+                          : "bg-green-100 text-green-700"
+                        : isDark
+                        ? "bg-red-900/20 text-red-400"
+                        : "bg-red-100 text-red-700"
                     }`}
                   >
-                    Histórico
-                  </h2>
-                </div>
-                {batches && batches.length > 0 && (
-                  <div className="bg-[#7f00ff]/20 text-[#7f00ff] text-xs font-medium px-2 py-1 rounded-full">
-                    {batches.length} registro{batches.length !== 1 ? "s" : ""}
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        whatsAppIsConnected ? "bg-green-500" : "bg-red-500"
+                      }`}
+                    ></span>
+                    <span className="text-sm font-medium">
+                      {whatsAppIsConnected
+                        ? "WhatsApp Conectado"
+                        : "WhatsApp Desconectado"}
+                    </span>
+                    {!whatsAppIsConnected && (
+                      <button
+                        onClick={() => setShowProfileModal(true)}
+                        className={`ml-2 text-xs py-1 px-2 rounded ${
+                          isDark
+                            ? "bg-purple-900/30 text-purple-400 hover:bg-purple-900/40"
+                            : "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                        }`}
+                      >
+                        Conectar
+                      </button>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
-              <div
-                className={`max-h-[calc(100vh-220px)] overflow-y-auto scrollbar-thin ${
-                  isDark ? "bg-dark-800" : "bg-gray-50"
-                }`}
-              >
-                <MessageHistory batches={batches} />
-              </div>
+
+              <MessageComposer
+                onSend={sendMessages}
+                isSending={isSending}
+                progress={sendingProgress}
+                contacts={contacts}
+              />
             </div>
           </div>
         </div>

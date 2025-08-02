@@ -22,7 +22,40 @@ import { formatCurrency } from "../../utils/formatters";
 export function Plans() {
   const { token, organization, fetchAndSyncUser } = useAuthStore();
   const { basePlans, addOns, isLoading } = usePlanStore();
+  const { showToast } = useToast();
   const [error, setError] = useState<string | null>(null);
+
+  // Função para copiar link com tratamento de erro
+  const handleCopyLink = async (link: string) => {
+    try {
+      await navigator.clipboard.writeText(link);
+      showToast("Link copiado para a área de transferência!", "success");
+    } catch (err) {
+      showToast("Erro ao copiar link para a área de transferência", "error");
+    }
+  };
+
+  // Função para copiar link de pagamento
+  const handleCopyPaymentLink = () => handleCopyLink(paymentLink);
+
+  // Função inline para copiar link (usada nos botões)
+  const copyPaymentLink = () => handleCopyLink(paymentLink);
+
+  // Carregar planos quando o componente montar
+  useEffect(() => {
+    if (token) {
+      const loadPlans = async () => {
+        try {
+          await usePlanStore.getState().fetchAllPlans(token);
+        } catch (err: any) {
+          const errorMessage = err?.message || "Erro ao carregar planos";
+          setError(errorMessage);
+          showToast(errorMessage, "error");
+        }
+      };
+      loadPlans();
+    }
+  }, [token]);
   const [selectedPlan, setSelectedPlan] = useState(() => {
     if (organization?.plan?.id) return organization.plan.id;
     return basePlans[0]?.id || null;
@@ -105,7 +138,9 @@ export function Plans() {
         setShowPaymentModal(true);
       }
     } catch (err: any) {
-      showToast(err.message || "Erro ao criar organização", "error");
+      const errorMessage = err?.message || "Erro ao criar organização";
+      showToast(errorMessage, "error");
+      console.error("Erro ao criar organização:", err);
     } finally {
       setOrgLoading(false);
     }
@@ -126,7 +161,28 @@ export function Plans() {
   }
 
   if (error) {
-    return <div>Erro: {error}</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="text-red-500 text-xl mb-4">⚠️</div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Erro ao carregar planos
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              if (token) {
+                usePlanStore.getState().fetchAllPlans(token, true);
+              }
+            }}
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // Valor atual já pago (igual ao Settings)
@@ -400,13 +456,7 @@ export function Plans() {
                       Abrir página de pagamento
                     </button>
                     <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(paymentLink);
-                        showToast(
-                          "Link copiado para a área de transferência!",
-                          "success"
-                        );
-                      }}
+                      onClick={() => handleCopyLink(paymentLink)}
                       className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-base"
                     >
                       <Copy size={20} />
@@ -616,9 +666,15 @@ export function Plans() {
                 <input
                   type="text"
                   required
-                  disabled={organization && organization.document && organization.document.length > 0}
+                  disabled={
+                    organization &&
+                    organization.document &&
+                    organization.document.length > 0
+                  }
                   value={
-                    organization && organization.document ? organization.document : orgForm.document
+                    organization && organization.document
+                      ? organization.document
+                      : orgForm.document
                   }
                   onChange={(e) =>
                     setOrgForm((f) => ({ ...f, document: e.target.value }))
@@ -844,10 +900,13 @@ export function Plans() {
                   ) {
                     manageAddonsFormRef.current.resetForm();
                   }
-                } catch (err) {
-                  showToast("Erro ao comprar recursos adicionais.", "error");
+                  await fetchAndSyncUser();
+                } catch (err: any) {
+                  const errorMessage =
+                    err?.message || "Erro ao comprar recursos adicionais";
+                  showToast(errorMessage, "error");
+                  console.error("Erro ao comprar recursos adicionais:", err);
                 } finally {
-                  fetchAndSyncUser();
                   setLoadingAddons(false);
                   setShowConfirmAddonsModal(false);
                 }

@@ -804,6 +804,7 @@ export function KanbanBoard() {
                       isOver={list.id === overListId}
                       activeCard={activeCard}
                       loadingCardIds={loadingCardIds}
+                      completedListId={board.completed_list_id}
                     />
                   ))}
                 {/* Botão '+' só aparece se houver pelo menos uma lista */}

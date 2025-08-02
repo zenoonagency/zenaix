@@ -26,7 +26,7 @@ export interface PlanState {
   isLoading: boolean;
   lastFetched: number | null;
   error: string | null;
-  fetchAllPlans: (token: string) => Promise<void>;
+  fetchAllPlans: (token: string, forceRefresh?: boolean) => Promise<void>;
   getAddOnPrice: (
     addOnName: "Board Adicional" | "Membro Adicional" | "Disparo Adicional"
   ) => number;
