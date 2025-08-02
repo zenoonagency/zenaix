@@ -35,7 +35,6 @@ import { ContactOptionsMenu } from "../../components/ContactOptionsMenu";
 import { EditContactModal } from "../../components/EditContactModal";
 import { whatsappMessageService } from "../../services/whatsapp/whatsappMessage.service";
 import { compressFile } from "../../utils/fileCompression";
-import "../Messaging/carousel.css";
 import { ContactProfileModal } from "../../components/ContactProfileModal";
 import { processWhatsAppMediaUrl } from "../../utils/imageUtils";
 import { ModalCanAcess } from "../../components/ModalCanAcess";
@@ -75,6 +74,14 @@ function getStatusInfo(status: string) {
 function processWhatsAppImageUrl(url: string): string {
   if (!url) return "";
   return processWhatsAppMediaUrl(url, "image/jpeg");
+}
+
+// Função para truncar texto com "..." no final
+function truncateText(text: string, maxLength: number): string {
+  if (!text || text.length <= maxLength) {
+    return text;
+  }
+  return text.substring(0, maxLength - 3) + "...";
 }
 
 function isSticker(message: WhatsappMessage): boolean {
@@ -273,6 +280,7 @@ export function Conversations() {
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [isSendingAudio, setIsSendingAudio] = useState(false);
   const [showContactProfileModal, setShowContactProfileModal] = useState(false);
+  const [isLoadingContactsLocal, setIsLoadingContactsLocal] = useState(false);
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -330,14 +338,31 @@ export function Conversations() {
     if (token && user?.organization_id && activeInstanceId) {
       const hasContacts =
         contacts[activeInstanceId] && contacts[activeInstanceId].length > 0;
+
+      // Sempre mostrar loading quando não há contatos ou quando a instância muda
+      const shouldShowLoading = !hasContacts || !contacts[activeInstanceId];
+
+      if (shouldShowLoading) {
+        setIsLoadingContactsLocal(true);
+      }
+
       fetchAllContacts(
         token,
         user.organization_id,
         activeInstanceId,
-        !hasContacts
-      );
+        shouldShowLoading
+      ).finally(() => {
+        setIsLoadingContactsLocal(false);
+      });
     }
   }, [token, user?.organization_id, activeInstanceId]);
+
+  // Sincronizar estado local de loading com o store
+  useEffect(() => {
+    if (!isLoadingContacts) {
+      setIsLoadingContactsLocal(false);
+    }
+  }, [isLoadingContacts]);
 
   useEffect(() => {
     if (
@@ -909,11 +934,18 @@ export function Conversations() {
                   Ir para Conexões
                 </button>
               </div>
-            ) : isLoadingContacts ? (
+            ) : isLoadingContacts || isLoadingContactsLocal ? (
               <div className="flex flex-col items-center justify-center w-72 h-full p-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7f00ff] mb-2" />
                 <span className="text-sm text-gray-500">
                   Carregando contatos...
+                </span>
+              </div>
+            ) : instanceContacts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center w-72 h-full p-4">
+                <div className="text-gray-400 mb-2">📱</div>
+                <span className="text-sm text-gray-500 text-center">
+                  Nenhum contato encontrado
                 </span>
               </div>
             ) : (
@@ -973,16 +1005,24 @@ export function Conversations() {
                                 selectedContact.phone?.slice(-2) ||
                                 "?"}
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <div className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                                {selectedContact.name}
+                                <span
+                                  className="truncate"
+                                  title={selectedContact.name}
+                                >
+                                  {truncateText(selectedContact.name || "", 25)}
+                                </span>
                                 {selectedContact.is_pinned && (
-                                  <div className="flex items-center justify-center w-4 h-4 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                                  <div className="flex items-center justify-center w-4 h-4 bg-blue-100 dark:bg-blue-900/30 rounded-full flex-shrink-0">
                                     <Pin className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" />
                                   </div>
                                 )}
                               </div>
-                              <div className="text-xs text-gray-500 text-start">
+                              <div
+                                className="text-xs text-gray-500 text-start truncate"
+                                title={selectedContact.phone}
+                              >
                                 {selectedContact.phone}
                               </div>
                             </div>

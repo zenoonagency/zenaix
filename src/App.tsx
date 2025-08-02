@@ -7,6 +7,8 @@ import { Notification } from "./components/Notification";
 import { router } from "./routes";
 import { supabase } from "./lib/supabaseClient";
 import { Loader2 } from "lucide-react";
+import { ChatWidget } from "./components/chat/ChatWidget";
+import { Toaster as ChatToaster } from "./components/ui/toaster";
 
 // Stores
 import { useAuthStore } from "./store/authStore";
@@ -130,6 +132,8 @@ export function App() {
           },
         }}
       />
+      <ChatToaster />
+      <ChatWidget />
       <AnimatePresence mode="wait">
         <RouterProvider router={router} />
       </AnimatePresence>

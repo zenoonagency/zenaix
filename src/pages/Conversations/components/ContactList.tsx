@@ -2,6 +2,14 @@ import React, { useState } from "react";
 import { MoreVertical, Pin, Plus } from "lucide-react";
 import { EditContactModal } from "../../../components/EditContactModal";
 
+// Função para truncar texto com "..." no final
+function truncateText(text: string, maxLength: number): string {
+  if (!text || text.length <= maxLength) {
+    return text;
+  }
+  return text.substring(0, maxLength - 3) + "...";
+}
+
 export function ContactList({
   contacts,
   selectedContactId,
@@ -58,21 +66,28 @@ export function ContactList({
                 >
                   {contact.name?.[0] || contact.phone?.slice(-2) || "?"}
                 </div>
-                <div className="flex-1 text-left">
+                <div className="flex-1 text-left min-w-0">
                   <div className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                    {contact.name}
+                    <span className="truncate" title={contact.name}>
+                      {truncateText(contact.name || "", 20)}
+                    </span>
                     {contact.is_pinned && (
-                      <div className="flex items-center justify-center w-4 h-4 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                      <div className="flex items-center justify-center w-4 h-4 bg-blue-100 dark:bg-blue-900/30 rounded-full flex-shrink-0">
                         <Pin className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" />
                       </div>
                     )}
                   </div>
-                  <div className="text-xs text-gray-500">{contact.phone}</div>
+                  <div
+                    className="text-xs text-gray-500 truncate"
+                    title={contact.phone}
+                  >
+                    {contact.phone}
+                  </div>
                 </div>
               </button>
               <button
                 onClick={(e) => handleContactMenuClick(e, contact.id)}
-                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full transition-colors"
+                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full transition-colors flex-shrink-0"
                 title="Opções"
               >
                 <MoreVertical className="w-4 h-4 text-gray-500 dark:text-gray-400" />

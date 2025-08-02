@@ -4,4 +4,5 @@ export interface ThemeState {
   theme: Theme;
   toggleTheme: () => void;
   resetTheme: () => void;
+}
  

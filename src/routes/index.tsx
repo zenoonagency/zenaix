@@ -5,7 +5,6 @@ import { Financial } from "../pages/Financial";
 import { Conversations } from "../pages/Conversations";
 import { Clients } from "../pages/Clients";
 import { Contracts } from "../pages/Contracts";
-import { Messaging } from "../pages/Messaging";
 import { Team } from "../pages/Team";
 import { Plans } from "../pages/Plans";
 import { Calendar } from "../pages/Calendar";
@@ -115,16 +114,6 @@ export const router = createBrowserRouter([
                   <OrganizationProtectedRoute>
                     <PageTransition>
                       <Contracts />
-                    </PageTransition>
-                  </OrganizationProtectedRoute>
-                ),
-              },
-              {
-                path: "messaging",
-                element: (
-                  <OrganizationProtectedRoute>
-                    <PageTransition>
-                      <Messaging />
                     </PageTransition>
                   </OrganizationProtectedRoute>
                 ),
