@@ -40,7 +40,7 @@ export function BoardSelector({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay z-[9999]">
+    <div className="modal-container z-[9999]">
       <div
         className={`w-full max-w-md p-6 rounded-lg shadow-xl m-4 ${
           isDark ? "bg-dark-800" : "bg-white"

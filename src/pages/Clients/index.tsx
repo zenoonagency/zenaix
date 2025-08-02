@@ -390,7 +390,7 @@ export function Clients() {
       )}
 
       {showCreateModal && (
-        <div className="modal-overlay z-[10000]">
+        <div className="modal-container z-[10000]">
           <div
             className={`w-full max-w-4xl p-0 rounded-lg shadow-xl ${
               isDark ? "bg-dark-800" : "bg-white"
@@ -1029,7 +1029,7 @@ export function Clients() {
       )}
 
       {showDeleteModal && (
-        <div className="modal-overlay z-[10000]">
+        <div className="modal-container z-[10000]">
           <div
             className={`w-full max-w-md p-6 rounded-lg shadow-xl ${
               isDark ? "bg-dark-800" : "bg-white"
@@ -1077,7 +1077,7 @@ export function Clients() {
 
       {/* Temporariamente removido até implementar corretamente com as novas stores */}
       {showListSelector && (
-        <div className="modal-overlay z-[10000]">
+        <div className="modal-container z-[10000]">
           <div
             className={`w-full max-w-md p-6 rounded-lg shadow-xl ${
               isDark ? "bg-dark-800" : "bg-white"

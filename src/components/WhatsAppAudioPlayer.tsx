@@ -9,6 +9,7 @@ interface WhatsAppAudioPlayerProps {
   avatarUrl?: string | null;
   contactName?: string;
   messageTime?: string;
+  ack?: number;
 }
 
 export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
@@ -19,6 +20,7 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
   avatarUrl,
   contactName,
   messageTime,
+  ack,
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -153,6 +155,78 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
     return bars;
   };
 
+  // Componente AckIcon
+  const AckIcon = ({ ack }: { ack: number }) => {
+    // 0: enviado, 1: enviado, 2: entregue, 3: lida
+    if (ack === 0 || ack === 1) {
+      return (
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 16 16"
+          className="ml-1"
+          style={{ display: "inline" }}
+        >
+          <polyline
+            points="3,8 7,12 13,4"
+            fill="none"
+            stroke="#bbb"
+            strokeWidth="2"
+          />
+        </svg>
+      );
+    }
+    if (ack === 2) {
+      return (
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 16 16"
+          className="ml-1"
+          style={{ display: "inline" }}
+        >
+          <polyline
+            points="1,9 5,13 13,3"
+            fill="none"
+            stroke="#bbb"
+            strokeWidth="2"
+          />
+          <polyline
+            points="7,9 11,13 15,5"
+            fill="none"
+            stroke="#bbb"
+            strokeWidth="2"
+          />
+        </svg>
+      );
+    }
+    if (ack === 3) {
+      return (
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 16 16"
+          className="ml-1"
+          style={{ display: "inline" }}
+        >
+          <polyline
+            points="1,9 5,13 13,3"
+            fill="none"
+            stroke="#4f8cff"
+            strokeWidth="2"
+          />
+          <polyline
+            points="7,9 11,13 15,5"
+            fill="none"
+            stroke="#4f8cff"
+            strokeWidth="2"
+          />
+        </svg>
+      );
+    }
+    return null;
+  };
+
   if (hasError) {
     return (
       <div className="w-full flex items-center justify-center p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
@@ -202,19 +276,24 @@ export const WhatsAppAudioPlayer: React.FC<WhatsAppAudioPlayerProps> = ({
           <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 ml-2" />
         )}
       </div>
-      {/* Duração e hora embaixo */}
-      <div className="flex items-center justify-between mt-1 px-1">
-        <span className="text-[11px] text-gray-500">
-          {formatTime(duration)}
-        </span>
-        <span className="text-[11px] text-gray-500">
+      {/* Horário e AckIcon apenas para mensagens OUTGOING */}
+      {isOutgoing && (
+        <div
+          className="text-[11px] flex items-center justify-end mt-1"
+          style={{
+            color: "#cfcfff",
+          }}
+        >
           {messageTime &&
             new Date(messageTime).toLocaleTimeString("pt-BR", {
               hour: "2-digit",
               minute: "2-digit",
             })}
-        </span>
-      </div>
+          {ack !== undefined && <AckIcon ack={ack} />}
+        </div>
+      )}
+      {/* Espaçamento para áudios recebidos para manter equilíbrio visual */}
+      {!isOutgoing && <div className="h-4"></div>}
       <audio
         ref={audioRef}
         src={audioUrl}

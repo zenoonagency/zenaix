@@ -1230,7 +1230,7 @@ export function CardModal({
       />
       {/* Modal de visualização de PDF */}
       {viewingAttachment && (
-        <div className="modal-overlay z-[9999]">
+        <div className="modal-container z-[9999]">
           <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl p-4 max-w-3xl w-full max-h-[90vh] flex flex-col">
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium text-gray-900 dark:text-gray-100">

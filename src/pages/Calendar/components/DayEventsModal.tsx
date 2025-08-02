@@ -96,7 +96,7 @@ export function DayEventsModal({
             leaveTo="opacity-0"
           >
             <div
-              className="modal-overlay"
+              className="modal-container"
               onClick={(e) => {
                 e.stopPropagation();
                 // Não fechar se o ConfirmationModal estiver aberto

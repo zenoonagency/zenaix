@@ -122,14 +122,14 @@ export function BoardConfigModal({
       <Dialog as="div" className="relative z-[9998]" onClose={onClose}>
         <Transition.Child
           as={Fragment}
-          enter="modal-overlay-enter"
+          enter="modal-container-enter"
           enterFrom="opacity-0"
           enterTo="opacity-100"
-          leave="modal-overlay-leave"
+          leave="modal-container-leave"
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="modal-overlay bg-black/30" />
+          <div className="modal-container bg-black/30" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">

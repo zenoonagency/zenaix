@@ -33,7 +33,7 @@ export function EventDetailsModal({
     : "";
 
   return (
-    <div className="modal-overlay">
+    <div className="modal-container">
       <div className="bg-white dark:bg-dark-800 rounded-xl shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">

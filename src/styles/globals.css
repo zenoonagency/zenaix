@@ -25,7 +25,7 @@
 }
 
 /* Overlay padrão para modais */
-.modal-overlay {
+.modal-container {
   @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999];
 }
 

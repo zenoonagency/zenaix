@@ -277,6 +277,7 @@ export function MessagesArea({
                                 return contato?.name || "";
                               })()}
                               messageTime={item.message.timestamp}
+                              ack={item.message.ack}
                             />
                           ) : item.message.media_type?.startsWith(
                               "application/pdf"
@@ -340,24 +341,24 @@ export function MessagesArea({
                           )}
                         </div>
                       )}
-                      {/* Exibir horário + ACK para todas OUTGOING, inclusive áudio */}
-                      {item.message.direction === "OUTGOING" && (
-                        <div
-                          className="text-[11px] flex items-center justify-end mt-1"
-                          style={{
-                            color: "#cfcfff",
-                          }}
-                        >
-                          {new Date(item.message.timestamp).toLocaleTimeString(
-                            "pt-BR",
-                            {
+                      {/* Exibir horário + ACK para todas OUTGOING, exceto áudio (que já tem no componente) */}
+                      {item.message.direction === "OUTGOING" &&
+                        !item.message.media_type?.startsWith("audio/") && (
+                          <div
+                            className="text-[11px] flex items-center justify-end mt-1"
+                            style={{
+                              color: "#cfcfff",
+                            }}
+                          >
+                            {new Date(
+                              item.message.timestamp
+                            ).toLocaleTimeString("pt-BR", {
                               hour: "2-digit",
                               minute: "2-digit",
-                            }
-                          )}
-                          <AckIcon ack={item.message.ack} />
-                        </div>
-                      )}
+                            })}
+                            <AckIcon ack={item.message.ack} />
+                          </div>
+                        )}
                     </div>
                   </div>
                 )}

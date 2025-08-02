@@ -19,7 +19,7 @@ export function IntegrationModal({
       className="fixed inset-0 z-10 overflow-y-auto"
     >
       <div className="flex min-h-screen items-center justify-center">
-        <Dialog.Overlay className="modal-overlay bg-black/30" />
+        <Dialog.Overlay className="modal-container bg-black/30" />
 
         <div className="relative bg-white rounded-lg p-8 max-w-md w-full mx-4">
           <div className="absolute top-4 right-4">
