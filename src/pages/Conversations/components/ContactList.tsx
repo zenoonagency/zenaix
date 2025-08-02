@@ -2,14 +2,6 @@ import React, { useState } from "react";
 import { MoreVertical, Pin, Plus } from "lucide-react";
 import { EditContactModal } from "../../../components/EditContactModal";
 
-// Função para truncar texto com "..." no final
-function truncateText(text: string, maxLength: number): string {
-  if (!text || text.length <= maxLength) {
-    return text;
-  }
-  return text.substring(0, maxLength - 3) + "...";
-}
-
 export function ContactList({
   contacts,
   selectedContactId,
@@ -49,18 +41,18 @@ export function ContactList({
               }`}
             >
               <button
-                className="flex items-center gap-3 flex-1"
+                className="flex items-center gap-3 flex-1 min-w-0"
                 onClick={() => setSelectedContactId(contact.id)}
               >
                 {contact.avatar_url ? (
                   <img
                     src={processWhatsAppImageUrl(contact.avatar_url)}
                     alt={contact.name}
-                    className="w-10 h-10 rounded-full object-cover"
+                    className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                   />
                 ) : null}
                 <div
-                  className={`w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-lg uppercase ${
+                  className={`w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-lg uppercase flex-shrink-0 ${
                     contact.avatar_url ? "hidden" : ""
                   }`}
                 >
@@ -69,7 +61,7 @@ export function ContactList({
                 <div className="flex-1 text-left min-w-0">
                   <div className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
                     <span className="truncate" title={contact.name}>
-                      {truncateText(contact.name || "", 20)}
+                      {contact.name}
                     </span>
                     {contact.is_pinned && (
                       <div className="flex items-center justify-center w-4 h-4 bg-blue-100 dark:bg-blue-900/30 rounded-full flex-shrink-0">

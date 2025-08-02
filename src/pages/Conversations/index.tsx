@@ -76,14 +76,6 @@ function processWhatsAppImageUrl(url: string): string {
   return processWhatsAppMediaUrl(url, "image/jpeg");
 }
 
-// Função para truncar texto com "..." no final
-function truncateText(text: string, maxLength: number): string {
-  if (!text || text.length <= maxLength) {
-    return text;
-  }
-  return text.substring(0, maxLength - 3) + "...";
-}
-
 function isSticker(message: WhatsappMessage): boolean {
   if (message.message_type === "sticker") {
     return true;
@@ -1008,10 +1000,10 @@ export function Conversations() {
                             <div className="flex-1 min-w-0">
                               <div className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
                                 <span
-                                  className="truncate"
+                                  className="truncate text-start flex-1"
                                   title={selectedContact.name}
                                 >
-                                  {truncateText(selectedContact.name || "", 25)}
+                                  {selectedContact.name}
                                 </span>
                                 {selectedContact.is_pinned && (
                                   <div className="flex items-center justify-center w-4 h-4 bg-blue-100 dark:bg-blue-900/30 rounded-full flex-shrink-0">
