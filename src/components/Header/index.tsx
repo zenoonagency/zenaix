@@ -10,7 +10,6 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { useTheme } from "../../hooks/useTheme";
 import { useAuthStore } from "../../store/authStore";
-import { authService } from "../../services/authService";
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();
@@ -21,16 +20,10 @@ export function Header() {
 
   const handleLogout = () => {
     try {
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("token");
-      localStorage.removeItem("auth-status");
-
-      logout();
-
       setIsDropdownOpen(false);
-
-      window.location.href = "/login";
+      logout();
     } catch (error) {
+      console.error("Erro no logout:", error);
       localStorage.clear();
       window.location.href = "/login";
     }

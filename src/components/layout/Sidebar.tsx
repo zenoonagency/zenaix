@@ -1081,7 +1081,6 @@ export function Sidebar() {
         onEditProfile={() => setIsProfileModalOpen(true)}
         onLogout={() => {
           logout();
-          navigate("/login");
         }}
         name={user?.name || "Usuário"}
         photo={user?.avatar_url || null}

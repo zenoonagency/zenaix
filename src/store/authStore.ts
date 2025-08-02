@@ -50,15 +50,18 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         if (get()._isLoggingOut) return;
         set({ _isLoggingOut: true });
+
         try {
+          get().clearAuth();
+          localStorage.clear();
+
           await supabase.auth.signOut();
         } catch (e) {
           console.error("[AuthStore] Erro ao fazer signOut do Supabase:", e);
+        } finally {
+          set({ _isLoggingOut: false });
+          window.location.href = "/login";
         }
-        get().clearAuth();
-        localStorage.clear();
-        set({ _isLoggingOut: false });
-        window.location.href = "/login";
       },
 
       clearAuth: () => {
