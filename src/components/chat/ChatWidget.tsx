@@ -19,7 +19,8 @@ export const ChatWidget = () => {
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, addMessage, updateMessage } = useChatStorage();
+  const { messages, addMessage, updateMessage, clearMessages } =
+    useChatStorage();
   console.log("Mensagens no ChatWidget:", messages);
   const { sendMessage, sendMediaMessage, isLoading } = useChatApi();
   const { toast } = useToast();
@@ -185,6 +186,8 @@ export const ChatWidget = () => {
     setChatState("closed");
     resetPosition();
     resetSize();
+    // Apaga o histórico quando fecha o chat
+    clearMessages();
   };
 
   const isVisible = chatState !== "closed";

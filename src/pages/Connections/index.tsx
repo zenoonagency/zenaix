@@ -23,6 +23,7 @@ import { QRCodeRenderer } from "../../components/QRCodeRenderer";
 import { useWhatsAppInstanceStore } from "../../store/whatsAppInstanceStore";
 import { supabase } from "../../lib/supabaseClient";
 import { ModalCanAcess } from "../../components/ModalCanAcess";
+import { ConfirmationModal } from "../../components/ConfirmationModal";
 
 export function Connections() {
   const { theme } = useThemeStore();
@@ -44,6 +45,9 @@ export function Connections() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingInstance, setEditingInstance] =
+    useState<WhatsAppInstanceOutput | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [instanceToDelete, setInstanceToDelete] =
     useState<WhatsAppInstanceOutput | null>(null);
 
   const setSession = useAuthStore((state) => state.setSession);
@@ -92,11 +96,18 @@ export function Connections() {
       setDeletingInstanceId(instanceId);
       await deleteInstance(token, user.organization_id, instanceId);
       showToast("Instância excluída com sucesso!", "success");
+      setShowDeleteModal(false);
+      setInstanceToDelete(null);
     } catch (error) {
       showToast("Erro ao excluir instância", "error");
     } finally {
       setDeletingInstanceId(null);
     }
+  };
+
+  const handleShowDeleteModal = (instance: WhatsAppInstanceOutput) => {
+    setInstanceToDelete(instance);
+    setShowDeleteModal(true);
   };
 
   const handleConnectInstance = async (instanceId: string) => {
@@ -381,7 +392,7 @@ export function Connections() {
                     </button>
                   )}
                   <button
-                    onClick={() => handleDeleteInstance(instance.id)}
+                    onClick={() => handleShowDeleteModal(instance)}
                     disabled={deletingInstanceId === instance.id}
                     className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50"
                   >
@@ -478,6 +489,33 @@ export function Connections() {
           }
         }}
         instance={editingInstance}
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setInstanceToDelete(null);
+        }}
+        onConfirm={() => {
+          if (instanceToDelete) {
+            handleDeleteInstance(instanceToDelete.id);
+          }
+        }}
+        title="Excluir Instância"
+        message={`Tem certeza que deseja excluir a instância "${instanceToDelete?.name}"?
+
+⚠️ ATENÇÃO: Esta ação irá:
+• Excluir permanentemente esta instância
+• Perder todos os contatos salvos
+• Perder todas as mensagens e conversas
+• Perder todos os arquivos e mídias
+
+Esta ação não pode ser desfeita.`}
+        confirmText="Sim, excluir instância"
+        cancelText="Cancelar"
+        confirmButtonClass="bg-red-500 hover:bg-red-600"
+        isLoading={deletingInstanceId === instanceToDelete?.id}
       />
     </div>
   );
