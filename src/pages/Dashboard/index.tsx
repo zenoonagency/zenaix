@@ -16,7 +16,6 @@ import {
   ExportModal,
 } from "./components";
 import { format } from "date-fns";
-import { useRealtimeStore } from '../../store/realtimeStore';
 import { useContractStore } from "../../store/contractStore";
 
 const LoadingFallback = () => (
@@ -45,8 +44,6 @@ export function Dashboard() {
     dashboardSelectAndLoadBoard,
     dashboardTransactionsData,
     isDashboardLoading,
-    fetchDashboardTransactions,
-    fetchDashboardSummary,
     calendarEvents,
     initialTransactionsFetched,
     setInitialTransactionsFetched,

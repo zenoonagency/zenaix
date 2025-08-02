@@ -212,4 +212,5 @@ export interface BoardState {
 
   fetchAllBoards: (token: string, organizationId: string) => Promise<void>;
   fetchTopSellers: (boardId: string) => Promise<void>;
+  setTopSellers: (topSellers: TopSellersResponse) => void;
 }

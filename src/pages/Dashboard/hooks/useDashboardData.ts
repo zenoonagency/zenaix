@@ -12,11 +12,11 @@ export function useDashboardData() {
     boards,
     fetchAllBoards,
     isLoading: isBoardsLoading,
+    topSellers: dashboardTopSellers,
   } = useBoardStore();
   const {
     activeBoardId: dashboardActiveBoardId,
     activeBoard: dashboardActiveBoard,
-    topSellers: dashboardTopSellers,
     isLoadingBoard: isDashboardLoadingBoard,
     isLoadingTopSellers: isDashboardLoadingTopSellers,
     selectAndLoadBoard: dashboardSelectAndLoadBoard,
@@ -77,31 +77,17 @@ export function useDashboardData() {
       // Tenta cache local
       const cache = getTopSellersCache(dashboardActiveBoardId);
       if (cache && Array.isArray(cache.data) && cache.data.length > 0) {
-        useDashboardStore.getState().setTopSellers(cache);
+        useBoardStore.getState().setTopSellers(cache);
         // Busca em background para atualizar
-        useDashboardStore
-          .getState()
-          .fetchTopSellers(dashboardActiveBoardId)
-          .then((fresh) => {
-            if (fresh && Array.isArray(fresh.data) && fresh.data.length > 0) {
-              setTopSellersCache(dashboardActiveBoardId, fresh);
-            }
-          });
+        useBoardStore.getState().fetchTopSellers(dashboardActiveBoardId);
         return;
       }
       // Se não tem cache, busca normalmente
-      useDashboardStore
-        .getState()
-        .fetchTopSellers(dashboardActiveBoardId)
-        .then((fresh) => {
-          if (fresh && Array.isArray(fresh.data) && fresh.data.length > 0) {
-            setTopSellersCache(dashboardActiveBoardId, fresh);
-          }
-        });
+      useBoardStore.getState().fetchTopSellers(dashboardActiveBoardId);
     } else {
       // Limpando top sellers se não tem board
       if (dashboardTopSellers.data.length > 0) {
-        useDashboardStore.getState().setTopSellers({ data: [] });
+        useBoardStore.getState().setTopSellers({ data: [] });
       }
     }
   }, [dashboardActiveBoardId, dashboardActiveBoard]);

@@ -32,4 +32,3 @@ export interface DashboardStore {
   clearError: () => void;
   selectInitialBoard: (boards: Board[]) => void;
 }
- 

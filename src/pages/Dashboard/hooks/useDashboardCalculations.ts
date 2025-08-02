@@ -21,14 +21,18 @@ export function useDashboardCalculations(
   };
 
   const completedSalesValue = useMemo(() => {
-    if (!dashboardActiveBoard?.lists) return 0;
+    if (
+      !dashboardActiveBoard?.lists ||
+      !dashboardActiveBoard?.completed_list_id
+    )
+      return 0;
 
-    const concluido = dashboardActiveBoard.lists.find((l: any) =>
-      normalize(l.name).includes("concluido")
+    const completedList = dashboardActiveBoard.lists.find(
+      (l: any) => l.id === dashboardActiveBoard.completed_list_id
     );
 
     return (
-      concluido?.cards?.reduce(
+      completedList?.cards?.reduce(
         (sum: number, card: any) => sum + (Number(card.value) || 0),
         0
       ) || 0

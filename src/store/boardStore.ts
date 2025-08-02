@@ -472,6 +472,8 @@ export const useBoardStore = create<BoardState>()(
         }
       },
 
+      setTopSellers: (topSellers) => set({ topSellers }),
+
       addSubtaskToCard: (subtask) => {
         set((state) => {
           if (!state.activeBoard) return {};
