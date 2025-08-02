@@ -120,6 +120,12 @@ export const API_CONFIG = {
         `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}`,
       pin: (organizationId: string, instanceId: string, contactId: string) =>
         `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}/pin`,
+      markAsRead: (
+        organizationId: string,
+        instanceId: string,
+        contactId: string
+      ) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}/mark-as-read`,
     },
     messages: {
       send: (organizationId: string, instanceId: string) =>

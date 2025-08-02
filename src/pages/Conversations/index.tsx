@@ -374,6 +374,31 @@ export function Conversations() {
         activeInstanceId,
         selectedContactId
       );
+
+      // Marcar conversa como lida quando abrir
+      const markConversationAsRead = async () => {
+        try {
+          await whatsappContactService.markAsRead(
+            token,
+            user.organization_id,
+            activeInstanceId,
+            selectedContactId
+          );
+          console.log(
+            `[Conversations] Conversa marcada como lida: ${selectedContactId}`
+          );
+        } catch (error) {
+          console.error(
+            `[Conversations] Erro ao marcar conversa como lida:`,
+            error
+          );
+          // Não mostrar toast de erro para não incomodar o usuário
+        }
+      };
+
+      // Executar markAsRead após um pequeno delay para garantir que as mensagens foram carregadas
+      const timeoutId = setTimeout(markConversationAsRead, 500);
+      return () => clearTimeout(timeoutId);
     }
   }, [
     token,
