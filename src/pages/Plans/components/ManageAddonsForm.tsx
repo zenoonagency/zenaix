@@ -3,6 +3,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
   ForwardedRef,
+  useEffect,
 } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { subscriptionService } from "../../../services/subscription/subscription.service";
@@ -90,12 +91,18 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
     (whatsappAddOn?.price || 0) * form.extra_whatsapp_instances +
     (organization?.plan?.price || 0);
 
-  // Corrigir lógica do botão: liberar se qualquer campo > 0
+  // Corrigir lógica do botão: liberar se há mudanças nos recursos
   const recursosAlterados =
     form.extra_boards > 0 ||
     form.extra_team_members > 0 ||
     form.extra_triggers > 0 ||
     form.extra_whatsapp_instances > 0;
+
+  console.log("Form state:", form);
+  console.log("Recursos alterados:", recursosAlterados);
+  console.log("WhatsApp instances:", form.extra_whatsapp_instances);
+  console.log("WhatsApp addon:", whatsappAddOn);
+  console.log("Selected card:", selectedCard);
 
   // Disparo único
   const [oneTimeTriggers, setOneTimeTriggers] = useState(0);
@@ -293,7 +300,7 @@ export const ManageAddonsForm = forwardRef(function ManageAddonsForm(
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-1">
-                  Boards adicionais
+                  Kanbans adicionais
                 </label>
                 <input
                   type="number"

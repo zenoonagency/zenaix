@@ -1,4 +1,4 @@
-export type SlotType = "board" | "member" | "trigger" | "whatsapp_instance";
+export type SlotType = "board" | "member" | "trigger" | "whatsapp";
 
 export interface InputCreateSubscriptionDTO {
   plan_id: string;

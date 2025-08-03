@@ -723,7 +723,7 @@ export function Plans() {
                 </div>
                 <div className="flex-1">
                   <label className="block text-sm font-medium mb-1">
-                    Boards adicionais
+                    Kanbans adicionais
                   </label>
                   <input
                     type="number"
@@ -940,7 +940,7 @@ export function Plans() {
                   if (pendingAddonsForm.extra_whatsapp_instances > 0) {
                     promises.push(
                       subscriptionService.addSlots(token, organization.id, {
-                        slot_type: "whatsapp_instance",
+                        slot_type: "whatsapp",
                         quantity: pendingAddonsForm.extra_whatsapp_instances,
                       })
                     );
@@ -973,7 +973,8 @@ export function Plans() {
                 !(
                   pendingAddonsForm?.extra_boards > 0 ||
                   pendingAddonsForm?.extra_team_members > 0 ||
-                  pendingAddonsForm?.extra_triggers > 0
+                  pendingAddonsForm?.extra_triggers > 0 ||
+                  pendingAddonsForm?.extra_whatsapp_instances > 0
                 )
               }
             >

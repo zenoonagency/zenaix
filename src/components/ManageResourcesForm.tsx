@@ -122,7 +122,7 @@ export function ManageResourcesForm({
       }
       if (whatsappInstances > currentWhatsappInstances) {
         await subscriptionService.addSlots(token, organization.id, {
-          slot_type: "whatsapp_instance",
+          slot_type: "whatsapp",
           quantity: whatsappInstances - currentWhatsappInstances,
         });
       }
@@ -147,7 +147,7 @@ export function ManageResourcesForm({
       }
       if (whatsappInstances < currentWhatsappInstances) {
         await subscriptionService.removeSlots(token, organization.id, {
-          slot_type: "whatsapp_instance",
+          slot_type: "whatsapp",
           quantity_to_remove: currentWhatsappInstances - whatsappInstances,
         });
       }
