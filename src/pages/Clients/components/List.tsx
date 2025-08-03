@@ -262,14 +262,6 @@ export const List = React.memo(
                         style={{ backgroundColor: presetColor }}
                       />
                     ))}
-                    {color && (
-                      <button
-                        onClick={() => setColor("")}
-                        className="text-xs text-gray-400 hover:text-gray-300 ml-2 flex items-center"
-                      >
-                        Remover cor
-                      </button>
-                    )}
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-2">
