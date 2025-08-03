@@ -32,6 +32,7 @@ import { Select } from "../../../components/ui/Select";
 import { Textarea } from "../../../components/ui/Textarea";
 import { attachmentService } from "../../../services/attachment.service";
 import { subtaskService } from "../../../services/subtask.service";
+import { customFieldService } from "../../../services/customField.service";
 import { useAuthStore } from "../../../store/authStore";
 import { compressImage } from "../../../utils/imageCompression";
 import {
@@ -79,7 +80,6 @@ export function CardModal({
   const { token, organization } = useAuthStore();
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [isCreatingSubtask, setIsCreatingSubtask] = useState(false);
-  const [isUpdatingSubtask, setIsUpdatingSubtask] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(
@@ -120,6 +120,12 @@ export function CardModal({
   const [viewingAttachment, setViewingAttachment] = useState<any | null>(null);
   const [customFields, setCustomFields] = useState<CustomFieldDTO[]>(
     initialData?.custom_fields || []
+  );
+  const [deletingCustomFieldId, setDeletingCustomFieldId] = useState<
+    string | null
+  >(null);
+  const [updatingSubtaskId, setUpdatingSubtaskId] = useState<string | null>(
+    null
   );
 
   React.useEffect(() => {
@@ -256,19 +262,20 @@ export function CardModal({
     const subtask = subtasks.find((task) => task.id === id);
     if (!subtask) return;
 
+    // Atualização otimista imediata da UI
+    setSubtasks(
+      subtasks.map((task) =>
+        task.id === id
+          ? {
+              ...task,
+              is_completed: !task.is_completed,
+            }
+          : task
+      )
+    );
+
     // Para criação de card (mode === "add"), manter comportamento local
     if (mode === "add") {
-      setSubtasks(
-        subtasks.map((task) =>
-          task.id === id
-            ? {
-                ...task,
-                is_completed: !task.is_completed,
-                card_id: task.card_id,
-              }
-            : task
-        )
-      );
       return;
     }
 
@@ -278,7 +285,7 @@ export function CardModal({
       return;
     }
 
-    setIsUpdatingSubtask(true);
+    setUpdatingSubtaskId(id);
 
     try {
       const updateData: InputUpdateSubtaskDTO = {
@@ -295,7 +302,7 @@ export function CardModal({
         updateData
       );
 
-      // Atualizar estado local
+      // Atualizar estado local com dados da API
       setSubtasks(
         subtasks.map((task) =>
           task.id === id
@@ -311,8 +318,20 @@ export function CardModal({
     } catch (error: any) {
       console.error("Erro ao atualizar subtarefa:", error);
       showToast(error.message || "Erro ao atualizar subtarefa", "error");
+
+      // Reverter mudança otimista em caso de erro
+      setSubtasks(
+        subtasks.map((task) =>
+          task.id === id
+            ? {
+                ...task,
+                is_completed: subtask.is_completed, // Reverter para estado original
+              }
+            : task
+        )
+      );
     } finally {
-      setIsUpdatingSubtask(false);
+      setUpdatingSubtaskId(null);
     }
   };
 
@@ -542,6 +561,41 @@ export function CardModal({
       showToast(error.message || "Erro ao remover anexo", "error");
     } finally {
       setRemovingAttachmentId(null);
+    }
+  };
+
+  const handleDeleteCustomField = async (
+    customFieldId: string,
+    index: number
+  ) => {
+    if (!token || !organization?.id || !initialData?.id) {
+      // Para cards novos, apenas remover do estado local
+      setCustomFields((prev) => prev.filter((_, i) => i !== index));
+      return;
+    }
+
+    setDeletingCustomFieldId(customFieldId);
+
+    try {
+      await customFieldService.deleteCustomField(
+        token,
+        organization.id,
+        boardId,
+        listId,
+        initialData.id,
+        customFieldId
+      );
+
+      setCustomFields((prev) => prev.filter((_, i) => i !== index));
+      showToast("Campo personalizado removido com sucesso!", "success");
+    } catch (error: any) {
+      console.error("Erro ao remover campo personalizado:", error);
+      showToast(
+        error.message || "Erro ao remover campo personalizado",
+        "error"
+      );
+    } finally {
+      setDeletingCustomFieldId(null);
     }
   };
 
@@ -894,8 +948,8 @@ export function CardModal({
                 <button
                   type="button"
                   onClick={() => setShowNewSubtaskForm(true)}
-                  disabled={isSubmitting}
-                  className="flex items-center gap-1 px-2 py-1 text-sm text-[#7f00ff] hover:bg-[#7f00ff]/10 rounded-md transition-colors"
+                  disabled={isSubmitting || updatingSubtaskId !== null}
+                  className="flex items-center gap-1 px-2 py-1 text-sm text-[#7f00ff] hover:bg-[#7f00ff]/10 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="w-4 h-4" />
                   Adicionar Subtarefa
@@ -910,7 +964,7 @@ export function CardModal({
                       value={newSubtaskTitle}
                       onChange={(e) => setNewSubtaskTitle(e.target.value)}
                       placeholder="Título da subtarefa"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || updatingSubtaskId !== null}
                       className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
                     />
                     <Textarea
@@ -918,7 +972,7 @@ export function CardModal({
                       onChange={(e) => setNewSubtaskDescription(e.target.value)}
                       placeholder="Descrição da subtarefa"
                       rows={2}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || updatingSubtaskId !== null}
                       className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#252525] border border-gray-300 dark:border-[#2E2E2E] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
                     />
                     <div className="flex justify-end gap-2">
@@ -929,12 +983,12 @@ export function CardModal({
                           setNewSubtaskTitle("");
                           setNewSubtaskDescription("");
                         }}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || updatingSubtaskId !== null}
                         className={`px-3 py-1.5 rounded-md ${
                           isDark
                             ? "text-gray-300 hover:bg-gray-700"
                             : "text-gray-700 hover:bg-gray-100"
-                        }`}
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         Cancelar
                       </button>
@@ -944,7 +998,8 @@ export function CardModal({
                         disabled={
                           !newSubtaskTitle.trim() ||
                           isCreatingSubtask ||
-                          isSubmitting
+                          isSubmitting ||
+                          updatingSubtaskId !== null
                         }
                         className="px-3 py-1.5 bg-[#7f00ff] text-white rounded-md hover:bg-[#7f00ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -966,7 +1021,7 @@ export function CardModal({
                     <button
                       type="button"
                       onClick={() => handleToggleSubtask(task.id)}
-                      disabled={isUpdatingSubtask || isSubmitting}
+                      disabled={updatingSubtaskId === task.id || isSubmitting}
                       className={`mt-1 ${
                         task.is_completed
                           ? "text-[#7f00ff]"
@@ -974,12 +1029,14 @@ export function CardModal({
                           ? "text-gray-600"
                           : "text-gray-400"
                       } ${
-                        isUpdatingSubtask || isSubmitting
+                        updatingSubtaskId === task.id || isSubmitting
                           ? "opacity-50 cursor-not-allowed"
                           : ""
                       }`}
                     >
-                      {task.is_completed ? (
+                      {updatingSubtaskId === task.id ? (
+                        <div className="w-4 h-4 border-2 border-[#7f00ff] border-t-transparent rounded-full animate-spin" />
+                      ) : task.is_completed ? (
                         <CheckSquare className="w-4 h-4" />
                       ) : (
                         <Square className="w-4 h-4" />
@@ -1008,9 +1065,15 @@ export function CardModal({
                     <button
                       type="button"
                       onClick={() => handleDeleteSubtask(task.id)}
-                      disabled={isSubmitting || removingSubtaskId === task.id}
+                      disabled={
+                        isSubmitting ||
+                        removingSubtaskId === task.id ||
+                        updatingSubtaskId === task.id
+                      }
                       className={`p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors ${
-                        isSubmitting || removingSubtaskId === task.id
+                        isSubmitting ||
+                        removingSubtaskId === task.id ||
+                        updatingSubtaskId === task.id
                           ? "opacity-50 cursor-not-allowed"
                           : ""
                       }`}
@@ -1283,14 +1346,23 @@ export function CardModal({
                     <button
                       type="button"
                       onClick={() =>
-                        setCustomFields(
-                          customFields.filter((_, i) => i !== index)
+                        handleDeleteCustomField(
+                          field.id || `temp-${index}`,
+                          index
                         )
                       }
-                      disabled={isSubmitting}
-                      className="p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500"
+                      disabled={
+                        isSubmitting ||
+                        deletingCustomFieldId === (field.id || `temp-${index}`)
+                      }
+                      className="p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 disabled:opacity-50"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      {deletingCustomFieldId ===
+                      (field.id || `temp-${index}`) ? (
+                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                 ))}
