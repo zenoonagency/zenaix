@@ -589,7 +589,51 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
             </div>
           )}
 
-          {/* 10. Subtarefas */}
+          {/* 10. Campos Personalizados */}
+          {card.custom_fields && card.custom_fields.length > 0 && (
+            <div className="p-4 rounded-lg border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
+              <h4
+                className={`text-sm font-medium ${
+                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                } mb-2`}
+              >
+                Campos Personalizados
+              </h4>
+              <div className="space-y-2">
+                {card.custom_fields.map((field) => (
+                  <div
+                    key={field.id}
+                    className={`p-3 rounded-lg ${
+                      theme === "dark"
+                        ? "bg-dark-800/80 border border-purple-900/30"
+                        : "bg-purple-50 border border-purple-100"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div
+                          className={`text-sm font-medium ${
+                            theme === "dark" ? "text-gray-300" : "text-gray-700"
+                          } mb-1`}
+                        >
+                          {field.key}
+                        </div>
+                        <div
+                          className={`text-sm ${
+                            theme === "dark" ? "text-gray-200" : "text-gray-900"
+                          }`}
+                        >
+                          {field.value}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 11. Subtarefas */}
           {subtasks.length > 0 && (
             <div className="p-4 rounded-lg border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
               <h4

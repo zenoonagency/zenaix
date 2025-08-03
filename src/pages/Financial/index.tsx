@@ -4,6 +4,7 @@ import { useTransactionStore } from "../../store/transactionStore";
 import { useAuthStore } from "../../store/authStore";
 import { NewTransactionModal } from "./components/NewTransactionModal";
 import { EditTransactionModal } from "./components/EditTransactionModal";
+import { TransactionDetailModal } from "./components/TransactionDetailModal";
 import { CustomModal } from "../../components/CustomModal";
 import { Trash2, Plus, Calendar, Edit, Trash } from "lucide-react";
 import { format } from "date-fns";
@@ -21,6 +22,8 @@ export function Financial() {
   const [showClearModal, setShowClearModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [selectedTransactionForDetail, setSelectedTransactionForDetail] =
+    useState<any>(null);
   const [filterDate, setFilterDate] = useState<string>(() => {
     const now = new Date();
     return format(now, "yyyy-MM");
@@ -476,7 +479,10 @@ export function Financial() {
                   {transactions.map((transaction) => (
                     <tr
                       key={transaction.id}
-                      className="border-b border-gray-200 dark:border-dark-700 last:border-0"
+                      className="border-b border-gray-200 dark:border-dark-700 last:border-0 hover:bg-gray-50 dark:hover:bg-dark-700/50 cursor-pointer"
+                      onClick={() =>
+                        setSelectedTransactionForDetail(transaction)
+                      }
                     >
                       <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">
                         {convertUTCToUserTimezone(transaction.date)}
@@ -599,6 +605,13 @@ export function Financial() {
         confirmLoading={isDeleting}
         confirmDisabled={isDeleting}
       />
+
+      {selectedTransactionForDetail && (
+        <TransactionDetailModal
+          transaction={selectedTransactionForDetail}
+          onClose={() => setSelectedTransactionForDetail(null)}
+        />
+      )}
     </div>
   );
 }

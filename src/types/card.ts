@@ -148,6 +148,7 @@ export interface OutputCardDTO {
     is_completed: boolean;
     card_id: string;
   }>;
+  custom_fields?: Array<CustomFieldDTO>;
   attachments?: Array<AttachmentDTO>;
   created_at: string;
   updated_at: string;

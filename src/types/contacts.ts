@@ -25,7 +25,7 @@ export interface Contact {
   name: string;
   phone: string;
   tagIds: string[];
-  customFields?: Record<string, CustomField>;
+  custom_fields?: Record<string, CustomField>;
   createdAt: string;
   updatedAt: string;
 }

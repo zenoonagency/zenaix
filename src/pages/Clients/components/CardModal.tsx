@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   X,
   Plus,
@@ -17,6 +17,8 @@ import {
   Eye,
   ExternalLink,
   Download,
+  PlusCircle,
+  List,
 } from "lucide-react";
 import { useTagStore } from "../../../store/tagStore";
 import { useTeamMembersStore } from "../../../store/teamMembersStore";
@@ -39,6 +41,7 @@ import {
   CardPriority,
   OutputCardDTO,
   SubtaskDTO,
+  CustomFieldDTO,
 } from "../../../types/card";
 import { PDFViewer } from "../../../components/PDFViewer";
 
@@ -115,6 +118,9 @@ export function CardModal({
     null
   );
   const [viewingAttachment, setViewingAttachment] = useState<any | null>(null);
+  const [customFields, setCustomFields] = useState<CustomFieldDTO[]>(
+    initialData?.custom_fields || []
+  );
 
   React.useEffect(() => {
     if (initialData?.tags) {
@@ -133,6 +139,15 @@ export function CardModal({
     }
   }, [mode, initialData?.due_date]);
 
+  // CUSTOM FIELDS: Carregar campos personalizados do initialData
+  React.useEffect(() => {
+    if (initialData?.custom_fields) {
+      setCustomFields(initialData.custom_fields);
+    } else {
+      setCustomFields([]);
+    }
+  }, [initialData?.custom_fields]);
+
   const isDark = theme === "dark";
 
   const hasChanges = () => {
@@ -149,7 +164,8 @@ export function CardModal({
       scheduledTime !== initialData.scheduledTime ||
       responsibleId !== initialData.assignee_id ||
       JSON.stringify(selectedTagIds) !== JSON.stringify(initialData.tag_ids) ||
-      JSON.stringify(subtasks) !== JSON.stringify(initialData.subtasks)
+      JSON.stringify(subtasks) !== JSON.stringify(initialData.subtasks) ||
+      JSON.stringify(customFields) !== JSON.stringify(initialData.custom_fields)
     );
   };
 
@@ -563,6 +579,7 @@ export function CardModal({
           title,
           description,
         })),
+        custom_fields: customFields.map(({ key, value }) => ({ key, value })),
         // attachments são gerenciados separadamente via attachmentService
       };
 
@@ -1188,6 +1205,108 @@ export function CardModal({
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  className={`flex items-center gap-2 text-sm font-medium ${
+                    isDark ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  <List className="w-4 h-4 text-purple-500" />
+                  Campos Personalizados
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newField: CustomFieldDTO = {
+                      id: "",
+                      key: "",
+                      value: "",
+                      card_id: "",
+                      created_at: "",
+                      updated_at: "",
+                    };
+                    setCustomFields((prev) => [...prev, newField]);
+                  }}
+                  disabled={isSubmitting}
+                  className="flex items-center gap-1 px-2 py-1 text-sm text-[#7f00ff] hover:bg-[#7f00ff]/10 rounded-md transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar Campo
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {customFields.map((field, index) => (
+                  <div
+                    key={field.id || index}
+                    className={`flex items-center gap-2 p-3 rounded-lg ${
+                      isDark
+                        ? "bg-dark-800/80 border border-purple-900/30"
+                        : "bg-purple-50 border border-purple-100"
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={field.key}
+                        onChange={(e) =>
+                          setCustomFields(
+                            customFields.map((f, i) =>
+                              i === index ? { ...f, key: e.target.value } : f
+                            )
+                          )
+                        }
+                        placeholder="Nome do campo"
+                        disabled={isSubmitting}
+                        className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff] dark:text-white"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={field.value}
+                        onChange={(e) =>
+                          setCustomFields(
+                            customFields.map((f, i) =>
+                              i === index ? { ...f, value: e.target.value } : f
+                            )
+                          )
+                        }
+                        placeholder="Valor"
+                        disabled={isSubmitting}
+                        className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#7f00ff] dark:text-white"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCustomFields(
+                          customFields.filter((_, i) => i !== index)
+                        )
+                      }
+                      disabled={isSubmitting}
+                      className="p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {customFields.length > 0 && (
+                <div className="mt-3">
+                  <div className="flex items-center gap-2 text-sm mb-1">
+                    <span
+                      className={isDark ? "text-gray-400" : "text-gray-500"}
+                    >
+                      {customFields.length} campos personalizados
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
