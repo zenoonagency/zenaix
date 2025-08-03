@@ -634,8 +634,7 @@ export function CardModal({
       );
     });
 
-    // Executar operações de delete
-    for (const field of fieldsToDelete) {
+    const deletePromises = fieldsToDelete.map(async (field) => {
       try {
         await customFieldService.deleteCustomField(
           token,
@@ -645,14 +644,15 @@ export function CardModal({
           initialData.id,
           field.id
         );
+        return { type: "delete", field, success: true };
       } catch (error: any) {
         console.error("Erro ao deletar campo personalizado:", error);
         showToast(`Erro ao deletar campo personalizado ${field.key}`, "error");
+        return { type: "delete", field, success: false, error };
       }
-    }
+    });
 
-    // Executar operações de create
-    for (const field of fieldsToCreate) {
+    const createPromises = fieldsToCreate.map(async (field) => {
       try {
         await customFieldService.createCustomField(
           token,
@@ -665,14 +665,15 @@ export function CardModal({
             value: field.value,
           }
         );
+        return { type: "create", field, success: true };
       } catch (error: any) {
         console.error("Erro ao criar campo personalizado:", error);
         showToast(`Erro ao criar campo personalizado ${field.key}`, "error");
+        return { type: "create", field, success: false, error };
       }
-    }
+    });
 
-    // Executar operações de update
-    for (const field of fieldsToUpdate) {
+    const updatePromises = fieldsToUpdate.map(async (field) => {
       try {
         await customFieldService.updateCustomField(
           token,
@@ -686,21 +687,30 @@ export function CardModal({
             value: field.value,
           }
         );
+        return { type: "update", field, success: true };
       } catch (error: any) {
         console.error("Erro ao atualizar campo personalizado:", error);
         showToast(
           `Erro ao atualizar campo personalizado ${field.key}`,
           "error"
         );
+        return { type: "update", field, success: false, error };
       }
-    }
+    });
 
-    if (
-      fieldsToDelete.length > 0 ||
-      fieldsToCreate.length > 0 ||
-      fieldsToUpdate.length > 0
-    ) {
-      showToast("Campos personalizados atualizados com sucesso!", "success");
+    const allPromises = [
+      ...deletePromises,
+      ...createPromises,
+      ...updatePromises,
+    ];
+
+    if (allPromises.length > 0) {
+      allPromises.forEach((promise) => {
+        promise.catch((error) => {
+          console.error("Erro em operação de campo personalizado:", error);
+        });
+      });
+
     }
 
     return Promise.resolve();
@@ -752,12 +762,17 @@ export function CardModal({
 
       // Para edição de cards, executar card update e custom fields update simultaneamente
       if (mode === "edit" && token && organization?.id && initialData?.id) {
-        // Executar ambas as operações simultaneamente
-        const [savedCard] = await Promise.all([
-          onSave(cardData),
-          handleCustomFieldsUpdate(),
-        ]);
-        createdCard = savedCard;
+        // Disparar ambas as operações em paralelo sem aguardar
+        const savePromise = onSave(cardData);
+        const customFieldsPromise = handleCustomFieldsUpdate();
+
+        // Aguardar apenas o save do card para continuar
+        createdCard = await savePromise;
+
+        // Deixar custom fields executando em background
+        customFieldsPromise.catch((error) => {
+          console.error("Erro em custom fields (background):", error);
+        });
       } else {
         // Para novos cards, apenas salvar o card
         createdCard = await onSave(cardData);
