@@ -207,6 +207,7 @@ export interface BoardState {
     id: string;
     card_id: string;
   }) => void;
+  addCustomFieldToCard: (customField: any) => void;
   addAttachmentToCard: (attachment: AttachmentDTO) => void;
   updateAttachmentInCard: (attachment: AttachmentDTO) => void;
   removeAttachmentFromCard: (attachment: {

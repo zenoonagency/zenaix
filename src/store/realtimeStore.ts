@@ -119,7 +119,7 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
       useBoardStore.getState().removeSubtaskFromCard(payload.data);
       break;
     case "CUSTOM_FIELD_CREATED":
-      useBoardStore.getState().updateCardInActiveBoard(payload.data);
+      useBoardStore.getState().addCustomFieldToCard(payload.data);
       break;
     case "CUSTOM_FIELD_UPDATED":
       useBoardStore.getState().updateCardInActiveBoard(payload.data);

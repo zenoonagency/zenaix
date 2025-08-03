@@ -580,6 +580,38 @@ export const useBoardStore = create<BoardState>()(
           };
         });
       },
+      addCustomFieldToCard: (customField) => {
+        set((state) => {
+          if (!state.activeBoard) return {};
+          return {
+            activeBoard: {
+              ...state.activeBoard,
+              lists: state.activeBoard.lists.map((list) => ({
+                ...list,
+                cards: list.cards.map((card) => {
+                  if (card.id === customField.card_id) {
+                    const customFieldExists = (
+                      card as OutputCardDTO
+                    ).custom_fields?.some(
+                      (field) => field.id === customField.id
+                    );
+                    return {
+                      ...card,
+                      custom_fields: customFieldExists
+                        ? (card as OutputCardDTO).custom_fields
+                        : [
+                            ...((card as OutputCardDTO).custom_fields || []),
+                            customField,
+                          ],
+                    };
+                  }
+                  return card;
+                }),
+              })),
+            },
+          };
+        });
+      },
       addAttachmentToCard: (attachment) => {
         set((state) => {
           if (!state.activeBoard) return {};

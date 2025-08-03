@@ -121,9 +121,9 @@ export function CardModal({
   const [customFields, setCustomFields] = useState<CustomFieldDTO[]>(
     initialData?.custom_fields || []
   );
-  const [deletingCustomFieldId, setDeletingCustomFieldId] = useState<
-    string | null
-  >(null);
+  const [deletingCustomFieldIds, setDeletingCustomFieldIds] = useState<
+    string[]
+  >([]);
   const [updatingSubtaskId, setUpdatingSubtaskId] = useState<string | null>(
     null
   );
@@ -574,7 +574,7 @@ export function CardModal({
       return;
     }
 
-    setDeletingCustomFieldId(`index-${index}`);
+    setDeletingCustomFieldIds((prev) => [...prev, customFieldId]);
 
     try {
       await customFieldService.deleteCustomField(
@@ -587,7 +587,6 @@ export function CardModal({
       );
 
       setCustomFields((prev) => prev.filter((_, i) => i !== index));
-      showToast("Campo personalizado removido com sucesso!", "success");
     } catch (error: any) {
       console.error("Erro ao remover campo personalizado:", error);
       showToast(
@@ -595,13 +594,15 @@ export function CardModal({
         "error"
       );
     } finally {
-      setDeletingCustomFieldId(null);
+      setDeletingCustomFieldIds((prev) =>
+        prev.filter((id) => id !== customFieldId)
+      );
     }
   };
 
   const handleCustomFieldsUpdate = async () => {
     if (!token || !organization?.id || !initialData?.id) {
-      return;
+      return Promise.resolve();
     }
 
     const initialCustomFields = initialData.custom_fields || [];
@@ -701,6 +702,8 @@ export function CardModal({
     ) {
       showToast("Campos personalizados atualizados com sucesso!", "success");
     }
+
+    return Promise.resolve();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1474,11 +1477,15 @@ export function CardModal({
                       }
                       disabled={
                         isSubmitting ||
-                        deletingCustomFieldId === `index-${index}`
+                        deletingCustomFieldIds.includes(
+                          field.id || `temp-${index}`
+                        )
                       }
                       className="p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 disabled:opacity-50"
                     >
-                      {deletingCustomFieldId === `index-${index}` ? (
+                      {deletingCustomFieldIds.includes(
+                        field.id || `temp-${index}`
+                      ) ? (
                         <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <Trash2 className="w-4 h-4" />
