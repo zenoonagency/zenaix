@@ -362,5 +362,45 @@ export const API_CONFIG = {
       ) =>
         `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/subtasks/${subtaskId}`,
     },
+    customFields: {
+      create: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/custom-fields`,
+      findAll: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/custom-fields`,
+      findById: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        customFieldId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/custom-fields/${customFieldId}`,
+      update: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        customFieldId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/custom-fields/${customFieldId}`,
+      delete: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        customFieldId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/custom-fields/${customFieldId}`,
+    },
   },
 };

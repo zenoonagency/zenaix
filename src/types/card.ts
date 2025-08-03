@@ -57,6 +57,38 @@ export interface SubtaskSingleResponse {
   status: number;
 }
 
+// Tipos para Campos Personalizados (Custom Fields)
+export interface InputCreateCustomFieldDTO {
+  key: string;
+  value: string;
+}
+
+export interface InputUpdateCustomFieldDTO {
+  key?: string;
+  value?: string;
+}
+
+export interface CustomFieldDTO {
+  id: string;
+  key: string;
+  value: string;
+  card_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomFieldResponse {
+  message: string;
+  data: CustomFieldDTO[];
+  status: number;
+}
+
+export interface CustomFieldSingleResponse {
+  message: string;
+  data: CustomFieldDTO;
+  status: number;
+}
+
 export interface InputCreateCardDTO {
   title: string;
   description?: string;
