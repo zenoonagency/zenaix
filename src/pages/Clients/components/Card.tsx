@@ -433,6 +433,28 @@ const Card = React.memo(
               </div>
             )}
 
+            {/* Custom Fields */}
+            {cardData.custom_fields && cardData.custom_fields.length > 0 && (
+              <div className="space-y-2">
+                {cardData.custom_fields.map((field) => (
+                  <div
+                    key={field.id}
+                    className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg"
+                  >
+                    <TagIcon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-purple-600 dark:text-purple-400 font-medium truncate">
+                        {field.key}
+                      </div>
+                      <div className="text-sm text-purple-700 dark:text-purple-300 truncate">
+                        {field.value}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Subtasks Progress */}
             {cardData.subtasks && cardData.subtasks.length > 0 && (
               <div className="space-y-2">

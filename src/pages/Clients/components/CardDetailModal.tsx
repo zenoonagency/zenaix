@@ -85,6 +85,9 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   const [downloadingAttachmentId, setDownloadingAttachmentId] = React.useState<
     string | null
   >(null);
+  const [deletingSubtaskId, setDeletingSubtaskId] = React.useState<
+    string | null
+  >(null);
   const [viewingAttachment, setViewingAttachment] = useState<any | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
@@ -167,6 +170,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
       showToast("Erro de autenticação", "error");
       return;
     }
+    setDeletingSubtaskId(subtaskId);
     try {
       await subtaskService.deleteSubtask(
         token,
@@ -181,6 +185,8 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
       if (onEdit) onEdit();
     } catch (error: any) {
       showToast(error.message || "Erro ao remover subtarefa", "error");
+    } finally {
+      setDeletingSubtaskId(null);
     }
   };
 
@@ -686,10 +692,37 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleDeleteSubtask(task.id)}
-                        className="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                        disabled={deletingSubtaskId === task.id}
+                        className={`p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors ${
+                          deletingSubtaskId === task.id
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
+                        }`}
                         title="Remover subtarefa"
                       >
-                        <Trash2 size={16} />
+                        {deletingSubtaskId === task.id ? (
+                          <svg
+                            className="animate-spin w-4 h-4"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              fill="none"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                            />
+                          </svg>
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
                       </button>
                     </div>
                   </div>

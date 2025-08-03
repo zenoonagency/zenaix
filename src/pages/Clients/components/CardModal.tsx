@@ -574,7 +574,7 @@ export function CardModal({
       return;
     }
 
-    setDeletingCustomFieldId(customFieldId);
+    setDeletingCustomFieldId(`index-${index}`);
 
     try {
       await customFieldService.deleteCustomField(
@@ -596,6 +596,110 @@ export function CardModal({
       );
     } finally {
       setDeletingCustomFieldId(null);
+    }
+  };
+
+  const handleCustomFieldsUpdate = async () => {
+    if (!token || !organization?.id || !initialData?.id) {
+      return;
+    }
+
+    const initialCustomFields = initialData.custom_fields || [];
+    const currentCustomFields = customFields;
+
+    // Campos que foram removidos (estavam no initialData mas não estão mais no current)
+    const fieldsToDelete = initialCustomFields.filter(
+      (initialField) =>
+        !currentCustomFields.some(
+          (currentField) => currentField.id === initialField.id
+        )
+    );
+
+    // Campos que foram adicionados (não têm id, são novos)
+    const fieldsToCreate = currentCustomFields.filter((field) => !field.id);
+
+    // Campos que foram modificados (têm id mas key ou value mudaram)
+    const fieldsToUpdate = currentCustomFields.filter((currentField) => {
+      if (!currentField.id) return false; // Campos novos já foram tratados
+
+      const initialField = initialCustomFields.find(
+        (field) => field.id === currentField.id
+      );
+
+      return (
+        initialField &&
+        (initialField.key !== currentField.key ||
+          initialField.value !== currentField.value)
+      );
+    });
+
+    // Executar operações de delete
+    for (const field of fieldsToDelete) {
+      try {
+        await customFieldService.deleteCustomField(
+          token,
+          organization.id,
+          boardId,
+          listId,
+          initialData.id,
+          field.id
+        );
+      } catch (error: any) {
+        console.error("Erro ao deletar campo personalizado:", error);
+        showToast(`Erro ao deletar campo personalizado ${field.key}`, "error");
+      }
+    }
+
+    // Executar operações de create
+    for (const field of fieldsToCreate) {
+      try {
+        await customFieldService.createCustomField(
+          token,
+          organization.id,
+          boardId,
+          listId,
+          initialData.id,
+          {
+            key: field.key,
+            value: field.value,
+          }
+        );
+      } catch (error: any) {
+        console.error("Erro ao criar campo personalizado:", error);
+        showToast(`Erro ao criar campo personalizado ${field.key}`, "error");
+      }
+    }
+
+    // Executar operações de update
+    for (const field of fieldsToUpdate) {
+      try {
+        await customFieldService.updateCustomField(
+          token,
+          organization.id,
+          boardId,
+          listId,
+          initialData.id,
+          field.id,
+          {
+            key: field.key,
+            value: field.value,
+          }
+        );
+      } catch (error: any) {
+        console.error("Erro ao atualizar campo personalizado:", error);
+        showToast(
+          `Erro ao atualizar campo personalizado ${field.key}`,
+          "error"
+        );
+      }
+    }
+
+    if (
+      fieldsToDelete.length > 0 ||
+      fieldsToCreate.length > 0 ||
+      fieldsToUpdate.length > 0
+    ) {
+      showToast("Campos personalizados atualizados com sucesso!", "success");
     }
   };
 
@@ -633,11 +737,28 @@ export function CardModal({
           title,
           description,
         })),
-        custom_fields: customFields.map(({ key, value }) => ({ key, value })),
+        // Para novos cards, incluir custom_fields no cardData
+        // Para edição, custom_fields serão gerenciados separadamente
+        ...(mode === "add" && {
+          custom_fields: customFields.map(({ key, value }) => ({ key, value })),
+        }),
         // attachments são gerenciados separadamente via attachmentService
       };
 
-      const createdCard = await onSave(cardData);
+      let createdCard: OutputCardDTO | undefined;
+
+      // Para edição de cards, executar card update e custom fields update simultaneamente
+      if (mode === "edit" && token && organization?.id && initialData?.id) {
+        // Executar ambas as operações simultaneamente
+        const [savedCard] = await Promise.all([
+          onSave(cardData),
+          handleCustomFieldsUpdate(),
+        ]);
+        createdCard = savedCard;
+      } else {
+        // Para novos cards, apenas salvar o card
+        createdCard = await onSave(cardData);
+      }
 
       // Se há anexos pendentes, fazer upload após criação do card
       if (mode === "add" && attachments.length > 0 && createdCard?.id) {
@@ -1353,12 +1474,11 @@ export function CardModal({
                       }
                       disabled={
                         isSubmitting ||
-                        deletingCustomFieldId === (field.id || `temp-${index}`)
+                        deletingCustomFieldId === `index-${index}`
                       }
                       className="p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 disabled:opacity-50"
                     >
-                      {deletingCustomFieldId ===
-                      (field.id || `temp-${index}`) ? (
+                      {deletingCustomFieldId === `index-${index}` ? (
                         <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <Trash2 className="w-4 h-4" />

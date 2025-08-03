@@ -109,6 +109,24 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         .getState()
         .removeCardFromActiveBoard(payload.data.id, payload.data.list_id);
       break;
+    case "SUBTASK_CREATED":
+      useBoardStore.getState().addSubtaskToCard(payload.data);
+      break;
+    case "SUBTASK_UPDATED":
+      useBoardStore.getState().updateSubtaskInCard(payload.data);
+      break;
+    case "SUBTASK_DELETED":
+      useBoardStore.getState().removeSubtaskFromCard(payload.data);
+      break;
+    case "CUSTOM_FIELD_CREATED":
+      useBoardStore.getState().updateCardInActiveBoard(payload.data);
+      break;
+    case "CUSTOM_FIELD_UPDATED":
+      useBoardStore.getState().updateCardInActiveBoard(payload.data);
+      break;
+    case "CUSTOM_FIELD_DELETED":
+      useBoardStore.getState().removeCustomFieldFromCard(payload.data);
+      break;
     case "WHATSAPP_INSTANCE_CREATED":
       useWhatsAppInstanceStore.getState().addInstance(payload.data);
       break;

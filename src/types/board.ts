@@ -203,6 +203,10 @@ export interface BoardState {
   addSubtaskToCard: (subtask: SubtaskDTO) => void;
   updateSubtaskInCard: (subtask: SubtaskDTO) => void;
   removeSubtaskFromCard: (subtask: { id: string; card_id: string }) => void;
+  removeCustomFieldFromCard: (customField: {
+    id: string;
+    card_id: string;
+  }) => void;
   addAttachmentToCard: (attachment: AttachmentDTO) => void;
   updateAttachmentInCard: (attachment: AttachmentDTO) => void;
   removeAttachmentFromCard: (attachment: {
