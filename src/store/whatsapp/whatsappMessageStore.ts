@@ -144,10 +144,10 @@ export const useWhatsappMessageStore = create<WhatsappMessageStoreState>()(
     updateMessageAck: (instanceId, contactId, waMessageId, ack) => {
       set((state) => {
         const currentMessages = state.messages[instanceId]?.[contactId] || [];
+        // Atualiza apenas o campo ack, mantendo a ordem original
         const updatedMessages = currentMessages.map((msg) =>
           msg.wa_message_id === waMessageId ? { ...msg, ack } : msg
         );
-
         return {
           messages: {
             ...state.messages,
@@ -169,7 +169,7 @@ export const useWhatsappMessageStore = create<WhatsappMessageStoreState>()(
       organizationId,
       instanceId,
       contactId,
-      limit = 30,
+      limit = 10,
       cursor
     ) => {
       set({ isLoading: true, error: null });
@@ -242,13 +242,12 @@ export const useWhatsappMessageStore = create<WhatsappMessageStoreState>()(
       organizationId,
       instanceId,
       contactId,
-      limit = 30
+      limit = 10
     ) => {
       const state = get();
       const currentCursor = state.cursors[instanceId]?.[contactId];
       const isLoadingMore = state.isLoadingMore[instanceId]?.[contactId];
 
-      // Se não há mais mensagens ou já está carregando, não fazer nada
       if (!currentCursor || isLoadingMore) {
         return;
       }

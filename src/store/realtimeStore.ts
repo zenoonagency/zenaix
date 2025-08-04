@@ -173,6 +173,18 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         .getState()
         .addContact(payload.data.whatsapp_instance_id, payload.data);
       break;
+    case "WHATSAPP_CONTACT_UPSERTED": {
+      const contactStore = useWhatsappContactStore.getState();
+      const { whatsapp_instance_id, id } = payload.data;
+      const contacts = contactStore.contacts[whatsapp_instance_id] || [];
+      const exists = contacts.some((c) => c.id === id);
+      if (exists) {
+        contactStore.updateContact(whatsapp_instance_id, payload.data);
+      } else {
+        contactStore.addContact(whatsapp_instance_id, payload.data);
+      }
+      break;
+    }
     case "NEW_WHATSAPP_MESSAGE": {
       const messageStore = useWhatsappMessageStore.getState();
       const contactStore = useWhatsappContactStore.getState();
@@ -200,8 +212,7 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         .getState()
         .instances.find((i) => i.id === whatsapp_instance_id);
       const instanceNumber = instance?.phone_number;
-      const direction: "INCOMING" | "OUTGOING" =
-        from === `${instanceNumber}@c.us` ? "OUTGOING" : "INCOMING";
+      // NÃO calcular direction manualmente, usar o que vem do backend
       const message = {
         id,
         wa_message_id,
@@ -221,7 +232,7 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         organization_id,
         whatsapp_contact_id,
         created_at,
-        direction,
+        direction: payload.data.direction, // usar sempre o direction do backend
       };
 
       if (whatsapp_contact_id) {
@@ -229,13 +240,25 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
           messageStore.messages[whatsapp_instance_id]?.[whatsapp_contact_id] ||
           [];
 
+        // Função para normalizar o body
+        const normalize = (str) => (str || "").replace(/\s+/g, " ").trim();
+
+        // Verificar se já existe mensagem real com mesmo wa_message_id ou id
+        const alreadyExists = existingMessages.some(
+          (msg) =>
+            (msg.wa_message_id && msg.wa_message_id === wa_message_id) ||
+            msg.id === id
+        );
+        if (alreadyExists) return;
+
         // Para mensagens OUTGOING, procurar pela mensagem temporária mais recente que corresponda
-        if (direction === "OUTGOING") {
+        if (message.direction === "OUTGOING") {
           const tempMessages = existingMessages.filter(
             (msg) =>
               msg.id.startsWith("temp_") &&
-              msg.body === body &&
-              msg.direction === "OUTGOING"
+              msg.direction === "OUTGOING" &&
+              ((msg.wa_message_id && msg.wa_message_id === wa_message_id) ||
+                normalize(msg.body) === normalize(body))
           );
 
           if (tempMessages.length > 0) {
@@ -271,7 +294,7 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
       } else {
         const contacts = contactStore.contacts[whatsapp_instance_id] || [];
         const contactNumber =
-          direction === "INCOMING"
+          message.direction === "INCOMING"
             ? from.replace("@c.us", "")
             : to.replace("@c.us", "");
 
@@ -281,7 +304,7 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
             messageStore.messages[whatsapp_instance_id]?.[contact.id] || [];
 
           // Para mensagens OUTGOING, procurar pela mensagem temporária mais recente que corresponda
-          if (direction === "OUTGOING") {
+          if (message.direction === "OUTGOING") {
             const tempMessages = existingMessages.filter(
               (msg) =>
                 msg.id.startsWith("temp_") &&

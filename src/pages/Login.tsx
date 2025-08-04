@@ -27,7 +27,6 @@ export function Login() {
     _hasHydrated: state._hasHydrated,
   }));
 
-  // Este useEffect ainda é útil para redirecionar usuários que já chegam na página logados.
   useEffect(() => {
     if (_hasHydrated && isAuthenticated) {
       navigate("/dashboard", { replace: true });
