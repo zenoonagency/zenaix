@@ -32,7 +32,6 @@ export function Connections() {
   const { showToast } = useToast();
   const isDark = theme === "dark";
 
-  // Verificar se o usuário tem permissão para acessar conexões
   const canAccess = hasPermission("whatsapp:read");
 
   const { instances, isLoading, fetchAllInstances, lastFetched } =
@@ -57,7 +56,6 @@ export function Connections() {
   const deleteInstance = useCallback(
     async (token: string, organizationId: string, instanceId: string) => {
       await whatsappInstanceService.delete(token, organizationId, instanceId);
-      // A store será atualizada via realtime ou refresh manual
     },
     []
   );

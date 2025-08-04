@@ -9,6 +9,7 @@ import * as pdfjsLib from "pdfjs-dist/build/pdf";
 // @ts-ignore
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+import { useAuthStore } from "../../../store/authStore";
 
 function AckIcon({ ack }: { ack: number }) {
   // 0: enviado, 1: enviado, 2: entregue, 3: lida
@@ -138,6 +139,7 @@ export function MessagesArea({
   messagesContainerRef,
   handleScroll,
 }) {
+  const { user } = useAuthStore();
   const [openDocUrl, setOpenDocUrl] = React.useState<string | null>(null);
   const [openDocName, setOpenDocName] = React.useState<string | null>(null);
   return (
@@ -263,18 +265,30 @@ export function MessagesArea({
                               messageType={item.message.message_type}
                               mediaType={item.message.media_type}
                               avatarUrl={(() => {
-                                const contato = instanceContacts.find(
-                                  (c) =>
-                                    c.id === item.message.whatsapp_contact_id
-                                );
-                                return contato?.avatar_url || null;
+                                if (item.message.direction === "OUTGOING") {
+                                  // Para mensagens de saída, usar avatar do usuário logado
+                                  return user?.avatar_url || null;
+                                } else {
+                                  // Para mensagens de entrada, usar avatar do contato
+                                  const contato = instanceContacts.find(
+                                    (c) =>
+                                      c.id === item.message.whatsapp_contact_id
+                                  );
+                                  return contato?.avatar_url || null;
+                                }
                               })()}
                               contactName={(() => {
-                                const contato = instanceContacts.find(
-                                  (c) =>
-                                    c.id === item.message.whatsapp_contact_id
-                                );
-                                return contato?.name || "";
+                                if (item.message.direction === "OUTGOING") {
+                                  // Para mensagens de saída, usar nome do usuário logado
+                                  return user?.name || "";
+                                } else {
+                                  // Para mensagens de entrada, usar nome do contato
+                                  const contato = instanceContacts.find(
+                                    (c) =>
+                                      c.id === item.message.whatsapp_contact_id
+                                  );
+                                  return contato?.name || "";
+                                }
                               })()}
                               messageTime={item.message.timestamp}
                               ack={item.message.ack}

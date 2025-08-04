@@ -32,7 +32,6 @@ export function MessageInputBar({
   newMessage,
   setNewMessage,
   handleKeyPress,
-  isSendingMessage,
   handleSendMessage,
   handleFileSelect,
   isLoadingMessages,
@@ -142,7 +141,12 @@ export function MessageInputBar({
           </button>
           {audioBlob ? (
             <>
-              <audio src={audioUrl!} controls controlsList="nodownload" className="h-8" />
+              <audio
+                src={audioUrl!}
+                controls
+                controlsList="nodownload"
+                className="h-8"
+              />
               <span className="font-mono text-xs text-gray-700 dark:text-gray-200 min-w-[40px]">
                 {formatTime(recordingTime)}
               </span>
@@ -248,7 +252,7 @@ export function MessageInputBar({
             onKeyPress={handleKeyPress}
             placeholder="Digite uma mensagem..."
             className="w-full px-4 py-2 bg-white dark:bg-dark-900 border border-gray-300 dark:border-gray-600 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-            disabled={isSendingMessage || isLoadingMessages}
+            disabled={isLoadingMessages}
             rows={1}
             style={{ minHeight: "40px", maxHeight: "120px" }}
           />
@@ -256,9 +260,9 @@ export function MessageInputBar({
         {/* Botão de enviar texto */}
         <button
           onClick={handleSendMessage}
-          disabled={!newMessage.trim() || isSendingMessage}
+          disabled={!newMessage.trim()}
           className={`p-2 rounded-full transition-colors ${
-            newMessage.trim() && !isSendingMessage
+            newMessage.trim()
               ? "bg-purple-600 text-white hover:bg-purple-700"
               : "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
           }`}

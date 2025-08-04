@@ -260,7 +260,6 @@ export function Conversations() {
   );
   const [showEditModal, setShowEditModal] = useState(false);
   const [newMessage, setNewMessage] = useState("");
-  const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [fixedDate, setFixedDate] = useState<string | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -551,7 +550,7 @@ export function Conversations() {
       }
     }, 100);
 
-    setIsSendingMessage(true);
+    // Remover o bloqueio do input - usuário pode enviar quantas mensagens quiser
     try {
       const { whatsappMessageService } = await import(
         "../../services/whatsapp/whatsappMessage.service"
@@ -567,8 +566,6 @@ export function Conversations() {
       );
     } catch (error: any) {
       showToast(error.message || "Erro ao enviar mensagem", "error");
-    } finally {
-      setIsSendingMessage(false);
     }
   };
 
@@ -1097,7 +1094,6 @@ export function Conversations() {
                     newMessage={newMessage}
                     setNewMessage={setNewMessage}
                     handleKeyPress={handleKeyPress}
-                    isSendingMessage={isSendingMessage}
                     handleSendMessage={handleSendMessage}
                     handleFileSelect={handleFileSelect}
                     isLoadingMessages={isLoadingMessages}
