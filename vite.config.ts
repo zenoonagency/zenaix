@@ -36,12 +36,12 @@ export default defineConfig({
         secure: false,
       },
       "/api": {
-        target: "https://app-backend-zenaix.mgmxhs.easypanel.host",
+        target: "https://codigo-zenaix-backend.w9rr1k.easypanel.host/",
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path,
         cookieDomainRewrite: {
-          "app-backend-zenaix.mgmxhs.easypanel.host": "localhost",
+          "codigo-zenaix-backend.w9rr1k.easypanel.host": "localhost",
         },
         configure: (proxy, _options) => {
           proxy.on("error", (err, _req, _res) => {

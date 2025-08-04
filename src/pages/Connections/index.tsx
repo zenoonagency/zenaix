@@ -80,7 +80,6 @@ export function Connections() {
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("[Supabase Auth] Evento:", event, session);
         if (event === "SIGNED_IN") {
           setSession(session);
         } else if (event === "SIGNED_OUT") {

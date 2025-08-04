@@ -139,9 +139,7 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         .deleteInstance(payload.data.instance_id);
       break;
     case "WHATSAPP_QR_CODE":
-      useWhatsAppInstanceStore
-        .getState()
-        .updateQrCode(payload.data.instance_id, payload.data.qrCode);
+      useWhatsAppInstanceStore.getState().updateInstance(payload.data);
       break;
     case "WHATSAPP_INSTANCE_CONNECTED": {
       const store = useWhatsAppInstanceStore.getState();

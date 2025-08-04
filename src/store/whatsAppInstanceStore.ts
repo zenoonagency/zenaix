@@ -99,6 +99,7 @@ export const useWhatsAppInstanceStore = create<WhatsAppInstanceState>()(
     {
       name: "whatsapp-instance-storage",
       partialize: (state) => ({
+        instances: state.instances,
         lastActiveInstanceId: state.lastActiveInstanceId,
       }),
     }
