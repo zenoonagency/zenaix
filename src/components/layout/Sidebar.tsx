@@ -25,6 +25,7 @@ import {
   Webhook,
   Crown,
   Link,
+  HelpCircle,
 } from "lucide-react";
 import { TagList } from "../tags/TagList";
 import { useThemeStore } from "../../store/themeStore";
@@ -729,6 +730,17 @@ function ProfileMenuModal({
           >
             <Settings className="w-5 h-5 mr-3 text-[#7f00ff]" />
             Configurações
+          </button>
+
+          <button
+            onClick={() => {
+              navigate("/dashboard/help");
+              onClose();
+            }}
+            className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg flex items-center"
+          >
+            <HelpCircle className="w-5 h-5 mr-3 text-[#7f00ff]" />
+            Ajuda
           </button>
 
           <button

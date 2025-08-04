@@ -130,9 +130,13 @@ function groupMessagesByDate(messages: WhatsappMessage[]): Array<{
 }> {
   if (!messages.length) return [];
 
-  const sortedMessages = messages.sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  );
+  // Ordenação estável: timestamp, depois id
+  const sortedMessages = messages.slice().sort((a, b) => {
+    const ta = new Date(a.timestamp).getTime();
+    const tb = new Date(b.timestamp).getTime();
+    if (ta !== tb) return ta - tb;
+    return a.id.localeCompare(b.id);
+  });
 
   const grouped: Array<{
     type: "separator" | "message";
@@ -514,7 +518,7 @@ export function Conversations() {
     setNewMessage("");
 
     const tempMessage: WhatsappMessage = {
-      id: `temp_${Date.now()}`,
+      id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       wa_message_id: "",
       from: `${activeInstance?.phone_number}@c.us`,
       to: `${selectedContact.phone}@c.us`,
@@ -664,7 +668,7 @@ export function Conversations() {
     }
 
     const tempMessage = {
-      id: `temp_${Date.now()}`,
+      id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       wa_message_id: "",
       from: `${activeInstance?.phone_number}@c.us`,
       to: `${contact.phone}@c.us`,
@@ -766,7 +770,7 @@ export function Conversations() {
 
       // Mensagem temporária ANTES do envio
       const tempMessage = {
-        id: `temp_${Date.now()}`,
+        id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         wa_message_id: "",
         from: `${activeInstance?.phone_number}@c.us`,
         to: `${contact.phone}@c.us`,

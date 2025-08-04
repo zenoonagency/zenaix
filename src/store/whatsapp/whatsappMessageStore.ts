@@ -104,7 +104,7 @@ export const useWhatsappMessageStore = create<WhatsappMessageStoreState>()(
       // Adiciona uma mensagem temporária com status 'sending'
       const tempMessage = {
         ...message,
-        id: `temp_${Date.now()}_${Math.random()}`, // ID temporário único
+        id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // ID temporário único
         status: "sending" as const,
       };
 

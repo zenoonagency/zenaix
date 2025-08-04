@@ -228,31 +228,41 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         const existingMessages =
           messageStore.messages[whatsapp_instance_id]?.[whatsapp_contact_id] ||
           [];
-        const tempMessage = existingMessages.find(
-          (msg) =>
-            msg.id.startsWith("temp_") &&
-            msg.body === body &&
-            msg.direction === "OUTGOING"
-        );
 
-        if (tempMessage) {
-          messageStore.updateMessageStatus(
-            whatsapp_instance_id,
-            whatsapp_contact_id,
-            tempMessage.id,
-            "sent"
+        // Para mensagens OUTGOING, procurar pela mensagem temporária mais recente que corresponda
+        if (direction === "OUTGOING") {
+          const tempMessages = existingMessages.filter(
+            (msg) =>
+              msg.id.startsWith("temp_") &&
+              msg.body === body &&
+              msg.direction === "OUTGOING"
           );
-          const updatedMessages = existingMessages.map((msg) =>
-            msg.id === tempMessage.id
-              ? { ...message, status: "sent" as const }
-              : msg
-          );
-          messageStore.setMessages(
-            whatsapp_instance_id,
-            whatsapp_contact_id,
-            updatedMessages
-          );
+
+          if (tempMessages.length > 0) {
+            // Pegar a mensagem temporária mais recente (última da lista)
+            const tempMessage = tempMessages[tempMessages.length - 1];
+
+            // Substituir apenas a mensagem temporária específica, mantendo a ordem
+            const updatedMessages = existingMessages.map((msg) =>
+              msg.id === tempMessage.id
+                ? { ...message, status: "sent" as const }
+                : msg
+            );
+
+            messageStore.setMessages(
+              whatsapp_instance_id,
+              whatsapp_contact_id,
+              updatedMessages
+            );
+          } else {
+            // Se não encontrou mensagem temporária, adicionar normalmente
+            messageStore.addMessage(whatsapp_instance_id, whatsapp_contact_id, {
+              ...message,
+              status: "delivered",
+            });
+          }
         } else {
+          // Para mensagens INCOMING, adicionar normalmente
           messageStore.addMessage(whatsapp_instance_id, whatsapp_contact_id, {
             ...message,
             status: "delivered",
@@ -269,32 +279,41 @@ const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         if (contact) {
           const existingMessages =
             messageStore.messages[whatsapp_instance_id]?.[contact.id] || [];
-          const tempMessage = existingMessages.find(
-            (msg) =>
-              msg.id.startsWith("temp_") &&
-              msg.body === body &&
-              msg.direction === "OUTGOING"
-          );
 
-          if (tempMessage) {
-            messageStore.updateMessageStatus(
-              whatsapp_instance_id,
-              contact.id,
-              tempMessage.id,
-              "sent"
+          // Para mensagens OUTGOING, procurar pela mensagem temporária mais recente que corresponda
+          if (direction === "OUTGOING") {
+            const tempMessages = existingMessages.filter(
+              (msg) =>
+                msg.id.startsWith("temp_") &&
+                msg.body === body &&
+                msg.direction === "OUTGOING"
             );
-            // Substituir o ID temporário pelo real
-            const updatedMessages = existingMessages.map((msg) =>
-              msg.id === tempMessage.id
-                ? { ...message, status: "sent" as const }
-                : msg
-            );
-            messageStore.setMessages(
-              whatsapp_instance_id,
-              contact.id,
-              updatedMessages
-            );
+
+            if (tempMessages.length > 0) {
+              // Pegar a mensagem temporária mais recente (última da lista)
+              const tempMessage = tempMessages[tempMessages.length - 1];
+
+              // Substituir apenas a mensagem temporária específica, mantendo a ordem
+              const updatedMessages = existingMessages.map((msg) =>
+                msg.id === tempMessage.id
+                  ? { ...message, status: "sent" as const }
+                  : msg
+              );
+
+              messageStore.setMessages(
+                whatsapp_instance_id,
+                contact.id,
+                updatedMessages
+              );
+            } else {
+              // Se não encontrou mensagem temporária, adicionar normalmente
+              messageStore.addMessage(whatsapp_instance_id, contact.id, {
+                ...message,
+                status: "delivered",
+              });
+            }
           } else {
+            // Para mensagens INCOMING, adicionar normalmente
             messageStore.addMessage(whatsapp_instance_id, contact.id, {
               ...message,
               status: "delivered",
