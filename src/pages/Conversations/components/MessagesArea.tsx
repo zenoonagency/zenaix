@@ -212,7 +212,7 @@ export function MessagesArea({
                       style={{ position: "relative" }}
                     >
                       {item.message.body && (
-                        <div className="text-sm whitespace-pre-wrap">
+                        <div className="text-sm whitespace-pre-wrap break-words word-wrap">
                           {item.message.body}
                         </div>
                       )}
