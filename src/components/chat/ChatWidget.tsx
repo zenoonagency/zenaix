@@ -12,17 +12,31 @@ import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { QuickMessages } from "./QuickMessages";
 import { useAuthStore } from "../../store/authStore";
+import { useChatStore } from "../../store/chatStore";
 
 type ChatState = "closed" | "minimized" | "open" | "maximized";
 
 export const ChatWidget = () => {
   const { user, organization } = useAuthStore();
+  const { isOpen: isChatOpen, setIsOpen } = useChatStore();
   const [chatState, setChatState] = useState<ChatState>("closed");
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Só mostra o chat se o usuário estiver logado e tiver uma organização
   const shouldShowChat = user && organization?.id;
+
+  // Sincroniza o estado do chat com a store
+  useEffect(() => {
+    if (isChatOpen && chatState === "closed") {
+      setChatState("open");
+    } else if (!isChatOpen && chatState !== "closed") {
+      setChatState("closed");
+      resetPosition();
+      resetSize();
+      clearMessages();
+    }
+  }, [isChatOpen]);
 
   const { messages, addMessage, updateMessage, clearMessages } =
     useChatStorage();
@@ -171,6 +185,7 @@ export const ChatWidget = () => {
 
   const handleOpenChat = () => {
     setChatState("open");
+    setIsOpen(true); // Sincroniza com a store
     setHasNewMessage(false);
   };
 
@@ -188,13 +203,13 @@ export const ChatWidget = () => {
 
   const handleCloseChat = () => {
     setChatState("closed");
+    setIsOpen(false); // Sincroniza com a store
     resetPosition();
     resetSize();
     // Apaga o histórico quando fecha o chat
     clearMessages();
   };
 
-  const isVisible = chatState !== "closed";
   const isOpen = chatState === "open" || chatState === "maximized";
   const isMaximized = chatState === "maximized";
 
@@ -205,23 +220,6 @@ export const ChatWidget = () => {
 
   return (
     <>
-      {/* Chat Button */}
-      {!isVisible && (
-        <Button
-          onClick={handleOpenChat}
-          className={cn(
-            "fixed bottom-20 right-6 h-14 w-14 rounded-full shadow-lg",
-            "bg-purple-600 hover:bg-purple-700",
-            "z-50"
-          )}
-        >
-          <MessageCircle className="h-6 w-6 text-white" />
-          {hasNewMessage && (
-            <div className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full animate-pulse" />
-          )}
-        </Button>
-      )}
-
       {/* Minimized Chat - positioned at top */}
       {chatState === "minimized" && (
         <div className={cn("fixed z-50 top-4 right-4")}>

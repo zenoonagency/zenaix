@@ -50,7 +50,7 @@ export function AcceptInviteLogin() {
   const logoUrl =
     theme === "dark"
       ? "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT.png"
-      : "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-DARK.png";
+      : "/assets/images/LOGO-DARK.webp";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +85,6 @@ export function AcceptInviteLogin() {
       updateUserDataSilently(finalUserData);
 
       navigate("/dashboard", { replace: true });
-
     } catch (error: any) {
       // Em caso de erro, deslogar para garantir um estado limpo
       await supabase.auth.signOut();
@@ -93,7 +92,9 @@ export function AcceptInviteLogin() {
       clearAuth();
 
       const message = handleSupabaseError(error, "Erro ao aceitar o convite");
-      if (message.includes("Convite não pode ser aceito. Status atual: ACCEPTED.")) {
+      if (
+        message.includes("Convite não pode ser aceito. Status atual: ACCEPTED.")
+      ) {
         setError("Este convite já foi aceito. Faça login normalmente.");
         showToast("Este convite já foi aceito.", "info");
       } else {

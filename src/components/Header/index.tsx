@@ -41,7 +41,7 @@ export function Header() {
           className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-900 dark:text-white hover:bg-[#7f00ff]/10 rounded-lg transition-colors bg-white dark:bg-dark-700"
         >
           <img
-            src="https://zenaix.com.br/wp-content/uploads/2025/03/pergunte-a-IA.webp"
+            src="/assets/images/pergunte-a-IA.webp"
             alt="IA"
             className="w-5 h-5 mr-1"
           />

@@ -46,7 +46,7 @@ export function Login() {
   const logoUrl =
     theme === "dark"
       ? "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT.png"
-      : "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-DARK.png";
+      : "/assets/images/LOGO-DARK.webp";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

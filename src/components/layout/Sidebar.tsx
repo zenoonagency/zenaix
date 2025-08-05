@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Bot,
@@ -21,7 +21,6 @@ import {
   Settings,
   LogOut,
   X,
-  Send,
   Webhook,
   Crown,
   Link,
@@ -34,6 +33,7 @@ import { ProfileModal } from "../../components/ProfileModal";
 import { ProtectedLink } from "../ProtectedLink";
 import { OrganizationRequiredModal } from "../OrganizationRequiredModal";
 import { useOrganizationAccess } from "../../hooks/useOrganizationAccess";
+import { useChatStore } from "../../store/chatStore";
 
 interface SidebarLinkProps {
   to: string;
@@ -163,460 +163,6 @@ const SidebarLink = ({
 
 // Componente para o chat modal
 import { useState as useModalState } from "react";
-
-interface ChatModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-function ChatModal({ isOpen, onClose }: ChatModalProps) {
-  useEffect(() => {
-    if (isOpen) {
-      function typeWriter(element: HTMLElement, text: string, delay = 50) {
-        let i = 0;
-        function type() {
-          if (i < text.length) {
-            element.innerHTML += text.charAt(i);
-            i++;
-            setTimeout(type, delay);
-          }
-        }
-        type();
-      }
-
-      function sendMessage() {
-        const chatInput = document.getElementById(
-          "chat-input"
-        ) as HTMLInputElement;
-        const chatMessages = document.getElementById("chat-messages");
-
-        if (chatInput && chatMessages && chatInput.value.trim() !== "") {
-          const message = chatInput.value;
-          const userMessageWrapper = document.createElement("div");
-          userMessageWrapper.classList.add("user-message-wrapper");
-          const userMessage = document.createElement("div");
-          userMessage.classList.add("user-message");
-          userMessage.innerHTML = message;
-          userMessageWrapper.appendChild(userMessage);
-          chatMessages.appendChild(userMessageWrapper);
-          chatInput.value = "";
-          chatMessages.scrollTop = chatMessages.scrollHeight;
-
-          const typingIndicator = document.createElement("div");
-          typingIndicator.classList.add("typing-indicator");
-          typingIndicator.innerHTML =
-            'IA está digitando<span class="dot-flashing"></span><span class="dot-flashing"></span><span class="dot-flashing"></span>';
-          chatMessages.appendChild(typingIndicator);
-          chatMessages.scrollTop = chatMessages.scrollHeight;
-
-          fetch(
-            "https://fluxos-n8n.mgmxhs.easypanel.host/webhook/c0bf5d3e-e3a4-4d66-aec6-6edcc9c6a666/chat",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                message: message,
-              }),
-            }
-          )
-            .then((response) => response.json())
-            .then((data) => {
-              const agentResponse = data.output || "Resposta não encontrada";
-              const typingDelay = Math.min(
-                Math.max(agentResponse.length * 50, 500),
-                3000
-              );
-
-              setTimeout(() => {
-                typingIndicator.remove();
-
-                const aiWrapper = document.createElement("div");
-                aiWrapper.classList.add("ai-response-wrapper");
-
-                const aiImage = document.createElement("img");
-                aiImage.src =
-                  "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT-SMALL.png";
-                aiImage.alt = "IA";
-                aiImage.classList.add("ai-profile-pic");
-
-                const aiResponse = document.createElement("div");
-                aiResponse.classList.add("ai-response");
-                aiWrapper.appendChild(aiImage);
-                aiWrapper.appendChild(aiResponse);
-
-                chatMessages.appendChild(aiWrapper);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-
-                typeWriter(aiResponse, agentResponse, 30);
-              }, typingDelay);
-            })
-            .catch((error) => {
-              console.error("Erro ao enviar mensagem:", error);
-              typingIndicator.remove();
-              chatMessages.innerHTML +=
-                "<p><strong>Erro:</strong> Não foi possível obter uma resposta.</p>";
-            });
-        }
-      }
-
-      const chatMessages = document.getElementById("chat-messages");
-      if (chatMessages) {
-        chatMessages.innerHTML = "";
-      }
-
-      const chatInput = document.getElementById("chat-input");
-      const sendBtn = document.getElementById("send-btn");
-
-      // Remover event listeners antigos se existirem
-      const newChatInput = chatInput?.cloneNode(true);
-      const newSendBtn = sendBtn?.cloneNode(true);
-
-      if (chatInput && chatInput.parentNode && newChatInput) {
-        chatInput.parentNode.replaceChild(newChatInput, chatInput);
-      }
-
-      if (sendBtn && sendBtn.parentNode && newSendBtn) {
-        sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
-      }
-
-      const updatedChatInput = document.getElementById("chat-input");
-      const updatedSendBtn = document.getElementById("send-btn");
-      const updatedChatMessages = document.getElementById("chat-messages");
-
-      if (updatedChatInput && updatedSendBtn && updatedChatMessages) {
-        updatedChatInput.addEventListener("keydown", function (event) {
-          if (event.key === "Enter") {
-            sendMessage();
-          }
-        });
-
-        updatedSendBtn.addEventListener("click", sendMessage);
-
-        const aiWrapper = document.createElement("div");
-        aiWrapper.classList.add("ai-response-wrapper");
-
-        const aiImage = document.createElement("img");
-        aiImage.src =
-          "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT-SMALL.png";
-        aiImage.alt = "IA";
-        aiImage.classList.add("ai-profile-pic");
-
-        const aiResponse = document.createElement("div");
-        aiResponse.classList.add("ai-response");
-        aiResponse.innerText = "Olá, converse comigo";
-
-        aiWrapper.appendChild(aiImage);
-        aiWrapper.appendChild(aiResponse);
-
-        updatedChatMessages.appendChild(aiWrapper);
-        updatedChatMessages.scrollTop = updatedChatMessages.scrollHeight;
-
-        // Focar o input automaticamente
-        updatedChatInput.focus();
-      }
-    }
-
-    // Cleanup function quando o componente é desmontado ou isOpen muda
-    return () => {
-      const chatInput = document.getElementById("chat-input");
-      const sendBtn = document.getElementById("send-btn");
-
-      if (chatInput) {
-        const newChatInput = chatInput.cloneNode(true);
-        if (chatInput.parentNode) {
-          chatInput.parentNode.replaceChild(newChatInput, chatInput);
-        }
-      }
-
-      if (sendBtn) {
-        const newSendBtn = sendBtn.cloneNode(true);
-        if (sendBtn.parentNode) {
-          sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
-        }
-      }
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="modal-container">
-      <div className="rounded-lg pt-16 shadow-lg w-full max-w-2xl h-[700px] relative bg-white text-black glass-effect">
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
-        >
-          Fechar
-        </button>
-        <div id="chat-container" className="mt-20">
-          <div id="chat-box">
-            <div id="chat-messages"></div>
-            <div id="input-container">
-              <input
-                type="text"
-                id="chat-input"
-                placeholder="Concerse com a IA"
-              />
-              <div className="input-actions">
-                <button id="send-btn">
-                  <Send size={18} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <style>
-        {`
-          @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css');
-
-          #chat-messages {
-            height: 500px;
-            overflow-y: scroll;
-            background-color: transparent;
-            padding: 10px;
-            margin-bottom: 10px;
-            color: #343a40;
-            animation: slideIn 0.5s ease-in-out;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(121, 121, 121, 0.5) transparent;
-          }
-
-          #chat-messages::-webkit-scrollbar {
-            width: 8px;
-          }
-
-          #chat-messages::-webkit-scrollbar-track {
-            background: transparent;
-          }
-
-          #chat-messages::-webkit-scrollbar-thumb {
-            background: rgba(121, 121, 121, 0.5);
-            border-radius: 4px;
-          }
-
-          #chat-messages::-webkit-scrollbar-thumb:hover {
-            background: rgba(121, 121, 121, 0.7);
-          }
-
-          #chat-messages::-webkit-scrollbar-button {
-            width: 0;
-            height: 0;
-            display: none;
-          }
-
-          .glass-effect {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-          }
-
-          #chat-container {
-            width: 600px;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            color: #343a40;
-            font-family: 'Roboto', sans-serif;
-            position: relative;
-            z-index: 1;
-            overflow: hidden;
-            animation: fadeIn 0.5s ease-in-out;
-          }
-
-          #chat-box {
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-          }
-
-          #chat-messages .user-message-wrapper {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 8px;
-          }
-
-          #chat-messages .user-message {
-            background-color: #7f00ff;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            max-width: 70%;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            position: relative;
-            animation: slideInRight 0.3s ease-in-out;
-          }
-
-          #chat-messages .ai-response-wrapper {
-            display: flex;
-            align-items: flex-start;
-            margin: 10px 0;
-          }
-
-          .ai-profile-pic {
-            width: 30px;
-            height: 30px;
-            margin-top: 10px;
-            margin-right: 10px;
-            animation: fadeIn 0.3s ease-in-out;
-          }
-
-          .ai-response {
-            background-color: #f0e6ff;
-            border-radius: 5px;
-            padding: 15px;
-            color: #343a40;
-            flex: 1;
-            font-family: 'Roboto', sans-serif;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            margin-bottom: 15px;
-            display: flex;
-            flex-direction: column;
-            animation: slideInLeft 0.3s ease-in-out;
-          }
-
-          .ai-response strong {
-            color: #343a40;
-          }
-
-          #input-container {
-            display: flex;
-            align-items: center;
-            background-color: #fff;
-            border: 1px solid #dee2e6;
-            padding: 5px 10px;
-            position: relative;
-            margin: 0 5px;
-            border-radius: 10px;
-            animation: slideInUp 0.5s ease-in-out;
-          }
-
-          #chat-input {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            background-color: transparent;
-            color: #343a40;
-            font-family: 'Roboto', sans-serif;
-            outline: none;
-          }
-
-          .input-actions {
-            display: flex;
-            align-items: center;
-          }
-
-          #send-btn {
-            background-color: #7f00ff;
-            color: white;
-            border: none;
-            padding: 10px;
-            margin-left: 10px;
-            border-radius: 10px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.3s ease;
-            width: 40px;
-            height: 40px;
-          }
-
-          #send-btn i, #send-btn svg {
-            font-size: 20px;
-          }
-
-          #send-btn:hover {
-            background-color: #6700dc;
-          }
-
-          .typing-indicator {
-            margin: 10px 0;
-            font-style: italic;
-            color: #6c757d;
-            animation: fadeIn 0.3s ease-in-out;
-          }
-
-          .dot-flashing {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            margin-left: 2px;
-            border-radius: 50%;
-            background-color: #6c757d;
-            animation: dotFlashing 1s infinite;
-          }
-
-          .copy-btn:hover {
-            background-color: #5a00b3;
-          }
-
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-
-          @keyframes slideIn {
-            from {
-              transform: translateY(-20px);
-              opacity: 0;
-            }
-            to {
-              transform: translateY(0);
-              opacity: 1;
-            }
-          }
-
-          @keyframes slideInRight {
-            from {
-              transform: translateX(20px);
-              opacity: 0;
-            }
-            to {
-              transform: translateX(0);
-              opacity: 1;
-            }
-          }
-
-          @keyframes slideInLeft {
-            from {
-              transform: translateX(-20px);
-              opacity: 0;
-            }
-            to {
-              transform: translateX(0);
-              opacity: 1;
-            }
-          }
-
-          @keyframes slideInUp {
-            from {
-              transform: translateY(20px);
-              opacity: 0;
-            }
-            to {
-              transform: translateY(0);
-              opacity: 1;
-            }
-          }
-
-          @keyframes dotFlashing {
-            0% { background-color: #6c757d; }
-            50% { background-color: #ccc; }
-            100% { background-color: #6c757d; }
-          }
-        `}
-      </style>
-    </div>
-  );
-}
 
 // Modal do menu do perfil do usuário
 interface ProfileMenuModalProps {
@@ -773,7 +319,7 @@ export function Sidebar() {
   }));
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const { openChat } = useChatStore();
 
   const planName = organization?.plan?.name || "Plano Básico";
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -785,8 +331,8 @@ export function Sidebar() {
         ? "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT-SMALL.png"
         : "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT.png"
       : collapsed
-      ? "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-DARK-SMALL.png"
-      : "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-DARK.png";
+      ? "/assets/images/LOGO-DARK-SMALL.webp"
+      : "/assets/images/LOGO-DARK.webp";
 
   return (
     <>
@@ -904,7 +450,7 @@ export function Sidebar() {
               </div>
 
               <button
-                onClick={() => setIsChatModalOpen(true)}
+                onClick={openChat}
                 className={`
                   flex items-center 
                   ${collapsed ? "justify-center py-3" : "px-4 py-3"} 
@@ -917,7 +463,7 @@ export function Sidebar() {
                 `}
               >
                 <img
-                  src="https://zenaix.com.br/wp-content/uploads/2025/03/pergunte-a-IA.webp"
+                  src="/assets/images/pergunte-a-IA.webp"
                   alt="IA"
                   className={`${collapsed ? "w-6 h-6" : "w-6 h-6 mr-3"}`}
                 />
@@ -1090,10 +636,6 @@ export function Sidebar() {
       <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
-      />
-      <ChatModal
-        isOpen={isChatModalOpen}
-        onClose={() => setIsChatModalOpen(false)}
       />
       <ProfileMenuModal
         isOpen={isProfileMenuOpen}

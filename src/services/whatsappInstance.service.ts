@@ -22,7 +22,10 @@ export const whatsappInstanceService = {
       )}`;
       const response = await fetchWithAuth(url, {
         method: "POST",
-        headers: { ...getAuthHeaders(token), "Content-Type": "application/json" },
+        headers: {
+          ...getAuthHeaders(token),
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(dto),
       });
       if (!response.ok) {
@@ -32,16 +35,22 @@ export const whatsappInstanceService = {
           statusText: response.statusText,
           errorData,
         });
-        const error = formatApiError(errorData, "Falha ao criar instância WhatsApp.");
+        const error = formatApiError(
+          errorData,
+          "Falha ao criar instância WhatsApp."
+        );
         (error as any).status = response.status;
         throw error;
       }
-      const responseData: ApiResponse<WhatsAppInstanceOutput> = await response.json();
+      const responseData: ApiResponse<WhatsAppInstanceOutput> =
+        await response.json();
       return responseData.data;
     } catch (error) {
       console.error("Erro ao criar instância WhatsApp:", error);
       if (error instanceof APIError) throw error;
-      throw new APIError("Ocorreu um erro inesperado ao criar a instância WhatsApp.");
+      throw new APIError(
+        "Ocorreu um erro inesperado ao criar a instância WhatsApp."
+      );
     }
   },
 
@@ -64,16 +73,22 @@ export const whatsappInstanceService = {
           statusText: response.statusText,
           errorData,
         });
-        const error = formatApiError(errorData, "Falha ao buscar instâncias WhatsApp.");
+        const error = formatApiError(
+          errorData,
+          "Falha ao buscar instâncias WhatsApp."
+        );
         (error as any).status = response.status;
         throw error;
       }
-      const responseData: ApiResponse<WhatsAppInstanceOutput[]> = await response.json();
+      const responseData: ApiResponse<WhatsAppInstanceOutput[]> =
+        await response.json();
       return responseData.data;
     } catch (error) {
       console.error("Erro ao buscar instâncias WhatsApp:", error);
       if (error instanceof APIError) throw error;
-      throw new APIError("Ocorreu um erro inesperado ao buscar as instâncias WhatsApp.");
+      throw new APIError(
+        "Ocorreu um erro inesperado ao buscar as instâncias WhatsApp."
+      );
     }
   },
 
@@ -98,16 +113,22 @@ export const whatsappInstanceService = {
           statusText: response.statusText,
           errorData,
         });
-        const error = formatApiError(errorData, "Falha ao buscar instância WhatsApp.");
+        const error = formatApiError(
+          errorData,
+          "Falha ao buscar instância WhatsApp."
+        );
         (error as any).status = response.status;
         throw error;
       }
-      const responseData: ApiResponse<WhatsAppInstanceOutput> = await response.json();
+      const responseData: ApiResponse<WhatsAppInstanceOutput> =
+        await response.json();
       return responseData.data;
     } catch (error) {
       console.error("Erro ao buscar instância WhatsApp:", error);
       if (error instanceof APIError) throw error;
-      throw new APIError("Ocorreu um erro inesperado ao buscar a instância WhatsApp.");
+      throw new APIError(
+        "Ocorreu um erro inesperado ao buscar a instância WhatsApp."
+      );
     }
   },
 
@@ -124,7 +145,10 @@ export const whatsappInstanceService = {
       )}`;
       const response = await fetchWithAuth(url, {
         method: "PATCH",
-        headers: { ...getAuthHeaders(token), "Content-Type": "application/json" },
+        headers: {
+          ...getAuthHeaders(token),
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(dto),
       });
       if (!response.ok) {
@@ -134,16 +158,22 @@ export const whatsappInstanceService = {
           statusText: response.statusText,
           errorData,
         });
-        const error = formatApiError(errorData, "Falha ao atualizar instância WhatsApp.");
+        const error = formatApiError(
+          errorData,
+          "Falha ao atualizar instância WhatsApp."
+        );
         (error as any).status = response.status;
         throw error;
       }
-      const responseData: ApiResponse<WhatsAppInstanceOutput> = await response.json();
+      const responseData: ApiResponse<WhatsAppInstanceOutput> =
+        await response.json();
       return responseData.data;
     } catch (error) {
       console.error("Erro ao atualizar instância WhatsApp:", error);
       if (error instanceof APIError) throw error;
-      throw new APIError("Ocorreu um erro inesperado ao atualizar a instância WhatsApp.");
+      throw new APIError(
+        "Ocorreu um erro inesperado ao atualizar a instância WhatsApp."
+      );
     }
   },
 
@@ -168,14 +198,19 @@ export const whatsappInstanceService = {
           statusText: response.statusText,
           errorData,
         });
-        const error = formatApiError(errorData, "Falha ao deletar instância WhatsApp.");
+        const error = formatApiError(
+          errorData,
+          "Falha ao deletar instância WhatsApp."
+        );
         (error as any).status = response.status;
         throw error;
       }
     } catch (error) {
       console.error("Erro ao deletar instância WhatsApp:", error);
       if (error instanceof APIError) throw error;
-      throw new APIError("Ocorreu um erro inesperado ao deletar a instância WhatsApp.");
+      throw new APIError(
+        "Ocorreu um erro inesperado ao deletar a instância WhatsApp."
+      );
     }
   },
 
@@ -200,14 +235,19 @@ export const whatsappInstanceService = {
           statusText: response.statusText,
           errorData,
         });
-        const error = formatApiError(errorData, "Falha ao conectar instância WhatsApp.");
+        const error = formatApiError(
+          errorData,
+          "Falha ao conectar instância WhatsApp."
+        );
         (error as any).status = response.status;
         throw error;
       }
     } catch (error) {
       console.error("Erro ao conectar instância WhatsApp:", error);
       if (error instanceof APIError) throw error;
-      throw new APIError("Ocorreu um erro inesperado ao conectar a instância WhatsApp.");
+      throw new APIError(
+        "Ocorreu um erro inesperado ao conectar a instância WhatsApp."
+      );
     }
   },
-}; 
+};
