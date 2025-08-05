@@ -1,5 +1,5 @@
 import React from "react";
-import { Paperclip, Video } from "lucide-react";
+import { Paperclip, Video, Smile } from "lucide-react";
 import { WhatsAppAudioPlayer } from "../../../components/WhatsAppAudioPlayer";
 import { PDFViewer } from "../../../components/PDFViewer";
 import { Modal } from "../../../components/Modal";
@@ -138,10 +138,12 @@ export function MessagesArea({
   setShowImageModal,
   messagesContainerRef,
   handleScroll,
+  onEmojiSelect,
 }) {
   const { user } = useAuthStore();
   const [openDocUrl, setOpenDocUrl] = React.useState<string | null>(null);
   const [openDocName, setOpenDocName] = React.useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = React.useState(false);
   return (
     <div
       ref={messagesContainerRef}

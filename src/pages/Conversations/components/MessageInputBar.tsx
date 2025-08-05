@@ -1,5 +1,496 @@
 import React, { useRef, useState } from "react";
-import { Mic, Paperclip, Send, Trash2 } from "lucide-react";
+import { Mic, Paperclip, Send, Trash2, Smile } from "lucide-react";
+
+// Emojis populares do WhatsApp organizados por categoria
+const emojiCategories = {
+  recentes: [], // Será preenchido dinamicamente
+  faces: [
+    "😀",
+    "😃",
+    "😄",
+    "😁",
+    "😆",
+    "😅",
+    "😂",
+    "🤣",
+    "😊",
+    "😇",
+    "🙂",
+    "🙃",
+    "😉",
+    "😌",
+    "😍",
+    "🥰",
+    "😘",
+    "😗",
+    "😙",
+    "😚",
+    "😋",
+    "😛",
+    "😝",
+    "😜",
+    "🤪",
+    "🤨",
+    "🧐",
+    "🤓",
+    "😎",
+    "🤩",
+    "🥳",
+    "😏",
+    "😒",
+    "😞",
+    "😔",
+    "😟",
+    "😕",
+    "🙁",
+    "☹️",
+    "😣",
+    "😖",
+    "😫",
+    "😩",
+    "🥺",
+    "😢",
+    "😭",
+    "😤",
+    "😠",
+    "😡",
+    "🤬",
+    "🤯",
+    "😳",
+    "🥵",
+    "🥶",
+    "😱",
+    "😨",
+    "😰",
+    "😥",
+    "😓",
+    "🤗",
+    "🤔",
+    "🤭",
+    "🤫",
+    "🤥",
+    "😶",
+    "😐",
+    "😑",
+    "😯",
+    "😦",
+    "😧",
+    "😮",
+    "😲",
+    "🥱",
+    "😴",
+    "🤤",
+    "😪",
+    "😵",
+    "🤐",
+    "🥴",
+    "🤢",
+  ],
+  gestures: [
+    "👍",
+    "👎",
+    "👌",
+    "✌️",
+    "🤞",
+    "🤟",
+    "🤘",
+    "🤙",
+    "👈",
+    "👉",
+    "👆",
+    "🖕",
+    "👇",
+    "☝️",
+    "👋",
+    "🤚",
+    "🖐️",
+    "✋",
+    "🖖",
+    "👌",
+    "🤏",
+    "✌️",
+    "🤞",
+    "🤟",
+    "🤘",
+    "🤙",
+    "👈",
+    "👉",
+    "👆",
+    "🖕",
+    "👇",
+    "☝️",
+    "👋",
+    "🤚",
+    "🖐️",
+    "✋",
+    "🖖",
+    "👌",
+    "🤏",
+    "✌️",
+    "🤞",
+    "🤟",
+    "🤘",
+    "🤙",
+    "👈",
+    "👉",
+    "👆",
+    "🖕",
+  ],
+  objects: [
+    "💻",
+    "📱",
+    "📞",
+    "📟",
+    "📠",
+    "🖨️",
+    "🖥️",
+    "⌨️",
+    "🖱️",
+    "🖲️",
+    "💽",
+    "💾",
+    "💿",
+    "📀",
+    "🎥",
+    "📺",
+    "📻",
+    "📷",
+    "📸",
+    "📹",
+    "🎞️",
+    "📽️",
+    "🎬",
+    "📼",
+    "🔍",
+    "🔎",
+    "🔏",
+    "🔐",
+    "🔑",
+    "🗝️",
+    "💡",
+    "🔦",
+    "🕯️",
+    "🪔",
+    "🧯",
+    "🛢️",
+    "💸",
+    "💵",
+    "💴",
+    "💶",
+    "💷",
+    "🪙",
+    "💰",
+    "💳",
+    "💎",
+    "⚖️",
+    "🪜",
+    "🦯",
+    "🦽",
+    "🦼",
+  ],
+  food: [
+    "🍎",
+    "🍐",
+    "🍊",
+    "🍋",
+    "🍌",
+    "🍉",
+    "🍇",
+    "🍓",
+    "🫐",
+    "🍈",
+    "🍒",
+    "🍑",
+    "🥭",
+    "🍍",
+    "🥥",
+    "🥝",
+    "🍅",
+    "🥑",
+    "🍆",
+    "🥔",
+    "🥕",
+    "🌽",
+    "🌶️",
+    "🥬",
+    "🥦",
+    "🧄",
+    "🧅",
+    "🥜",
+    "🌰",
+    "🍞",
+    "🥐",
+    "🥯",
+    "🥖",
+    "🥨",
+    "🧀",
+    "🥚",
+    "🍳",
+    "🧈",
+    "🥞",
+    "🧇",
+    "🥓",
+    "🥩",
+    "🍗",
+    "🍖",
+    "🦴",
+    "🌭",
+    "🍔",
+    "🍟",
+    "🍕",
+  ],
+  places: [
+    "🏠",
+    "🏡",
+    "🏘️",
+    "🏚️",
+    "🏗️",
+    "🏭",
+    "🏢",
+    "🏬",
+    "🏣",
+    "🏤",
+    "🏥",
+    "🏦",
+    "🏨",
+    "🏪",
+    "🏫",
+    "🏩",
+    "💒",
+    "⛪",
+    "🕌",
+    "🕍",
+    "🛕",
+    "⛩️",
+    "🕋",
+    "⛲",
+    "⛺",
+    "🌁",
+    "🌃",
+    "🏙️",
+    "🌄",
+    "🌅",
+    "🌆",
+    "🌇",
+    "🌉",
+    "🎠",
+    "🎡",
+    "🎢",
+    "🚂",
+    "🚃",
+    "🚄",
+    "🚅",
+    "🚆",
+    "🚇",
+    "🚈",
+    "🚉",
+    "🚊",
+    "🚝",
+    "🚞",
+    "🚋",
+    "🚌",
+    "🚍",
+    "🚎",
+    "🚐",
+    "🚑",
+    "🚒",
+    "🚓",
+    "🚔",
+    "🚕",
+    "🚖",
+    "🚗",
+    "🚘",
+    "🚙",
+    "🚚",
+    "🚛",
+    "🚜",
+    "🚝",
+    "🚞",
+    "🚟",
+    "🚠",
+    "🚡",
+    "🚢",
+    "🚣",
+    "🚤",
+    "🚥",
+    "🚦",
+    "🚧",
+    "🚨",
+    "🚩",
+    "🚪",
+    "🚫",
+    "🚬",
+    "🚭",
+    "🚮",
+    "🚯",
+    "🚰",
+    "🚱",
+    "🚲",
+    "🚳",
+    "🚴",
+    "🚵",
+    "🚶",
+    "🚷",
+    "🚸",
+    "🚹",
+    "🚺",
+    "🚻",
+    "🚼",
+    "🚽",
+    "🚾",
+    "🚿",
+    "🛁",
+    "🛂",
+    "🛃",
+    "🛄",
+    "🛅",
+    "🛋️",
+    "🛌",
+    "🛍️",
+    "🛎️",
+    "🛏️",
+    "🛐",
+    "🛑",
+    "🛒",
+    "🛕",
+    "🛠️",
+    "🛡️",
+    "🛢️",
+    "🛣️",
+    "🛤️",
+    "🛥️",
+    "🛦",
+    "🛧️",
+    "🛨️",
+    "🛩️",
+    "🛪",
+    "🛫",
+    "🛬",
+    "🛰️",
+    "🛱️",
+    "🛲",
+    "🛳️",
+    "🛴",
+    "🛵",
+    "🛶",
+    "🛷",
+    "🛸",
+    "🛹",
+    "🛺",
+    "🛻",
+    "🛼",
+    "🛽",
+    "🛾",
+    "🛿",
+    "✈️",
+    "🛩️",
+    "🛪",
+    "🛫",
+    "🛬",
+    "🛰️",
+    "🛱️",
+    "🛲",
+    "🛳️",
+    "🛴",
+    "🛵",
+    "🛶",
+    "🛷",
+    "🛸",
+    "🛹",
+    "🛺",
+    "🚀",
+    "🛸",
+    "🛹",
+    "🛺",
+  ],
+  music: [
+    "🎵",
+    "🎶",
+    "🎼",
+    "🎤",
+    "🎧",
+    "🎺",
+    "🎷",
+    "🪗",
+    "🎸",
+    "🎹",
+    "🪕",
+    "🎻",
+    "🪘",
+    "🥁",
+    "🪔",
+    "🎭",
+    "🎨",
+    "🎬",
+    "🎤",
+    "🎧",
+    "🎪",
+    "🎟️",
+    "🎫",
+    "🎖️",
+    "🏆",
+    "🏅",
+    "🥇",
+    "🥈",
+    "🥉",
+    "⚽",
+    "🏀",
+    "🏈",
+    "⚾",
+    "🥎",
+    "🎾",
+    "🏐",
+    "🏉",
+    "🥏",
+    "🎱",
+    "🪀",
+    "🏓",
+    "🏸",
+    "🏒",
+    "🏑",
+    "🥍",
+    "🏏",
+    "🥅",
+    "⛳",
+    "🪁",
+    "🏹",
+  ],
+};
+
+const categoryIcons = {
+  recentes: "🕐",
+  faces: "😀",
+  gestures: "👍",
+  objects: "💻",
+  food: "🍎",
+  places: "🏠",
+  music: "🎵",
+};
+
+// Função para gerenciar emojis recentes no localStorage
+const getRecentEmojis = () => {
+  try {
+    const recent = localStorage.getItem("recentEmojis");
+    return recent ? JSON.parse(recent) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveRecentEmoji = (emoji: string) => {
+  try {
+    const recent = getRecentEmojis();
+    // Se o emoji já existe nos recentes, não faz nada
+    if (recent.includes(emoji)) {
+      return;
+    }
+    // Adiciona o novo emoji no início e mantém apenas os 20 mais recentes
+    const newRecent = [emoji, ...recent].slice(0, 20);
+    localStorage.setItem("recentEmojis", JSON.stringify(newRecent));
+  } catch {
+    // Ignora erros de localStorage
+  }
+};
 
 function RecordingWave() {
   // Onda fake animada
@@ -40,9 +531,45 @@ export function MessageInputBar({
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [activeEmojiCategory, setActiveEmojiCategory] = useState("recentes");
+  const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const audioUrl = audioBlob ? URL.createObjectURL(audioBlob) : null;
+
+  // Carregar emojis recentes quando o componente montar
+  React.useEffect(() => {
+    const recent = getRecentEmojis();
+    setRecentEmojis(recent);
+  }, []);
+
+  // Detectar cliques fora da modal de emoji para fechá-la
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        showEmojiPicker &&
+        emojiPickerRef.current &&
+        !emojiPickerRef.current.contains(event.target as Node)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showEmojiPicker]);
+
+  // Função para inserir emoji no texto
+  const insertEmoji = (emoji: string) => {
+    setNewMessage((prev) => prev + emoji);
+    saveRecentEmoji(emoji); // Salva o emoji recente
+    // Atualiza a lista de recentes
+    setRecentEmojis(getRecentEmojis());
+  };
 
   // Iniciar gravação
   const startRecording = async () => {
@@ -244,8 +771,16 @@ export function MessageInputBar({
         >
           <Paperclip className="w-5 h-5" />
         </button>
+        {/* Botão de emoji */}
+        <button
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          className="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
+          title="Emojis"
+        >
+          <Smile className="w-5 h-5" />
+        </button>
         {/* Campo de mensagem */}
-        <div className="flex-1">
+        <div className="flex-1 relative">
           <textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
@@ -256,6 +791,57 @@ export function MessageInputBar({
             rows={1}
             style={{ minHeight: "40px", maxHeight: "120px" }}
           />
+          {/* Emoji Picker */}
+          {showEmojiPicker && (
+            <div
+              ref={emojiPickerRef}
+              className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-2 w-80 max-h-64 overflow-hidden z-50"
+            >
+              {/* Área principal dos emojis */}
+              <div className="h-48 overflow-y-auto mb-2">
+                {/* Grid de emojis da categoria ativa */}
+                <div className="grid grid-cols-8 gap-1">
+                  {(activeEmojiCategory === "recentes"
+                    ? recentEmojis
+                    : emojiCategories[activeEmojiCategory]
+                  ).map((emoji, index) => (
+                    <button
+                      key={index}
+                      onClick={() => insertEmoji(emoji)}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-lg transition-colors"
+                      title={emoji}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                  {/* Mostrar mensagem se não há emojis recentes */}
+                  {activeEmojiCategory === "recentes" &&
+                    recentEmojis.length === 0 && (
+                      <div className="col-span-8 text-center text-gray-500 text-sm py-8">
+                        Nenhum emoji usado recentemente
+                      </div>
+                    )}
+                </div>
+              </div>
+              {/* Abas das categorias na parte de baixo */}
+              <div className="flex border-t border-gray-200 dark:border-gray-600 pt-2">
+                {Object.keys(emojiCategories).map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => setActiveEmojiCategory(category)}
+                    className={`flex-1 p-2 text-lg transition-colors ${
+                      activeEmojiCategory === category
+                        ? "text-purple-600 bg-purple-50 dark:bg-purple-900/30 rounded"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                    title={category}
+                  >
+                    {categoryIcons[category]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         {/* Botão de enviar texto */}
         <button
