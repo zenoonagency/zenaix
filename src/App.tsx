@@ -1,55 +1,149 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Dashboard } from './pages/Dashboard';
-import { AIAgent } from './pages/AIAgent';
-import { Clients } from './pages/Clients';
-import { Contacts } from './pages/Contacts';
-import { Financial } from './pages/Financial';
-import { Contracts } from './pages/Contracts';
-import { Messaging } from './pages/Messaging';
-import { Team } from './pages/Team';
-import { Conversations } from './pages/Conversations';
-import { Calendar } from './pages/Calendar/index';
-import { DataTables } from './pages/DataTables';
-import { Settings } from './pages/Settings';
-import { DashboardLayout } from './components/layout/DashboardLayout';
-import { useThemeStore } from './store/themeStore';
-import { Plans } from './pages/Plans';
-import { EmbedPages } from './pages/EmbedPages';
-import { ToastContainer } from 'react-toastify';
-import { PageTransition } from './components/PageTransition';
-import { NetworkStatus } from './components/NetworkStatus';
-import 'react-toastify/dist/ReactToastify.css';
-import { Help } from './pages/Help';
+import { useEffect, useRef, useState } from "react";
+import { RouterProvider, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
+import { Toaster } from "react-hot-toast";
+import { NetworkStatus } from "./components/NetworkStatus";
+import { Notification } from "./components/Notification";
+import { router } from "./routes";
+import { supabase } from "./lib/supabaseClient";
+import { Loader2 } from "lucide-react";
+import { ChatWidget } from "./components/chat/ChatWidget";
+import { Toaster as ChatToaster } from "./components/ui/toaster";
+
+// Stores
+import { useAuthStore } from "./store/authStore";
+import { useRealtimeStore } from "./store/realtimeStore";
+// Importe todas as outras stores que você precisa inicializar
+import { usePlanStore } from "./store/planStore";
+import { useTagStore } from "./store/tagStore";
+import { useContractStore } from "./store/contractStore";
+import { useTeamMembersStore } from "./store/teamMembersStore";
+import { useEmbedPagesStore } from "./store/embedPagesStore";
+import { useBoardStore } from "./store/boardStore";
+import { useWhatsAppInstanceStore } from "./store/whatsAppInstanceStore";
+import { useCalendarStore } from "./store/calendarStore";
+import { useSystemPermissionsStore } from "./store/systemPermissionsStore";
+
+import { userService } from "./services/user/user.service";
+
+// NOVO: Componente de carregamento em tela cheia
+function FullScreenLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-900">
+      <Loader2 className="w-8 h-8 animate-spin text-[#7f00ff]" />
+    </div>
+  );
+}
 
 export function App() {
+  const hasFetchedGlobals = useRef(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        const { setSession, updateUserDataSilently, logout, clearAuth } =
+          useAuthStore.getState();
+        const { connect, disconnect } = useRealtimeStore.getState();
+
+        try {
+          if (event === "INITIAL_SESSION") setIsInitializing(true);
+
+          if (session && session.access_token) {
+            setSession(session);
+            try {
+              const freshUserData = await userService.getMe(
+                session.access_token
+              );
+              updateUserDataSilently(freshUserData);
+
+              const organizationId = freshUserData.organization?.id;
+              connect(session.user.id, organizationId);
+
+              if (event === "SIGNED_IN" && !hasFetchedGlobals.current) {
+                hasFetchedGlobals.current = true;
+                usePlanStore.getState().fetchAllPlans(session.access_token);
+
+                if (organizationId) {
+                  useSystemPermissionsStore
+                    .getState()
+                    .fetchAllSystemPermissions(session.access_token);
+                  useEmbedPagesStore
+                    .getState()
+                    .fetchAllEmbedPages(session.access_token, organizationId);
+                  useTagStore
+                    .getState()
+                    .fetchAllTags(session.access_token, organizationId);
+                  useContractStore
+                    .getState()
+                    .fetchAllContracts(session.access_token, organizationId);
+                  useTeamMembersStore
+                    .getState()
+                    .fetchAllMembers(session.access_token, organizationId);
+                  useBoardStore
+                    .getState()
+                    .fetchAllBoards(session.access_token, organizationId);
+                  useWhatsAppInstanceStore
+                    .getState()
+                    .fetchAllInstances(session.access_token, organizationId);
+                  useCalendarStore.getState().fetchEvents();
+                }
+              }
+            } catch (err) {
+              // Se for erro de autenticação, desloga só no boot inicial
+              if (
+                event === "INITIAL_SESSION" &&
+                (err?.status === 401 || err?.status === 403)
+              ) {
+                clearAuth();
+              }
+              // Se for erro de rede, timeout, etc, NÃO desloga!
+            }
+          } else if (event === "SIGNED_OUT") {
+            hasFetchedGlobals.current = false;
+            disconnect();
+            clearAuth();
+          }
+        } catch (error) {
+          console.error(
+            "[App] Critical error during session processing. Logging out.",
+            error
+          );
+          await logout();
+        } finally {
+          if (event === "INITIAL_SESSION") setIsInitializing(false);
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  if (isInitializing) {
+    return <FullScreenLoader />;
+  }
+
   return (
-    <BrowserRouter>
+    <>
       <NetworkStatus />
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
+      <Notification />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: "#363636",
+            color: "#fff",
+          },
+        }}
+      />
+      <ChatToaster />
+      <ChatWidget />
       <AnimatePresence mode="wait">
-        <Routes>
-          <Route element={<DashboardLayout />}>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
-            <Route path="/dashboard/ai-agent" element={<PageTransition><AIAgent /></PageTransition>} />
-            <Route path="/dashboard/clients" element={<PageTransition><Clients /></PageTransition>} />
-            <Route path="/dashboard/contacts" element={<PageTransition><Contacts /></PageTransition>} />
-            <Route path="/dashboard/financial" element={<PageTransition><Financial /></PageTransition>} />
-            <Route path="/dashboard/contracts" element={<PageTransition><Contracts /></PageTransition>} />
-            <Route path="/dashboard/messaging" element={<PageTransition><Messaging /></PageTransition>} />
-            <Route path="/dashboard/team" element={<PageTransition><Team /></PageTransition>} />
-            <Route path="/dashboard/conversations" element={<PageTransition><Conversations /></PageTransition>} />
-            <Route path="/dashboard/calendar" element={<PageTransition><Calendar /></PageTransition>} />
-            <Route path="/dashboard/data-tables" element={<PageTransition><DataTables /></PageTransition>} />
-            <Route path="/dashboard/settings" element={<PageTransition><Settings /></PageTransition>} />
-            <Route path="/dashboard/plans" element={<PageTransition><Plans /></PageTransition>} />
-            <Route path="/dashboard/embed-pages" element={<PageTransition><EmbedPages /></PageTransition>} />
-            <Route path="/dashboard/help" element={<PageTransition><Help /></PageTransition>} />
-          </Route>
-        </Routes>
+        <RouterProvider router={router} />
       </AnimatePresence>
-    </BrowserRouter>
+    </>
   );
 }

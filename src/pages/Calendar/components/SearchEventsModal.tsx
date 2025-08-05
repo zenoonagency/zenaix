@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import { X, Search, Calendar as CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { useCalendarStore } from '../../../store/calendarStore';
-import { Modal } from '../../../components/Modal';
-import { EventDetailModal } from './EventDetailModal';
-import { EventModal } from './EventModal';
+import React, { useState, useMemo } from "react";
+import { X, Search, Calendar as CalendarIcon, Filter } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { useCalendarStore } from "../../../store/calendarStore";
+import { CalendarEvent } from "../../../types/calendar";
+import { EventDetailModal } from "./EventDetailModal";
+import { EventModal } from "./EventModal";
+import { Modal } from "../../../components/Modal";
 
 interface SearchEventsModalProps {
   isOpen: boolean;
@@ -14,26 +15,50 @@ interface SearchEventsModalProps {
 
 export function SearchEventsModal({ isOpen, onClose }: SearchEventsModalProps) {
   const { events } = useCalendarStore();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
+    null
+  );
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
   const filteredEvents = useMemo(() => {
-    return events.filter(event => {
-      const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (event.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+    let filtered = events;
 
-      const matchesDateRange = (!startDate || new Date(event.start) >= new Date(startDate)) &&
-        (!endDate || new Date(event.end) <= new Date(endDate));
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (event) =>
+          event.title.toLowerCase().includes(term) ||
+          event.description?.toLowerCase().includes(term) ||
+          event.categories?.some((cat) => cat.name.toLowerCase().includes(term))
+      );
+    }
 
-      return matchesSearch && matchesDateRange;
-    });
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      filtered = filtered.filter((event) => {
+        const eventStart = new Date(event.start_at);
+        return eventStart >= start;
+      });
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter((event) => {
+        const eventStart = new Date(event.start_at);
+        return eventStart <= end;
+      });
+    }
+
+    return filtered;
   }, [events, searchTerm, startDate, endDate]);
 
-  const handleEventClick = (event: any) => {
+  const handleEventClick = (event: CalendarEvent) => {
     setSelectedEvent(event);
     setShowDetailModal(true);
   };
@@ -43,45 +68,69 @@ export function SearchEventsModal({ isOpen, onClose }: SearchEventsModalProps) {
     setShowEditModal(true);
   };
 
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStartDate("");
+    setEndDate("");
+  };
+
+  const hasActiveFilters = searchTerm.trim() || startDate || endDate;
+
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} title="Buscar Eventos">
         <div className="space-y-4">
           <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por título ou descrição..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg text-gray-900 dark:text-white border border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
+              placeholder="Buscar por título, descrição ou categoria..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white"
             />
-            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <Filter className="w-4 h-4" />
+            <span className="font-medium">Filtros:</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Data Inicial
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Data de Início
               </label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg text-gray-900 dark:text-white border border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white text-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Data Final
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Data de Fim
               </label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg text-gray-900 dark:text-white border border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#7f00ff] focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white text-sm"
               />
             </div>
           </div>
+
+          {hasActiveFilters && (
+            <div className="flex justify-end">
+              <button
+                onClick={clearFilters}
+                className="text-sm text-[#7f00ff] hover:text-[#7f00ff]/80 transition-colors"
+              >
+                Limpar filtros
+              </button>
+            </div>
+          )}
 
           <div className="mt-6">
             <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -106,36 +155,47 @@ export function SearchEventsModal({ isOpen, onClose }: SearchEventsModalProps) {
                     <div className="mt-2 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                       <CalendarIcon className="w-4 h-4" />
                       <span>
-                        {format(new Date(event.start), "dd 'de' MMMM 'às' HH:mm", {
-                          locale: ptBR,
-                        })}
+                        {format(
+                          new Date(event.start_at),
+                          "dd 'de' MMMM 'às' HH:mm",
+                          {
+                            locale: ptBR,
+                          }
+                        )}
                       </span>
                     </div>
-                    {event.customFields && event.customFields.length > 0 && (
+                    {event.categories && event.categories.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {event.customFields.map((field) => (
+                        {event.categories.map((category) => (
                           <span
-                            key={field.id}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#7f00ff]/10 text-[#7f00ff]"
+                            key={category.id}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                            style={{
+                              backgroundColor: `${category.color}20`,
+                              color: category.color,
+                            }}
                           >
-                            {field.name}: {field.value}
+                            {category.name}
                           </span>
                         ))}
                       </div>
                     )}
                   </div>
                 ))
+              ) : hasActiveFilters ? (
+                <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+                  Nenhum evento encontrado com os filtros aplicados
+                </p>
               ) : (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  Nenhum evento encontrado
-                </div>
+                <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+                  Todos os eventos ({events.length})
+                </p>
               )}
             </div>
           </div>
         </div>
       </Modal>
 
-      {/* Modal de detalhes do evento */}
       {selectedEvent && (
         <EventDetailModal
           isOpen={showDetailModal}
@@ -145,7 +205,6 @@ export function SearchEventsModal({ isOpen, onClose }: SearchEventsModalProps) {
         />
       )}
 
-      {/* Modal de edição do evento */}
       {selectedEvent && (
         <EventModal
           isOpen={showEditModal}
@@ -159,4 +218,4 @@ export function SearchEventsModal({ isOpen, onClose }: SearchEventsModalProps) {
       )}
     </>
   );
-} 
+}

@@ -1,5 +1,5 @@
 import { makeRequest } from './httpClient';
-import { API_CONFIG } from './config';
+import { WEBHOOK_API_CONFIG } from '../config/webhook.config';
 
 export const documentService = {
   async upload(file: File) {
@@ -8,7 +8,7 @@ export const documentService = {
       formData.append('file', file);
       formData.append('timestamp', new Date().toISOString());
 
-      await makeRequest(API_CONFIG.endpoints.uploadDocument, {
+      await makeRequest(WEBHOOK_API_CONFIG.endpoints.uploadDocument, {
         method: 'POST',
         payload: formData,
         timeout: 60000, // 60 seconds for file uploads

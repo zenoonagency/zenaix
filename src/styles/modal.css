@@ -30,11 +30,11 @@
 }
 
 /* Overlay Animations */
-.modal-overlay-enter {
+.modal-container-enter {
   animation: overlay-fade-in 0.3s ease-out;
 }
 
-.modal-overlay-leave {
+.modal-container-leave {
   animation: overlay-fade-out 0.2s ease-in;
 }
 
@@ -63,7 +63,7 @@
 /* Modal Content Styles */
 .modal-content {
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
-              0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    0 8px 10px -6px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(8px);
 }
@@ -71,4 +71,4 @@
 .dark .modal-content {
   background: rgba(17, 24, 39, 0.95);
   border-color: rgba(255, 255, 255, 0.05);
-} 
+}

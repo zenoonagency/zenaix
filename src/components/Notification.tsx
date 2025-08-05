@@ -1,9 +1,9 @@
-import React from 'react';
-import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { create } from 'zustand';
+import React from "react";
+import { CheckCircle, AlertCircle, Info, AlertTriangle, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { create } from "zustand";
 
-export type NotificationType = 'success' | 'error' | 'info' | 'warning';
+export type NotificationType = "success" | "error" | "info" | "warning";
 
 interface Toast {
   id: string;
@@ -13,7 +13,7 @@ interface Toast {
 
 interface ToastStore {
   toasts: Toast[];
-  addToast: (message: string, type: Toast['type']) => string;
+  addToast: (message: string, type: Toast["type"]) => string;
   removeToast: (id: string) => void;
 }
 
@@ -41,16 +41,16 @@ export const useToastStore = create<ToastStore>((set) => ({
 
 const icons = {
   success: <CheckCircle className="w-5 h-5 text-white" />,
-  error: <XCircle className="w-5 h-5 text-white" />,
+  error: <AlertCircle className="w-5 h-5 text-white" />,
   info: <Info className="w-5 h-5 text-white" />,
   warning: <AlertTriangle className="w-5 h-5 text-white" />,
 };
 
 const colors = {
-  success: 'bg-green-500',
-  error: 'bg-red-500',
-  info: 'bg-blue-500',
-  warning: 'bg-yellow-500',
+  success: "bg-green-500",
+  error: "bg-red-500",
+  info: "bg-blue-500",
+  warning: "bg-yellow-500",
 };
 
 export interface NotificationProps {
@@ -59,9 +59,13 @@ export interface NotificationProps {
   onClose: () => void;
 }
 
-export function NotificationSingle({ message, type, onClose }: NotificationProps) {
+export function NotificationSingle({
+  message,
+  type,
+  onClose,
+}: NotificationProps) {
   return (
-    <div className="fixed top-4 right-4 z-50">
+    <div className="fixed top-4 right-4 z-[99999]">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -99,7 +103,7 @@ export function Notification() {
   }, [toasts, removeToast]);
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 space-y-2">
+    <div className="fixed top-4 right-4 z-[99999] space-y-2">
       <AnimatePresence>
         {toasts.map((toast) => (
           <motion.div
@@ -107,11 +111,15 @@ export function Notification() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
-            className={`flex items-center justify-between min-w-[300px] p-4 rounded-lg shadow-lg ${colors[toast.type]}`}
+            className={`flex items-center justify-between min-w-[300px] p-4 rounded-lg shadow-lg ${
+              colors[toast.type]
+            }`}
           >
             <div className="flex items-center">
               {icons[toast.type]}
-              <span className="ml-3 text-white font-medium">{toast.message}</span>
+              <span className="ml-3 text-white font-medium">
+                {toast.message}
+              </span>
             </div>
             <button
               onClick={() => removeToast(toast.id)}

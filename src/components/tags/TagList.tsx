@@ -1,75 +1,176 @@
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { useTagStore, Tag } from '../../store/tagStore';
-import { TagModal } from './TagModal';
+import React, { useEffect, useState } from "react";
+import { Plus, Edit2, Trash2 } from "lucide-react";
+import { useToast } from "../../hooks/useToast";
 
-export function TagList() {
-  const { tags, addTag, updateTag, deleteTag } = useTagStore();
+import { useTagStore } from "../../store/tagStore";
+import { useAuthStore } from "../../store/authStore";
+import { tagService } from "../../services/tag/tag.service";
+import {
+  InputCreateTagDTO,
+  InputUpdateTagDTO,
+  OutputTagDTO,
+} from "../../types/tag";
+import { TagModal } from "./TagModal";
+
+type Tag = OutputTagDTO;
+
+export function TagList({
+  blockNewTag = false,
+  onBlockNewTag,
+}: { blockNewTag?: boolean; onBlockNewTag?: () => void } = {}) {
+  const { tags, fetchAllTags } = useTagStore();
+  const { token, organizationId, hasPermission } = useAuthStore((state) => ({
+    token: state.token,
+    organizationId: state.user?.organization_id,
+    hasPermission: state.hasPermission,
+  }));
+
+  // Verificar se o usuário tem permissão para gerenciar marcadores
+  const canManageTags = hasPermission("lists:update");
+
+  const isLoading = useTagStore((state) => state.isLoading);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
+  const [deletingTagId, setDeletingTagId] = useState<string | null>(null);
+  const { showToast } = useToast();
+
+  const handleSave = async (tagData: { name: string; color: string }) => {
+    if (!token || !organizationId) {
+      showToast("Autenticação inválida.", "error");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (editingTag) {
+        const dto: InputUpdateTagDTO = tagData;
+        const updatedTag = await tagService.update(
+          token,
+          organizationId,
+          editingTag.id,
+          dto
+        );
+      } else {
+        const dto: InputCreateTagDTO = tagData;
+        const newTag = await tagService.create(token, organizationId, dto);
+      }
+      setShowModal(false);
+      setEditingTag(null);
+    } catch (error: any) {
+      showToast(
+        error.message || "Ocorreu um erro ao salvar o marcador.",
+        "error"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (tagId: string) => {
+    if (!token || !organizationId) {
+      showToast("Autenticação inválida.", "error");
+      return;
+    }
+
+    setDeletingTagId(tagId);
+    try {
+      await tagService.delete(token, organizationId, tagId);
+    } catch (error: any) {
+      showToast(error.message || "Falha ao apagar o marcador.", "error");
+    } finally {
+      setDeletingTagId(null);
+    }
+  };
 
   const handleEdit = (tag: Tag) => {
     setEditingTag(tag);
     setShowModal(true);
   };
 
-  const handleSave = (tagData: Omit<Tag, 'id'>) => {
-    if (editingTag) {
-      updateTag(editingTag.id, tagData);
-      setEditingTag(null);
-    } else {
-      addTag(tagData);
-    }
-    setShowModal(false);
-  };
-
+  // 5. Renderização do Componente
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Marcadores</h3>
-        <button
-          onClick={() => {
-            setEditingTag(null);
-            setShowModal(true);
-          }}
-          className="text-[#7f00ff] hover:text-[#7f00ff]/80 flex items-center text-sm"
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Novo
-        </button>
-      </div>
+      {canManageTags && (
+        <div className="flex items-center justify-end">
+          <button
+            onClick={() => {
+              if (blockNewTag && onBlockNewTag) {
+                onBlockNewTag();
+                return;
+              }
+              setEditingTag(null);
+              setShowModal(true);
+            }}
+            className={`text-[#7f00ff] hover:text-[#7f00ff]/80 flex items-center text-sm ${
+              blockNewTag ? "opacity-60 cursor-not-allowed" : ""
+            }`}
+            disabled={blockNewTag}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Novo
+          </button>
+        </div>
+      )}
 
       <div className="space-y-2">
-        {tags.map((tag) => (
-          <div
-            key={tag.id}
-            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50"
-          >
-            <div className="flex items-center">
-              <div
-                className="w-3 h-3 rounded-full mr-2"
-                style={{ backgroundColor: tag.color }}
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                {tag.name}
-              </span>
+        {isLoading ? (
+          <p className="text-sm text-gray-500">A carregar marcadores...</p>
+        ) : (
+          tags.map((tag) => (
+            <div
+              key={tag.id}
+              className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50"
+            >
+              <div className="flex items-center">
+                <div
+                  className="w-3 h-3 rounded-full mr-2"
+                  style={{ backgroundColor: tag.color }}
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {tag.name}
+                </span>
+              </div>
+              {canManageTags && (
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleEdit(tag)}
+                    className="text-gray-400 hover:text-[#7f00ff]"
+                    disabled={deletingTagId === tag.id}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(tag.id)}
+                    className="text-gray-400 hover:text-red-500"
+                    disabled={deletingTagId === tag.id}
+                  >
+                    {deletingTagId === tag.id ? (
+                      <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                        />
+                      </svg>
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => handleEdit(tag)}
-                className="text-gray-400 hover:text-[#7f00ff]"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => deleteTag(tag.id)}
-                className="text-gray-400 hover:text-red-500"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {showModal && (
@@ -81,6 +182,7 @@ export function TagList() {
           }}
           onSave={handleSave}
           tag={editingTag || undefined}
+          isSubmitting={isSubmitting}
         />
       )}
     </div>

@@ -33,8 +33,6 @@ class ProxyService {
     const mergedOptions = { ...this.defaultOptions, ...options };
     const url = `${BASE_URL}/${endpoint}`;
     
-    console.log(`ProxyService: Enviando requisição ${method} para ${url}`);
-    
     // Configura headers para a requisição
     const headers: Record<string, string> = isFormData
       ? {
@@ -67,11 +65,8 @@ class ProxyService {
         
         config.signal = controller.signal;
         
-        console.log(`ProxyService: Tentativa ${retryCount + 1} para ${url}`);
         const response = await fetch(url, config);
         clearTimeout(timeoutId);
-        
-        console.log(`ProxyService: Resposta recebida de ${url}:`, response.status);
         
         return response;
       } catch (error: any) {
@@ -85,7 +80,6 @@ class ProxyService {
         }
         
         // Espera antes de tentar novamente
-        console.log(`ProxyService: Aguardando ${mergedOptions.retryDelay}ms antes da próxima tentativa`);
         await new Promise(resolve => setTimeout(resolve, mergedOptions.retryDelay));
       }
     }
@@ -189,8 +183,6 @@ class ProxyService {
     
     // Endpoints específicos podem ter diferentes respostas padrão
     if (endpoint === 'whatsapp-contacts') {
-      console.log('ProxyService: Gerando contatos fictícios para manter a aplicação funcionando');
-      
       // Criar dados fictícios para contatos
       const mockContacts = [
         {
@@ -224,8 +216,6 @@ class ProxyService {
     }
     
     if (endpoint === 'whatsapp-messages') {
-      console.log('ProxyService: Gerando mensagens fictícias para manter a aplicação funcionando');
-      
       // Criar dados fictícios para mensagens
       const mockMessages = [
         {
@@ -263,7 +253,6 @@ class ProxyService {
    */
   async checkWhatsAppStatus(name: string): Promise<{resposta: string}> {
     try {
-      console.log(`ProxyService: Verificando status do WhatsApp para instância ${name}`);
       const response = await this.post('whatsapp-status', { name });
       
       if (!response.ok) {
@@ -272,7 +261,6 @@ class ProxyService {
       }
       
       const text = await response.text();
-      console.log(`ProxyService: Resposta de status do WhatsApp:`, text);
       
       try {
         return JSON.parse(text);

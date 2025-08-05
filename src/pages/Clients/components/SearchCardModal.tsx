@@ -1,73 +1,57 @@
-import React, { useState, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
-import { Card } from '../types';
+import React, { useState, useEffect } from "react";
+import { Search, X } from "lucide-react";
+import { OutputCardDTO } from "../../../types/card";
 
 interface SearchCardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  cards: Card[];
+  cards: OutputCardDTO[];
   onCardClick: (cardId: string) => void;
 }
 
-export function SearchCardModal({ isOpen, onClose, cards, onCardClick }: SearchCardModalProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredCards, setFilteredCards] = useState<Card[]>([]);
-
-  // Reset filtered cards when modal opens or cards change
+export function SearchCardModal({
+  isOpen,
+  onClose,
+  cards,
+  onCardClick,
+}: SearchCardModalProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredCards, setFilteredCards] = useState<OutputCardDTO[]>([]);
   useEffect(() => {
-    console.log('Cards recebidos:', cards); // Debug
     if (isOpen) {
       setFilteredCards(cards);
-      setSearchTerm('');
+      setSearchTerm("");
     }
   }, [isOpen, cards]);
-
-  // Filter cards when search term changes
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredCards(cards);
       return;
     }
-
     const searchTermLower = searchTerm.toLowerCase().trim();
-    
-    const filtered = cards.filter(card => {
-      // Debug logs
-      console.log('Verificando card:', {
-        id: card.id,
-        title: card.title,
-        description: card.description,
-        phone: card.phone,
-        value: card.value
-      });
-      
-      const titleMatch = (card.title || '').toLowerCase().includes(searchTermLower);
-      const descriptionMatch = (card.description || '').toLowerCase().includes(searchTermLower);
-      const phoneMatch = (card.phone || '').toLowerCase().includes(searchTermLower);
-      const valueMatch = card.value ? card.value.toString().includes(searchTermLower) : false;
-      
-      // Debug logs
-      console.log('Matches:', {
-        titleMatch,
-        descriptionMatch,
-        phoneMatch,
-        valueMatch
-      });
-
+    const filtered = cards.filter((card) => {
+      const titleMatch = (card.title || "")
+        .toLowerCase()
+        .includes(searchTermLower);
+      const descriptionMatch = (card.description || "")
+        .toLowerCase()
+        .includes(searchTermLower);
+      const phoneMatch = (card.phone || "")
+        .toLowerCase()
+        .includes(searchTermLower);
+      const valueMatch = card.value
+        ? card.value.toString().includes(searchTermLower)
+        : false;
       return titleMatch || descriptionMatch || phoneMatch || valueMatch;
     });
-
-    console.log('Cartões filtrados:', filtered); // Debug
     setFilteredCards(filtered);
   }, [searchTerm, cards]);
-
   if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
-      <div 
+    <div className="modal-container bg-black/30 z-[9998]" onClick={onClose}>
+      <div
         className="w-full max-w-2xl p-6 bg-white dark:bg-dark-900 rounded-lg shadow-xl border dark:border-white/10 border-gray-200"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -101,7 +85,7 @@ export function SearchCardModal({ isOpen, onClose, cards, onCardClick }: SearchC
               Nenhum cartão encontrado
             </p>
           ) : (
-            filteredCards.map(card => (
+            filteredCards.map((card) => (
               <div
                 key={card.id}
                 onClick={() => {
@@ -125,9 +109,9 @@ export function SearchCardModal({ isOpen, onClose, cards, onCardClick }: SearchC
                 )}
                 {card.value > 0 && (
                   <div className="mt-2 text-sm text-green-600 dark:text-green-400">
-                    {new Intl.NumberFormat('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL'
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
                     }).format(card.value)}
                   </div>
                 )}
@@ -138,4 +122,4 @@ export function SearchCardModal({ isOpen, onClose, cards, onCardClick }: SearchC
       </div>
     </div>
   );
-} 
+}

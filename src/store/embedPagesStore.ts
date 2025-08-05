@@ -1,48 +1,82 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { EmbedOutput, EmbedPagesState } from "../types/embed";
+import { embedService } from "../services/embed/embed.service";
+import { APIError } from "../services/errors/api.errors";
+import { cleanUserData } from "../utils/dataOwnership";
 
-export interface EmbedPage {
-  id: string;
-  name: string;
-  url: string;
-  createdAt: string;
-}
-
-interface EmbedPagesStore {
-  pages: EmbedPage[];
-  addPage: (page: Omit<EmbedPage, 'id' | 'createdAt'>) => void;
-  updatePage: (id: string, updates: Partial<Omit<EmbedPage, 'id' | 'createdAt'>>) => void;
-  deletePage: (id: string) => void;
-}
-
-export const useEmbedPagesStore = create<EmbedPagesStore>()(
+export const useEmbedPagesStore = create<EmbedPagesState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       pages: [],
-      addPage: (page) =>
+      isLoading: false,
+      error: null,
+      lastFetched: null,
+      realtimeChannel: null,
+
+      setPages: (pages) => set({ pages }),
+
+      addPage: (newPage) =>
         set((state) => ({
-          pages: [
-            ...state.pages,
-            {
-              ...page,
-              id: crypto.randomUUID(),
-              createdAt: new Date().toISOString(),
-            },
-          ],
+          pages: [...state.pages, newPage],
         })),
-      updatePage: (id, updates) =>
+
+      updatePage: (updatedPage) =>
         set((state) => ({
           pages: state.pages.map((page) =>
-            page.id === id ? { ...page, ...updates } : page
+            page.id === updatedPage.id ? updatedPage : page
           ),
         })),
-      deletePage: (id) =>
+
+      deletePage: (pageId) =>
         set((state) => ({
-          pages: state.pages.filter((page) => page.id !== id),
+          pages: state.pages.filter((page) => page.id !== pageId),
         })),
+
+      fetchAllEmbedPages: async (token: string, organizationId: string) => {
+        const { pages, isLoading } = get();
+
+        if (pages.length === 0) {
+          set({ isLoading: true });
+        }
+
+        if (isLoading) return;
+
+        try {
+          const fetchedPages = await embedService.findAll(
+            token,
+            organizationId
+          );
+          set({
+            pages: fetchedPages,
+            isLoading: false,
+            lastFetched: Date.now(),
+          });
+        } catch (err: any) {
+          console.error("EmbedPagesStore: Erro ao buscar páginas:", err);
+          const errorMessage =
+            err instanceof APIError
+              ? err.message
+              : "Não foi possível carregar as páginas embed.";
+          set({ error: errorMessage, isLoading: false });
+        }
+      },
+      cleanUserData: () => {
+        set({
+          pages: [],
+          isLoading: false,
+          error: null,
+          lastFetched: null,
+        });
+      },
     }),
+
     {
-      name: 'embed-pages-storage',
+      name: "embed-pages-storage",
+      partialize: (state) => ({
+        pages: state.pages,
+        lastFetched: state.lastFetched,
+      }),
     }
   )
-); 
+);

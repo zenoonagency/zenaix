@@ -1,9 +1,9 @@
-import { API_CONFIG } from './config';
+import { WEBHOOK_API_CONFIG } from '../config/webhook.config';
 
 export const aiService = {
   async start() {
     try {
-      const response = await fetch(`${API_CONFIG.baseUrl}/liga`, {
+      const response = await fetch(`${WEBHOOK_API_CONFIG.baseUrl}/liga`, {
         method: 'POST',
         mode: 'cors',
       });
@@ -19,7 +19,7 @@ export const aiService = {
 
   async stop() {
     try {
-      const response = await fetch(`${API_CONFIG.baseUrl}/desliga`, {
+      const response = await fetch(`${WEBHOOK_API_CONFIG.baseUrl}/desliga`, {
         method: 'POST',
         mode: 'cors',
       });

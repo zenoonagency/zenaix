@@ -1,221 +1,192 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { Input } from '../components/ui/Input';
-import { useThemeStore } from '../store/themeStore';
-import { ParticlesEffect } from '../components/effects/ParticlesEffect';
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuthStore } from "../store/authStore";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import { motion } from "framer-motion";
+import { Input } from "../components/ui/Input";
+import { useThemeStore } from "../store/themeStore";
+import { ParticlesEffect } from "../components/effects/ParticlesEffect";
+import { useToast } from "../hooks/useToast";
+import { OAuthButtons } from "../components/auth/OAuthButtons";
+import { supabase } from "../lib/supabaseClient";
+import { handleSupabaseError } from "../utils/supabaseErrorTranslator";
+import { userService } from "../services/user/user.service";
 
-interface LoginProps {
-  onLoginSuccess?: () => void;
-}
-
-export function Login({ onLoginSuccess }: LoginProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const { theme } = useThemeStore();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
 
-  const logoUrl = theme === 'dark' 
-    ? 'https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT.png'
-    : 'https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT.png'; // Always use light logo for better visibility
+  const { isAuthenticated, _hasHydrated } = useAuthStore((state) => ({
+    isAuthenticated: state.isAuthenticated,
+    _hasHydrated: state._hasHydrated,
+  }));
+
+  useEffect(() => {
+    if (_hasHydrated && isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [_hasHydrated, isAuthenticated, navigate]);
+
+  if (!_hasHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-900">
+        <span className="text-gray-700 dark:text-gray-200 text-lg">
+          Carregando...
+        </span>
+      </div>
+    );
+  }
+
+  const logoUrl =
+    theme === "dark"
+      ? "https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-LIGHT.png"
+      : "/assets/images/LOGO-DARK.webp";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    
-    // Simulate login timing
-    setTimeout(() => {
-      setLoading(false);
-      
-      // For demo purposes, always succeed
-      if (onLoginSuccess) {
-        onLoginSuccess();
+
+    try {
+      // 1. Fazer login com Supabase para obter a sessão/token
+      const { data, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+      if (signInError || !data.session) {
+        throw signInError || new Error("Sessão não encontrada após o login.");
       }
-    }, 1500);
+
+      const token = data.session.access_token;
+      const meData = await userService.getMe(token);
+
+      const { updateUserDataSilently } = useAuthStore.getState();
+      updateUserDataSilently(meData);
+
+      navigate("/dashboard", { replace: true });
+    } catch (error: any) {
+      await supabase.auth.signOut();
+      const { clearAuth } = useAuthStore.getState();
+      clearAuth();
+
+      const message = handleSupabaseError(error, "Erro ao fazer login");
+      setError(message);
+      showToast(message, "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
   };
 
+  // O resto do seu componente JSX permanece o mesmo...
   return (
-    <div className="min-h-screen flex items-center justify-center overflow-hidden relative bg-gradient-to-br from-blue-800 via-blue-600 to-indigo-800">
-      {/* Blurred particles effect */}
-      <div className="absolute inset-0 filter blur-[6px] opacity-40">
-        <ParticlesEffect blueTheme={true} />
-      </div>
-      
-      {/* Decorative shapes */}
-      <div className="absolute top-[-10%] right-[-5%] w-96 h-96 bg-indigo-600 rounded-full opacity-20 blur-3xl"></div>
-      <div className="absolute bottom-[-15%] left-[-10%] w-[30rem] h-[30rem] bg-blue-500 rounded-full opacity-20 blur-3xl"></div>
-      
-      {/* Login container */}
-      <div className="relative z-10 w-full max-w-md px-6">
-        {/* Login card with glowing border */}
-        <motion.div 
-          className="relative backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden"
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.4 }}
-        >
-          {/* Snake border effect container */}
-          <div className="absolute inset-0 rounded-3xl overflow-hidden z-0">
-            <div className="snake-border rounded-3xl"></div>
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <ParticlesEffect />
+      <motion.div
+        className="bg-white dark:bg-dark-800 p-8 rounded-lg shadow-md w-96 backdrop-blur-sm bg-opacity-90 dark:bg-opacity-90 relative z-10"
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="flex items-center justify-center mb-6">
+          <img src={logoUrl} alt="Login" className="w-24" />
+        </div>
+        <h2 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
+          Seja bem-vindo!
+        </h2>
+
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md text-sm"
+          >
+            {error}
+          </motion.div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              label="Email"
+              required
+            />
           </div>
-          
-          {/* Glass background */}
-          <div className="relative z-10 bg-white/5 border border-white/10 rounded-3xl p-8">
-            {/* Logo and content */}
-            <div className="flex flex-col items-center">
-              <motion.div 
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-                className="mb-8"
+          <div>
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                label="Senha"
+                required
+              />
+              <button
+                type="button"
+                onClick={toggleShowPassword}
+                className="absolute right-3 top-[47px] transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 focus:outline-none"
               >
-                <img
-                  src={logoUrl}
-                  alt="Zenoon"
-                  className="w-32 h-auto"
-                />
-              </motion.div>
-              
-              <motion.h2 
-                className="text-2xl font-bold text-center mb-8 text-white"
-                initial={{ y: -10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-              >
-                Seja bem-vindo!
-              </motion.h2>
-              
-              {/* Login form */}
-              <motion.form 
-                onSubmit={handleSubmit}
-                className="w-full space-y-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-              >
-                <div className="space-y-4">
-                  <div>
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      label="Email"
-                      required
-                      className="bg-white/10 border-white/10 text-white focus:border-white/30 focus:ring-white/20"
-                      labelClassName="text-white font-medium mb-1.5"
-                      placeholder="Seu endereço de email"
-                    />
-                  </div>
-                  
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      label="Senha"
-                      required
-                      className="bg-white/10 border-white/10 text-white focus:border-white/30 focus:ring-white/20"
-                      labelClassName="text-white font-medium mb-1.5"
-                      placeholder="Sua senha"
-                    />
-                    <button 
-                      type="button"
-                      onClick={toggleShowPassword}
-                      className="absolute right-3 top-[48px] transform -translate-y-1/2 text-white/60 hover:text-white transition-colors focus:outline-none"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white py-3 px-4 rounded-xl 
-                      hover:from-indigo-600 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400/50 
-                      focus:ring-offset-2 disabled:opacity-70 transition-all duration-200 
-                      shadow-[0_4px_20px_rgba(79,70,229,0.3)] hover:shadow-[0_6px_24px_rgba(79,70,229,0.4)]"
-                  >
-                    {loading ? (
-                      <span className="flex items-center justify-center">
-                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                        Autenticando...
-                      </span>
-                    ) : (
-                      'Entrar'
-                    )}
-                  </button>
-                </div>
-                
-                <div className="flex justify-end">
-                  <a 
-                    href="#" 
-                    className="text-sm text-white/70 hover:text-white transition-colors"
-                  >
-                    Esqueceu sua senha?
-                  </a>
-                </div>
-              </motion.form>
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
             </div>
           </div>
-        </motion.div>
-        
-        {/* Brand tag */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.5 }}
-          className="text-center mt-8 text-white/60 text-sm"
-        >
-          &copy; {new Date().getFullYear()} Zenoon AI - Plataforma de Automação
-        </motion.div>
-      </div>
-      
-      {/* CSS for snake border effect */}
-      <style jsx>{`
-        .snake-border::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 200%;
-          height: 200%;
-          background: linear-gradient(45deg, 
-            transparent, 
-            rgba(255, 255, 255, 0.2), 
-            rgba(255, 255, 255, 0.4), 
-            rgba(255, 255, 255, 0.2), 
-            transparent
-          );
-          animation: animate 4s linear infinite;
-          transform: translateX(-100%);
-        }
-        
-        @keyframes animate {
-          to {
-            transform: translateX(0%);
-          }
-        }
-        
-        .snake-border::after {
-          content: '';
-          position: absolute;
-          inset: 3px;
-          background: transparent;
-          border-radius: 20px;
-        }
-      `}</style>
+
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#7f00ff] text-white py-2 px-4 rounded-md hover:bg-[#7f00ff]/90 focus:outline-none focus:ring-2 focus:ring-[#7f00ff] focus:ring-offset-2 disabled:opacity-50"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  Carregando...
+                </span>
+              ) : (
+                "Entrar"
+              )}
+            </button>
+          </div>
+        </form>
+
+        <OAuthButtons className="mt-6" />
+
+        <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
+          Não tem uma conta?{" "}
+          <Link
+            to="/register"
+            className="text-[#7f00ff] hover:text-[#7f00ff]/80 transition-colors"
+          >
+            Cadastre-se
+          </Link>
+        </div>
+        <div className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+          <Link
+            to="/forgot-password"
+            className="text-[#7f00ff] hover:text-[#7f00ff]/80 transition-colors"
+          >
+            Esqueceu sua senha?
+          </Link>
+        </div>
+      </motion.div>
     </div>
   );
 }

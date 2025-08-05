@@ -1,22 +1,27 @@
-import React from 'react';
-import { CheckCircle, AlertCircle, X } from 'lucide-react';
+import React from "react";
+import { CheckCircle, AlertCircle, X } from "lucide-react";
 
 interface FeedbackModalProps {
   isOpen: boolean;
   onClose: () => void;
-  type: 'success' | 'error';
+  type: "success" | "error";
   message: string;
 }
 
-export function FeedbackModal({ isOpen, onClose, type, message }: FeedbackModalProps) {
+export function FeedbackModal({
+  isOpen,
+  onClose,
+  type,
+  message,
+}: FeedbackModalProps) {
   if (!isOpen) return null;
 
-  const Icon = type === 'success' ? CheckCircle : AlertCircle;
-  const iconColor = type === 'success' ? 'text-green-500' : 'text-red-500';
-  const title = type === 'success' ? 'Sucesso' : 'Erro';
+  const Icon = type === "success" ? CheckCircle : AlertCircle;
+  const iconColor = type === "success" ? "text-green-500" : "text-red-500";
+  const title = type === "success" ? "Sucesso" : "Erro";
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="modal-container">
       <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b border-gray-200/10 dark:border-gray-700/10">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
@@ -30,13 +35,11 @@ export function FeedbackModal({ isOpen, onClose, type, message }: FeedbackModalP
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         <div className="p-4">
-          <p className="text-gray-700 dark:text-gray-300">
-            {message}
-          </p>
+          <p className="text-gray-700 dark:text-gray-300">{message}</p>
         </div>
-        
+
         <div className="p-4 border-t border-gray-200/10 dark:border-gray-700/10 flex justify-end">
           <button
             onClick={onClose}
@@ -48,4 +51,4 @@ export function FeedbackModal({ isOpen, onClose, type, message }: FeedbackModalP
       </div>
     </div>
   );
-} 
+}

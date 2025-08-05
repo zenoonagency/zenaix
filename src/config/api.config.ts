@@ -1,0 +1,407 @@
+import { ENV_CONFIG } from "./environment";
+
+export const API_CONFIG = {
+  baseUrl: ENV_CONFIG.api.baseUrl,
+  supabaseUrl: ENV_CONFIG.api.supabaseUrl,
+  supabaseAnonKey: ENV_CONFIG.api.supabaseAnonKey,
+  endpoints: {
+    startAI: "/liga",
+    stopAI: "/desliga",
+    uploadDocument: "/arquivo",
+    register: "/register",
+  },
+  auth: {
+    login: "/auth/login",
+    register: "/auth/register",
+    logout: "/auth/logout",
+    profile: "/auth/profile",
+    refresh: "/auth/refresh",
+    forgotPassword: "/auth/forgot-password",
+    resetPassword: "/auth/reset-password",
+  },
+  users: {
+    me: "/users/me",
+    me_avatar: "/users/me/avatar",
+    update: (userId: string) => `/users/${userId}`,
+  },
+  plans: {
+    create: "/plans/",
+    readAll: "/plans/",
+
+    readById: (id: string) => `/plans/${id}`,
+    update: (id: string) => `/plans/${id}`,
+    delete: (id: string) => `/plans/${id}`,
+  },
+  organizations: {
+    create: "/organizations/",
+    readAll: "/organizations/",
+    readById: (organizationId: string) => `/organizations/${organizationId}`,
+    update: (organizationId: string) => `/organizations/${organizationId}`,
+    delete: (organizationId: string) => `/organizations/${organizationId}`,
+  },
+  invites: {
+    send: (organizationId: string) =>
+      `/organizations/${organizationId}/invites`,
+    accept: "/invitations/accept",
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/invites`,
+    findById: (organizationId: string, invitationId: string) =>
+      `/organizations/${organizationId}/invites/invitationId/${invitationId}`,
+    revoke: (organizationId: string, invitationId: string) =>
+      `/organizations/${organizationId}/invites/${invitationId}/revoke`,
+  },
+  subscriptions: {
+    create: (organizationId: string) =>
+      `/organizations/${organizationId}/subscriptions/`,
+    manage: (organizationId: string) =>
+      `/organizations/${organizationId}/subscriptions/manage`,
+    cancel: (organizationId: string) =>
+      `/organizations/${organizationId}/subscriptions/`,
+
+    reactivate: (organizationId: string) =>
+      `/organizations/${organizationId}/subscriptions/reactivate`,
+    changePlan: (organizationId: string) =>
+      `/organizations/${organizationId}/subscriptions/change-plan`,
+    addSlots: (organizationId: string) =>
+      `/organizations/${organizationId}/subscriptions/add-slots`,
+    removeSlots: (organizationId: string) =>
+      `/organizations/${organizationId}/subscriptions/remove-slots`,
+    purchaseOneTime: (organizationId: string) =>
+      `/organizations/${organizationId}/subscriptions/purchase-one-time-triggers`,
+  },
+  embed: {
+    create: (organizationId: string) =>
+      `/organizations/${organizationId}/embeds/`,
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/embeds/`,
+    findById: (organizationId: string, embedId: string) =>
+      `/organizations/${organizationId}/embeds/`,
+    update: (organizationId: string, embedId: string) =>
+      `/organizations/${organizationId}/embeds/${embedId}`,
+    delete: (organizationId: string, embedId: string) =>
+      `/organizations/${organizationId}/embeds/${embedId}`,
+  },
+  tags: {
+    create: (organizationId: string) => `/organizations/${organizationId}/tags`,
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/tags`,
+    findById: (organizationId: string, tagId: string) =>
+      `/organizations/${organizationId}/tags/${tagId}`,
+    update: (organizationId: string, tagId: string) =>
+      `/organizations/${organizationId}/tags/${tagId}`,
+    delete: (organizationId: string, tagId: string) =>
+      `/organizations/${organizationId}/tags/${tagId}`,
+  },
+  calendar: {
+    create: (organizationId: string) =>
+      `/organizations/${organizationId}/calendar/events`,
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/calendar/events`,
+    findById: (organizationId: string, eventId: string) =>
+      `/organizations/${organizationId}/calendar/events/${eventId}`,
+    update: (organizationId: string, eventId: string) =>
+      `/organizations/${organizationId}/calendar/events/${eventId}`,
+    delete: (organizationId: string, eventId: string) =>
+      `/organizations/${organizationId}/calendar/events/${eventId}`,
+    deleteAll: (organizationId: string) =>
+      `/organizations/${organizationId}/calendar/events/`,
+  },
+  whatsapp: {
+    getAllMessages: "/todas_messages",
+    getMessages: "/messages",
+    // Novas rotas REST para contatos e mensagens
+    contacts: {
+      findAll: (organizationId: string, instanceId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/contacts`,
+      create: (organizationId: string, instanceId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/contacts`,
+      update: (organizationId: string, instanceId: string, contactId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}`,
+      delete: (organizationId: string, instanceId: string, contactId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}`,
+      pin: (organizationId: string, instanceId: string, contactId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}/pin`,
+      markAsRead: (
+        organizationId: string,
+        instanceId: string,
+        contactId: string
+      ) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/contacts/${contactId}/mark-as-read`,
+    },
+    messages: {
+      send: (organizationId: string, instanceId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/send`,
+      list: (organizationId: string, instanceId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/messages`,
+      sendMedia: (organizationId: string, instanceId: string) =>
+        `/organizations/${organizationId}/whatsapp/${instanceId}/send-media`,
+    },
+  },
+  whatsappInstances: {
+    create: (organizationId: string) =>
+      `/organizations/${organizationId}/whatsapp`,
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/whatsapp`,
+    findById: (organizationId: string, instanceId: string) =>
+      `/organizations/${organizationId}/whatsapp/${instanceId}`,
+    update: (organizationId: string, instanceId: string) =>
+      `/organizations/${organizationId}/whatsapp/${instanceId}`,
+    delete: (organizationId: string, instanceId: string) =>
+      `/organizations/${organizationId}/whatsapp/${instanceId}`,
+    connect: (organizationId: string, instanceId: string) =>
+      `/organizations/${organizationId}/whatsapp/${instanceId}/connect`,
+  },
+  contracts: {
+    create: (organizationId: string) =>
+      `/organizations/${organizationId}/contracts`,
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/contracts`,
+    findById: (organizationId: string, contractId: string) =>
+      `/organizations/${organizationId}/contracts/${contractId}`,
+    update: (organizationId: string, contractId: string) =>
+      `/organizations/${organizationId}/contracts/${contractId}`,
+    delete: (organizationId: string, contractId: string) =>
+      `/organizations/${organizationId}/contracts/${contractId}`,
+    uploadFile: (organizationId: string, contractId: string) =>
+      `/organizations/${organizationId}/contracts/${contractId}/file`,
+    downloadFile: (organizationId: string, contractId: string) =>
+      `/organizations/${organizationId}/contracts/${contractId}/file`,
+    deleteFile: (organizationId: string, contractId: string) =>
+      `/organizations/${organizationId}/contracts/${contractId}/file`,
+  },
+  finance: {
+    create: (organizationId: string) =>
+      `/organizations/${organizationId}/transactions`,
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/transactions`,
+    findById: (organizationId: string, transactionId: string) =>
+      `/organizations/${organizationId}/transactions/${transactionId}`,
+    getSummary: (organizationId: string) =>
+      `/organizations/${organizationId}/transactions/summary`,
+    update: (organizationId: string, transactionId: string) =>
+      `/organizations/${organizationId}/transactions/${transactionId}`,
+    delete: (organizationId: string, transactionId: string) =>
+      `/organizations/${organizationId}/transactions/${transactionId}`,
+    deleteAll: (organizationId: string) =>
+      `/organizations/${organizationId}/transactions/transactions`,
+  },
+  permissions: {
+    listAll: "/permissions",
+  },
+  teamMembers: {
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/members`,
+    findById: (organizationId: string, memberId: string) =>
+      `/organizations/${organizationId}/members/${memberId}`,
+    updateRole: (organizationId: string, memberId: string) =>
+      `/organizations/${organizationId}/members/${memberId}/role`,
+    remove: (organizationId: string, memberId: string) =>
+      `/organizations/${organizationId}/members/${memberId}`,
+    permissions: {
+      list: (organizationId: string, memberId: string) =>
+        `/organizations/${organizationId}/members/${memberId}/permissions`,
+      grant: (organizationId: string, memberId: string) =>
+        `/organizations/${organizationId}/members/${memberId}/permissions`,
+      revoke: (organizationId: string, memberId: string) =>
+        `/organizations/${organizationId}/members/${memberId}/permissions`,
+    },
+  },
+  timeouts: {
+    default: 30000,
+    upload: 60000,
+  },
+  retries: {
+    count: 2,
+    delay: 1000,
+  },
+  boards: {
+    create: (organizationId: string) =>
+      `/organizations/${organizationId}/boards`,
+    findAll: (organizationId: string) =>
+      `/organizations/${organizationId}/boards`,
+    findById: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}`,
+    update: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}`,
+    delete: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}`,
+    setCompleted: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/set-completed`,
+    topSellers: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/top-sellers`,
+    accessList: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/access-list`,
+    duplicate: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/duplicate`,
+  },
+  lists: {
+    create: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists`,
+    findAll: (organizationId: string, boardId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists`,
+    findById: (organizationId: string, boardId: string, listId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}`,
+    update: (organizationId: string, boardId: string, listId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}`,
+    delete: (organizationId: string, boardId: string, listId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}`,
+    duplicate: (organizationId: string, boardId: string, listId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/duplicate`,
+  },
+  cards: {
+    create: (organizationId: string, boardId: string, listId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards`,
+    findAll: (organizationId: string, boardId: string, listId: string) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards`,
+    findById: (
+      organizationId: string,
+      boardId: string,
+      listId: string,
+      cardId: string
+    ) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}`,
+    update: (
+      organizationId: string,
+      boardId: string,
+      listId: string,
+      cardId: string
+    ) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}`,
+    delete: (
+      organizationId: string,
+      boardId: string,
+      listId: string,
+      cardId: string
+    ) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}`,
+    duplicate: (
+      organizationId: string,
+      boardId: string,
+      listId: string,
+      cardId: string
+    ) =>
+      `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/duplicate`,
+    // Anexos endpoints
+    attachments: {
+      create: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/attachments`,
+      findAll: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/attachments`,
+      download: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        attachmentId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/attachments/${attachmentId}/download`,
+      update: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        attachmentId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/attachments/${attachmentId}`,
+      delete: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        attachmentId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/attachments/${attachmentId}`,
+    },
+    // Subtarefas endpoints
+    subtasks: {
+      create: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/subtasks`,
+      findAll: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/subtasks`,
+      findById: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        subtaskId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/subtasks/${subtaskId}`,
+      update: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        subtaskId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/subtasks/${subtaskId}`,
+      delete: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        subtaskId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/subtasks/${subtaskId}`,
+    },
+    customFields: {
+      create: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/custom-fields`,
+      findAll: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/custom-fields`,
+      findById: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        customFieldId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/custom-fields/${customFieldId}`,
+      update: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        customFieldId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/custom-fields/${customFieldId}`,
+      delete: (
+        organizationId: string,
+        boardId: string,
+        listId: string,
+        cardId: string,
+        customFieldId: string
+      ) =>
+        `/organizations/${organizationId}/boards/${boardId}/lists/${listId}/cards/${cardId}/custom-fields/${customFieldId}`,
+    },
+  },
+};

@@ -1,8 +1,6 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
-import { Notification } from '../Notification';
-import { HelpButton } from '../HelpButton';
+import { Outlet } from "react-router-dom";
+import { Sidebar } from "./Sidebar";
+import { Notification } from "../Notification";
 
 export function DashboardLayout() {
   return (
@@ -17,7 +15,6 @@ export function DashboardLayout() {
           </main>
         </div>
       </div>
-      <HelpButton />
       <Notification />
     </div>
   );

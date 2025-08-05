@@ -1,221 +1,224 @@
-import React from 'react';
-import { X, Calendar, Clock, User, Tag, Info, Pencil, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Dialog, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
-import { Modal } from '../../../components/Modal';
-import { useCalendarStore } from '../../../store/calendarStore';
-import { useTeamStore } from '../../../pages/Team/store/teamStore';
-import { toast } from 'react-hot-toast';
+import { useState } from "react";
+import { Edit, Trash2, Calendar, Clock, User, Hash } from "lucide-react";
+import { format, isSameDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { CalendarEvent } from "../../../types/calendar";
+import { useAuthStore } from "../../../store/authStore";
+import { calendarService } from "../../../services/calendar";
+import { useTeamMembersStore } from "../../../store/teamMembersStore";
+import { useToast } from "../../../hooks/useToast";
+import { Modal } from "../../../components/Modal";
 
 interface EventDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  event: any;
-  onEdit?: (event: any) => void;
+  event: CalendarEvent;
+  onEdit?: () => void;
 }
 
-export function EventDetailModal({ isOpen, onClose, event, onEdit }: EventDetailModalProps) {
-  const { deleteEvent } = useCalendarStore();
-  const { members } = useTeamStore();
-  const [showConfirmDelete, setShowConfirmDelete] = React.useState(false);
-  
-  if (!event) return null;
+export function EventDetailModal({
+  isOpen,
+  onClose,
+  event,
+  onEdit,
+}: EventDetailModalProps) {
+  const { token, user, hasPermission } = useAuthStore();
+  const { members } = useTeamMembersStore();
+  const { showToast } = useToast();
+  const organizationId = user?.organization_id;
 
-  const startDate = new Date(event.start);
-  const endDate = new Date(event.end);
-  
-  const formatDate = (date: Date) => {
-    return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-  };
-  
-  const formatTime = (date: Date) => {
-    return format(date, "HH:mm", { locale: ptBR });
-  };
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Encontrar o nome do responsável pelo ID
-  const getResponsibleName = (id: string) => {
-    const member = members.find(member => member.id === id);
-    return member ? member.name : id;
-  };
+  const assignee = members.find((member) => member.id === event.assignee_id);
 
-  const handleEdit = () => {
-    onClose();
-    if (onEdit) {
-      onEdit(event);
+  const handleDelete = async () => {
+    if (!token || !organizationId) {
+      showToast("Erro de autenticação", "error");
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await calendarService.deleteEvent(token, organizationId, event.id);
+      showToast(`Evento "${event.title}" excluído com sucesso!`, "success");
+      onClose();
+    } catch (error: any) {
+      console.error("Erro ao excluir evento:", error);
+
+      let errorMessage = "Erro ao excluir evento. Tente novamente.";
+      if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      // Verificar se é um erro de permissão específico
+      if (
+        error?.status === 403 ||
+        errorMessage.includes("Acesso negado") ||
+        errorMessage.includes("permissão")
+      ) {
+        errorMessage =
+          "Você não tem permissão para excluir eventos do calendário. Entre em contacto com o administrador da organização.";
+      }
+
+      showToast(errorMessage, "error");
+    } finally {
+      setIsDeleting(false);
+      setShowConfirmModal(false);
     }
   };
 
-  const handleDelete = () => {
-    setShowConfirmDelete(true);
-  };
-
-  const confirmDelete = () => {
-    deleteEvent(event.id);
-    toast.success(`Evento "${event.title}" excluído com sucesso!`);
-    setShowConfirmDelete(false);
-    onClose();
-  };
+  if (!isOpen) return null;
 
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} title="Detalhes do Evento">
         <div className="space-y-6">
-          {/* Título */}
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            {event.title}
-          </h2>
-          
-          {/* Data e hora */}
-          <div className="space-y-4">
-            <div className="flex items-start">
-              <Calendar className="w-5 h-5 text-[#7f00ff] mr-3 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Data
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {formatDate(startDate)}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start">
-              <Clock className="w-5 h-5 text-[#7f00ff] mr-3 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Horário
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {formatTime(startDate)} - {formatTime(endDate)}
-                </p>
-              </div>
-            </div>
-            
-            {event.responsible && (
-              <div className="flex items-start">
-                <User className="w-5 h-5 text-[#7f00ff] mr-3 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Responsável
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {getResponsibleName(event.responsible)}
-                  </p>
+          <div className="flex items-start gap-4">
+            <div
+              className="w-4 h-4 rounded-full mt-1"
+              style={{ backgroundColor: event.color || "#7f00ff" }}
+            />
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                {event.title}
+              </h2>
+              <div className="mt-2 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  <span>
+                    {isSameDay(
+                      new Date(event.start_at),
+                      new Date(event.end_at)
+                    ) ? (
+                      format(
+                        new Date(event.start_at),
+                        "dd 'de' MMMM 'de' yyyy",
+                        {
+                          locale: ptBR,
+                        }
+                      )
+                    ) : (
+                      <>
+                        {format(new Date(event.start_at), "dd 'de' MMMM", {
+                          locale: ptBR,
+                        })}{" "}
+                        -{" "}
+                        {format(
+                          new Date(event.end_at),
+                          "dd 'de' MMMM 'de' yyyy",
+                          {
+                            locale: ptBR,
+                          }
+                        )}
+                      </>
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  <span>
+                    {format(new Date(event.start_at), "HH:mm")} -{" "}
+                    {format(new Date(event.end_at), "HH:mm")}
+                  </span>
                 </div>
               </div>
-            )}
+            </div>
           </div>
-          
-          {/* Descrição */}
+
           {event.description && (
             <div>
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                <Info className="w-4 h-4 mr-1" />
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Descrição
-              </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
                 {event.description}
               </p>
             </div>
           )}
-          
-          {/* Categorias */}
-          {event.categories && event.categories.length > 0 && (
+
+          {assignee && (
             <div>
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                <Tag className="w-4 h-4 mr-1" />
-                Categorias
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {event.categories.map((category: string) => (
-                  <span
-                    key={category}
-                    className="px-2 py-0.5 text-xs rounded-full bg-[#7f00ff]/10 text-[#7f00ff]"
-                  >
-                    {category}
-                  </span>
-                ))}
-              </div>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Responsável
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                {assignee.name}
+              </p>
             </div>
           )}
           
-          {/* Campos personalizados */}
-          {event.customFields && event.customFields.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Campos Personalizados
-              </h4>
-              <div className="space-y-2">
-                {event.customFields.map((field: any) => (
-                  <div key={field.id} className="flex">
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400 mr-2">
-                      {field.name}:
-                    </span>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {field.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Botões de ação */}
-          <div className="flex justify-end space-x-3">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
-              onClick={handleDelete}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+              type="button"
+              onClick={() => setShowConfirmModal(true)}
+              disabled={isDeleting}
+              className="px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50 items-center"
+              style={{
+                display: hasPermission("calendar:delete")
+                  ? "inline-flex"
+                  : "none",
+              }}
             >
-              <Trash2 size={16} className="mr-2" />
+              <Trash2 className="w-4 h-4 inline mr-2" />
               Excluir
             </button>
-            <button
-              onClick={handleEdit}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-            >
-              <Pencil size={16} className="mr-2" />
-              Editar
-            </button>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-            >
-              Fechar
-            </button>
+            {onEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="px-4 py-2 items-center bg-[#7f00ff] text-white rounded-lg hover:bg-[#7f00ff]/90 transition-colors"
+                style={{
+                  display: hasPermission("calendar:update")
+                    ? "inline-flex"
+                    : "none",
+                }}
+              >
+                <Edit className="w-4 h-4 inline mr-2" />
+                Editar
+              </button>
+            )}
           </div>
         </div>
       </Modal>
 
-      {/* Modal de confirmação de exclusão */}
-      <Modal 
-        isOpen={showConfirmDelete} 
-        onClose={() => setShowConfirmDelete(false)}
+      <Modal
+        isOpen={showConfirmModal}
+        onClose={isDeleting ? () => {} : () => setShowConfirmModal(false)}
         title="Confirmar exclusão"
       >
         <div className="mt-2">
           <p className="text-sm text-gray-500 dark:text-gray-300">
-            Tem certeza que deseja excluir o evento "{event?.title}"?
+            Tem certeza que deseja excluir o evento "{event.title}"?
           </p>
         </div>
         <div className="mt-4 flex justify-end gap-3">
           <button
             type="button"
-            className="inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 focus:outline-none"
-            onClick={() => setShowConfirmDelete(false)}
+            disabled={isDeleting}
+            className="inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => setShowConfirmModal(false)}
           >
             Cancelar
           </button>
           <button
             type="button"
-            className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none"
-            onClick={confirmDelete}
+            disabled={isDeleting}
+            className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleDelete}
           >
-            Excluir
+            {isDeleting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Excluindo...
+              </>
+            ) : (
+              "Excluir"
+            )}
           </button>
         </div>
       </Modal>
     </>
   );
-} 
+}

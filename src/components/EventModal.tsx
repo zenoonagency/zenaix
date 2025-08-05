@@ -1,25 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import DatePicker, { registerLocale } from 'react-datepicker';
-import { ptBR } from 'date-fns/locale';
-import { X } from 'lucide-react';
-import { CalendarEvent } from '../store/calendarStore';
-import 'react-datepicker/dist/react-datepicker.css';
+import React, { useState, useEffect } from "react";
+import DatePicker, { registerLocale } from "react-datepicker";
+import { ptBR } from "date-fns/locale";
+import { X } from "lucide-react";
+import "react-datepicker/dist/react-datepicker.css";
+import { CalendarEvent } from "../types/calendar";
 
-registerLocale('pt-BR', ptBR);
+registerLocale("pt-BR", ptBR);
 
 interface EventModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (event: Omit<CalendarEvent, 'id'>) => Promise<void>;
+  onSubmit: (event: Omit<CalendarEvent, "id">) => Promise<void>;
   selectedDates?: {
     start: Date;
     end: Date;
   };
 }
 
-export function EventModal({ isOpen, onClose, onSubmit, selectedDates }: EventModalProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+export function EventModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  selectedDates,
+}: EventModalProps) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
 
@@ -35,11 +40,28 @@ export function EventModal({ isOpen, onClose, onSubmit, selectedDates }: EventMo
     await onSubmit({
       title,
       description,
-      start: startDate,
-      end: endDate,
+      start_at: startDate.toISOString(),
+      end_at: endDate.toISOString(),
+      color: "#7f00ff",
+      organization_id: "",
+      creator_id: "",
+      start: "",
+      end: "",
+      responsible: "",
+      creator: {
+        id: "",
+        email: "",
+        name: "",
+        role: "",
+        organization_id: "",
+        created_at: "",
+        updated_at: "",
+      },
+      categories: [],
+      notifications: [],
     });
-    setTitle('');
-    setDescription('');
+    setTitle("");
+    setDescription("");
     setStartDate(new Date());
     setEndDate(new Date());
   };
@@ -47,7 +69,7 @@ export function EventModal({ isOpen, onClose, onSubmit, selectedDates }: EventMo
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="modal-container">
       <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-gray-200">Novo Evento</h2>
@@ -61,7 +83,10 @@ export function EventModal({ isOpen, onClose, onSubmit, selectedDates }: EventMo
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-1">
+            <label
+              htmlFor="title"
+              className="block text-sm font-medium text-gray-300 mb-1"
+            >
               Título
             </label>
             <input
@@ -75,7 +100,10 @@ export function EventModal({ isOpen, onClose, onSubmit, selectedDates }: EventMo
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-gray-300 mb-1"
+            >
               Descrição
             </label>
             <textarea
@@ -141,4 +169,4 @@ export function EventModal({ isOpen, onClose, onSubmit, selectedDates }: EventMo
       </div>
     </div>
   );
-} 
+}

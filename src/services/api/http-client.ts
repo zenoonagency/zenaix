@@ -1,4 +1,4 @@
-import { API_CONFIG } from './config';
+import { WEBHOOK_API_CONFIG } from '../../config/webhook.config';
 import { NetworkError, TimeoutError } from '../errors/api.errors';
 
 interface RequestOptions {
@@ -9,7 +9,7 @@ interface RequestOptions {
 }
 
 async function fetchWithTimeout(url: string, options: RequestOptions = {}) {
-  const { timeout = API_CONFIG.timeouts.default } = options;
+  const { timeout = WEBHOOK_API_CONFIG.timeouts.default } = options;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -42,8 +42,8 @@ async function fetchWithTimeout(url: string, options: RequestOptions = {}) {
 
 async function retryRequest<T>(
   fn: () => Promise<T>,
-  retries: number = API_CONFIG.retries.count,
-  delay: number = API_CONFIG.retries.delay
+  retries: number = WEBHOOK_API_CONFIG.retries.count,
+  delay: number = WEBHOOK_API_CONFIG.retries.delay
 ): Promise<T> {
   try {
     return await fn();
@@ -56,7 +56,7 @@ async function retryRequest<T>(
 
 export const httpClient = {
   async post(endpoint: string, data?: unknown, options: RequestOptions = {}) {
-    const url = `${API_CONFIG.baseUrl}${endpoint}`;
+    const url = `${WEBHOOK_API_CONFIG.baseUrl}${endpoint}`;
     const requestOptions: RequestOptions = {
       method: 'POST',
       headers: {

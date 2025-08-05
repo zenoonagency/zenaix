@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -13,16 +13,20 @@ import {
   Calendar,
   Tag,
   Settings,
-  Globe
-} from 'lucide-react';
+  Globe,
+} from "lucide-react";
 
 export function Sidebar() {
   return (
     <aside className="w-64 bg-gray-900 p-6">
       <div className="mb-8">
-        <img src="https://zenaix.com.br/wp-content/uploads/2025/03/LOGO-DARK-SMALL.png" alt="Zenaix" className="h-8" />
+        <img
+          src="/assets/images/LOGO-DARK-SMALL.webp"
+          alt="Zenaix"
+          className="h-8"
+        />
       </div>
-      
+
       <nav className="flex flex-col h-full">
         <div className="space-y-2 flex-1">
           <NavLink
@@ -30,8 +34,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-violet-600 text-white'
-                  : 'text-gray-400 hover:bg-violet-600 hover:text-gray-200'
+                  ? "bg-violet-600 text-white"
+                  : "text-gray-400 hover:bg-violet-600 hover:text-gray-200"
               }`
             }
           >
@@ -44,8 +48,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-violet-600 text-white'
-                  : 'text-gray-400 hover:bg-violet-600 hover:text-gray-200'
+                  ? "bg-violet-600 text-white"
+                  : "text-gray-400 hover:bg-violet-600 hover:text-gray-200"
               }`
             }
           >
@@ -58,8 +62,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-violet-600 text-white'
-                  : 'text-gray-400 hover:bg-violet-600 hover:text-gray-200'
+                  ? "bg-violet-600 text-white"
+                  : "text-gray-400 hover:bg-violet-600 hover:text-gray-200"
               }`
             }
           >
@@ -72,8 +76,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-violet-600 text-white'
-                  : 'text-gray-400 hover:bg-violet-600 hover:text-gray-200'
+                  ? "bg-violet-600 text-white"
+                  : "text-gray-400 hover:bg-violet-600 hover:text-gray-200"
               }`
             }
           >
@@ -86,8 +90,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-violet-600 text-white'
-                  : 'text-gray-400 hover:bg-violet-600 hover:text-gray-200'
+                  ? "bg-violet-600 text-white"
+                  : "text-gray-400 hover:bg-violet-600 hover:text-gray-200"
               }`
             }
           >
@@ -100,8 +104,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-violet-600 text-white'
-                  : 'text-gray-400 hover:bg-violet-600 hover:text-gray-200'
+                  ? "bg-violet-600 text-white"
+                  : "text-gray-400 hover:bg-violet-600 hover:text-gray-200"
               }`
             }
           >
@@ -114,8 +118,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-violet-600 text-white'
-                  : 'text-gray-400 hover:bg-violet-600 hover:text-gray-200'
+                  ? "bg-violet-600 text-white"
+                  : "text-gray-400 hover:bg-violet-600 hover:text-gray-200"
               }`
             }
           >
@@ -128,8 +132,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-violet-600 text-white'
-                  : 'text-gray-400 hover:bg-violet-600 hover:text-gray-200'
+                  ? "bg-violet-600 text-white"
+                  : "text-gray-400 hover:bg-violet-600 hover:text-gray-200"
               }`
             }
           >
@@ -142,8 +146,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-violet-600 text-white'
-                  : 'text-gray-400 hover:bg-violet-600 hover:text-gray-200'
+                  ? "bg-violet-600 text-white"
+                  : "text-gray-400 hover:bg-violet-600 hover:text-gray-200"
               }`
             }
           >
@@ -156,8 +160,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-violet-600 text-white'
-                  : 'text-gray-400 hover:bg-violet-600 hover:text-gray-200'
+                  ? "bg-violet-600 text-white"
+                  : "text-gray-400 hover:bg-violet-600 hover:text-gray-200"
               }`
             }
           >
@@ -172,8 +176,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-violet-600 text-white'
-                  : 'text-gray-400 hover:bg-violet-600 hover:text-gray-200'
+                  ? "bg-violet-600 text-white"
+                  : "text-gray-400 hover:bg-violet-600 hover:text-gray-200"
               }`
             }
           >
@@ -186,8 +190,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? 'bg-violet-600 text-white'
-                  : 'text-gray-400 hover:bg-violet-600 hover:text-gray-200'
+                  ? "bg-violet-600 text-white"
+                  : "text-gray-400 hover:bg-violet-600 hover:text-gray-200"
               }`
             }
           >
@@ -198,4 +202,4 @@ export function Sidebar() {
       </nav>
     </aside>
   );
-} 
+}

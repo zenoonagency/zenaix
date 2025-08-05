@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import { Bot, AlertTriangle, Trash2 } from 'lucide-react';
-import { AIControlButton } from '../../components/buttons/AIControlButton';
-import { DocumentUploadButton } from '../../components/buttons/DocumentUploadButton';
-import { Input } from '../../components/ui/Input';
+import React, { useState } from "react";
+import { Bot, AlertTriangle, Trash2 } from "lucide-react";
+import { AIControlButton } from "../../components/buttons/AIControlButton";
+import { DocumentUploadButton } from "../../components/buttons/DocumentUploadButton";
+import { Input } from "../../components/ui/Input";
 
 export function AIAgent() {
-  const [agentWebhook, setAgentWebhook] = useState('');
-  const [fileWebhook, setFileWebhook] = useState('');
-  const [prompt, setPrompt] = useState('');
-  const [memoryCount, setMemoryCount] = useState('');
+  const [agentWebhook, setAgentWebhook] = useState("");
+  const [fileWebhook, setFileWebhook] = useState("");
+  const [prompt, setPrompt] = useState("");
+  const [memoryCount, setMemoryCount] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const handleDeleteMemory = async () => {
     // Implementar a lógica de deleção de memória
-    console.log('Deletando memória:', memoryCount || 'toda');
+    console.log("Deletando memória:", memoryCount || "toda");
     setIsDeleteModalOpen(false);
   };
 
@@ -36,8 +36,10 @@ export function AIAgent() {
                 Área Sensível - Atenção Requerida
               </h3>
               <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
-                Esta é uma área sensível do sistema. Alterações nas configurações do agente podem afetar significativamente seu funcionamento.
-                Por favor, proceda com cautela e certifique-se de entender o impacto de cada alteração.
+                Esta é uma área sensível do sistema. Alterações nas
+                configurações do agente podem afetar significativamente seu
+                funcionamento. Por favor, proceda com cautela e certifique-se de
+                entender o impacto de cada alteração.
               </p>
             </div>
           </div>
@@ -51,9 +53,9 @@ export function AIAgent() {
                 Controles Principais
               </h2>
               <div className="space-y-4">
-                <AIControlButton 
-                  isActive={false} 
-                  onStatusChange={() => {}} 
+                <AIControlButton
+                  isActive={false}
+                  onStatusChange={() => {}}
                   webhook={agentWebhook}
                 />
                 <DocumentUploadButton webhook={fileWebhook} />
@@ -136,7 +138,7 @@ export function AIAgent() {
 
       {/* Modal de Confirmação de Deleção */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="modal-container">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
               Confirmar Deleção de Memória
@@ -144,7 +146,7 @@ export function AIAgent() {
             <p className="text-gray-600 dark:text-gray-300 mb-6">
               {memoryCount
                 ? `Você está prestes a deletar ${memoryCount} memórias do agente.`
-                : 'Você está prestes a deletar toda a memória do agente.'}
+                : "Você está prestes a deletar toda a memória do agente."}
               Esta ação não pode ser desfeita.
             </p>
             <div className="flex justify-end space-x-3">

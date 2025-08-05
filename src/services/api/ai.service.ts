@@ -1,15 +1,15 @@
 import { httpClient } from './http-client';
-import { API_CONFIG } from './config';
+import { WEBHOOK_API_CONFIG } from '../../config/webhook.config';
 
 export const aiService = {
   async start() {
-    await httpClient.post(API_CONFIG.endpoints.startAI, {
+    await httpClient.post(WEBHOOK_API_CONFIG.endpoints.startAI, {
       timestamp: new Date().toISOString()
     });
   },
 
   async stop() {
-    await httpClient.post(API_CONFIG.endpoints.stopAI, {
+    await httpClient.post(WEBHOOK_API_CONFIG.endpoints.stopAI, {
       timestamp: new Date().toISOString()
     });
   }

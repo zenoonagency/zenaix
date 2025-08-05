@@ -1,0 +1,60 @@
+version: "3.8"
+
+services:
+  zenaix-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: zenaix-frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - NODE_ENV=production
+      - VITE_API_BASE_URL=https://codigo-zenaix-backend.w9rr1k.easypanel.host
+      - VITE_WEBHOOK_BASE_URL=https://zenoon-agency-n8n.htm57w.easypanel.host/webhook
+      - VITE_SUPABASE_URL=https://samiqqeumkhpfgwdkjvb.supabase.co
+      - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhbWlxcWV1bWtocGZnd2RranZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4MTM3NTYsImV4cCI6MjA2NzM4OTc1Nn0.tKy_PaZetxDfHqLH626SWPk6fWu8HQvhZCQG-4zXbUM
+      - VITE_WS_URL=wss://zenoon-agency-n8n.htm57w.easypanel.host/ws
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - zenaix-network
+    volumes:
+      - ./logs/nginx:/var/log/nginx
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.zenaix.rule=Host(`zenaix.local`)"
+      - "traefik.http.services.zenaix.loadbalancer.server.port=80"
+
+  # Serviço de desenvolvimento (opcional)
+  zenaix-frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: zenaix-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
+    profiles:
+      - dev
+    networks:
+      - zenaix-network
+
+networks:
+  zenaix-network:
+    driver: bridge
+
+volumes:
+  nginx-logs:

@@ -1,40 +1,209 @@
-import React, { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
-import { TeamMember, TeamRole } from '../types';
-import { useTeamStore } from '../store/teamStore';
+import React, { useState } from "react";
+import { X, Loader2 } from "lucide-react";
+import { useSystemPermissionsStore } from "../../../store/systemPermissionsStore";
+import { usePermissionsStore } from "../../../store/permissionsStore";
+import { useAuthStore } from "../../../store/authStore";
+import { useEffect } from "react";
+import { TeamMember } from "../../../types/team.types";
+import { permissionsLabels } from "../../../components/ui/permissionsLabels";
+import { useToast } from "../../../hooks/useToast";
+
+export type TeamRole = "ADMIN" | "TEAM_MEMBER";
 
 interface TeamMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (member: Omit<TeamMember, 'id'>) => void;
+  onSave: (member: { email: string; role: TeamRole }) => void;
   member?: TeamMember;
   isLoading?: boolean;
 }
 
-export function TeamMemberModal({ isOpen, onClose, onSave, member, isLoading = false }: TeamMemberModalProps) {
-  const [name, setName] = useState(member?.name || '');
-  const [email, setEmail] = useState(member?.email || '');
-  const [role, setRole] = useState<TeamRole>(member?.role || 'user');
+// Type guard para TeamMember
+function isTeamMember(obj: any): obj is TeamMember {
+  return (
+    obj && typeof obj === "object" && "id" in obj && typeof obj.id === "string"
+  );
+}
+
+export function TeamMemberModal({
+  isOpen,
+  onClose,
+  onSave,
+  member,
+  isLoading = false,
+}: TeamMemberModalProps) {
+  const [email, setEmail] = useState(member?.email || "");
+  const [role, setRole] = useState<TeamRole>(
+    member &&
+      "role" in member &&
+      (member.role === "ADMIN" || member.role === "TEAM_MEMBER")
+      ? member.role
+      : "TEAM_MEMBER"
+  );
   const [localLoading, setLocalLoading] = useState(false);
+  // Estado local para permissões marcadas
+  const [localPerms, setLocalPerms] = useState<string[]>([]);
+  const [savingPerms, setSavingPerms] = useState(false);
+
+  const { token, user } = useAuthStore();
+  const organizationId = user?.organization_id;
+
+  // Verificar se o usuário é MASTER para mostrar a permissão de gerenciar membros
+  const isMaster = user?.role === "MASTER";
+  const {
+    systemPermissions,
+    fetchAllSystemPermissions,
+    isLoading: isLoadingSystem,
+  } = useSystemPermissionsStore();
+  const {
+    permissions,
+    fetchPermissions,
+    grantPermissions,
+    revokePermissions,
+    isLoading: isLoadingMemberPerms,
+  } = usePermissionsStore();
+
+  const { showToast } = useToast();
+
+  // Determinar se é modo de adicionar ou editar
+  const isAddMode = !isTeamMember(member);
+
+  useEffect(() => {
+    if (isOpen && token && isTeamMember(member) && organizationId) {
+      console.log(
+        `[TeamMemberModal] Modal aberto. A buscar permissões para o membro ${member.id}`
+      );
+      fetchPermissions(token, organizationId, member.id);
+    }
+  }, [isOpen, token, organizationId, member?.id]);
+
+  // Reset do estado quando o modal é aberto para adicionar
+  useEffect(() => {
+    if (isOpen && isAddMode) {
+      setEmail("");
+      setRole("TEAM_MEMBER");
+      setLocalLoading(false);
+    }
+  }, [isOpen, isAddMode]);
+
+  useEffect(() => {
+    if (isTeamMember(member) && !savingPerms) {
+      setLocalPerms(permissions.map((p) => p.name));
+    }
+  }, [permissions, member?.id, savingPerms]);
+
+  const handleTogglePermission = (permName: string, checked: boolean) => {
+    setLocalPerms((prev) =>
+      checked ? [...prev, permName] : prev.filter((p) => p !== permName)
+    );
+  };
+
+  const handleToggleCategory = (categoria: string, checked: boolean) => {
+    const categoriaPerms = Object.entries(permissionsLabels[categoria] || {})
+      .filter(([permName]) => {
+        if (permName === "organization:edit") return false;
+        if (permName === "organization:manage_members" && !isMaster)
+          return false;
+        return true;
+      })
+      .map(([permName]) => permName);
+
+    setLocalPerms((prev) => {
+      if (checked) {
+        const newPerms = [...prev];
+        categoriaPerms.forEach((perm) => {
+          if (!newPerms.includes(perm)) {
+            newPerms.push(perm);
+          }
+        });
+        return newPerms;
+      } else {
+        return prev.filter((p) => !categoriaPerms.includes(p));
+      }
+    });
+  };
+
+  const isCategoryChecked = (categoria: string) => {
+    const categoriaPerms = Object.entries(permissionsLabels[categoria] || {})
+      .filter(([permName]) => {
+        if (permName === "organization:edit") return false;
+        if (permName === "organization:manage_members" && !isMaster)
+          return false;
+        return true;
+      })
+      .map(([permName]) => permName);
+
+    return (
+      categoriaPerms.length > 0 &&
+      categoriaPerms.every((perm) => localPerms.includes(perm))
+    );
+  };
+
+  const isCategoryIndeterminate = (categoria: string) => {
+    const categoriaPerms = Object.entries(permissionsLabels[categoria] || {})
+      .filter(([permName]) => {
+        if (permName === "organization:edit") return false;
+        if (permName === "organization:manage_members" && !isMaster)
+          return false;
+        return true;
+      })
+      .map(([permName]) => permName);
+
+    const checkedCount = categoriaPerms.filter((perm) =>
+      localPerms.includes(perm)
+    ).length;
+    return checkedCount > 0 && checkedCount < categoriaPerms.length;
+  };
+
+  const handleSavePermissions = async () => {
+    if (!token || !organizationId || !isTeamMember(member)) return;
+    setSavingPerms(true);
+    try {
+      const currentPerms = permissions.map((p) => p.name);
+      const toGrant = localPerms.filter((p) => !currentPerms.includes(p));
+      const toRevoke = currentPerms.filter((p) => !localPerms.includes(p));
+      if (toGrant.length > 0) {
+        await grantPermissions(token, organizationId, member.id, {
+          permission_names: toGrant,
+        });
+      }
+      if (toRevoke.length > 0) {
+        await revokePermissions(token, organizationId, member.id, {
+          permission_names: toRevoke,
+        });
+      }
+      setSavingPerms(false);
+      onClose();
+    } catch (error: any) {
+      const errorMessage = error?.message || "Erro ao salvar permissões";
+      showToast(errorMessage, "error");
+      setSavingPerms(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLocalLoading(true);
     onSave({
-      name,
       email,
       role,
     });
+    // O localLoading será resetado quando o modal for fechado
   };
 
   if (!isOpen) return null;
 
+  // Pega nome ou e-mail do membro
+  const memberName = isTeamMember(member)
+    ? member?.name || member?.email || member?.id
+    : "";
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="modal-container">
       <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b border-gray-200/10 dark:border-gray-700/10">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            {member ? 'Editar Membro' : 'Adicionar Membro'}
+            {isAddMode ? "Adicionar Membro" : "Editar permissões do membro"}
           </h2>
           <button
             onClick={onClose}
@@ -44,75 +213,189 @@ export function TeamMemberModal({ isOpen, onClose, onSave, member, isLoading = f
             <X className="w-5 h-5" />
           </button>
         </div>
-        
-        <form onSubmit={handleSubmit} className="p-4">
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Nome
-              </label>
-              <input
-                type="text"
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300/20 dark:border-gray-600/20 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-dark-700 text-gray-900 dark:text-white"
-                required
-                disabled={isLoading || localLoading}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                E-mail
-              </label>
-              <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300/20 dark:border-gray-600/20 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-dark-700 text-gray-900 dark:text-white"
-                required
-                disabled={isLoading || localLoading}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Função
-              </label>
-              <select
-                id="role"
-                value={role}
-                onChange={(e) => setRole(e.target.value as TeamRole)}
-                className="w-full px-3 py-2 border border-gray-300/20 dark:border-gray-600/20 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-dark-700 text-gray-900 dark:text-white"
-                disabled={isLoading || localLoading}
-              >
-                <option value="user">Usuário</option>
-                <option value="admin">Administrador</option>
-              </select>
-            </div>
-          </div>
-          
-          <div className="mt-6 flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300/20 dark:border-gray-600/20 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              disabled={isLoading || localLoading}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading || localLoading}
-              className="px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center"
-            >
-              {(isLoading || localLoading) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {member ? 'Salvar' : 'Adicionar'}
-            </button>
-          </div>
-        </form>
+        <div className="p-4">
+          {isAddMode ? (
+            // Interface para adicionar membro
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg text-gray-900 dark:text-white border border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="email@exemplo.com"
+                  required
+                  disabled={isLoading || localLoading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Função
+                </label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as TeamRole)}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg text-gray-900 dark:text-white border border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  disabled={isLoading || localLoading}
+                >
+                  <option value="TEAM_MEMBER">Membro da Equipe</option>
+                  <option value="ADMIN">Administrador</option>
+                </select>
+              </div>
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 border border-gray-300/20 dark:border-gray-600/20 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  disabled={isLoading || localLoading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center justify-center gap-2"
+                  disabled={isLoading || localLoading}
+                >
+                  {(isLoading || localLoading) && (
+                    <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
+                  )}
+                  Adicionar Membro
+                </button>
+              </div>
+            </form>
+          ) : (
+            // Interface para editar permissões
+            <>
+              <div className="mb-6 text-lg font-medium text-gray-800 dark:text-gray-100 flex items-center gap-4">
+                {member && member.avatar_url ? (
+                  <img
+                    className="w-16 h-16 object-cover rounded-full"
+                    src={member.avatar_url}
+                    alt=""
+                  />
+                ) : (
+                  ""
+                )}
+                {memberName}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Permissões do membro
+                </label>
+                <div
+                  className={`max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md p-2 bg-gray-50 dark:bg-dark-700 divide-y divide-gray-100 dark:divide-gray-800 ${
+                    savingPerms ? "opacity-60 pointer-events-none" : ""
+                  }`}
+                >
+                  {isLoadingSystem || isLoadingMemberPerms ? (
+                    <div className="text-center text-gray-500 text-sm py-4">
+                      Carregando permissões...
+                    </div>
+                  ) : (
+                    Object.entries(permissionsLabels).map(
+                      ([categoria, permsObj]) => {
+                        const perms = Object.entries(permsObj).filter(
+                          ([permName]) => {
+                            // Sempre esconder organization:edit
+                            if (permName === "organization:edit") return false;
+
+                            // Esconder organization:manage_members se não for MASTER
+                            if (
+                              permName === "organization:manage_members" &&
+                              !isMaster
+                            )
+                              return false;
+
+                            return true;
+                          }
+                        );
+                        if (perms.length === 0) return null;
+                        return (
+                          <div
+                            key={categoria}
+                            className="py-2 first:pt-0 last:pb-0"
+                          >
+                            <div className="font-semibold text-xs text-purple-700 dark:text-purple-300 mb-2 uppercase tracking-wide flex items-center justify-between">
+                              {categoria}
+                              <input
+                                type="checkbox"
+                                checked={isCategoryChecked(categoria)}
+                                ref={(el) => {
+                                  if (el) {
+                                    el.indeterminate =
+                                      isCategoryIndeterminate(categoria);
+                                  }
+                                }}
+                                onChange={(e) =>
+                                  handleToggleCategory(
+                                    categoria,
+                                    e.target.checked
+                                  )
+                                }
+                                disabled={isLoading || localLoading}
+                              />
+                            </div>
+                            <ul className="space-y-2">
+                              {perms.map(([permName, label]) => (
+                                <li
+                                  key={permName}
+                                  className="flex items-center gap-2"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={localPerms.includes(permName)}
+                                    onChange={(e) =>
+                                      handleTogglePermission(
+                                        permName,
+                                        e.target.checked
+                                      )
+                                    }
+                                    disabled={isLoading || localLoading}
+                                    id={`perm-${permName}`}
+                                  />
+                                  <label
+                                    htmlFor={`perm-${permName}`}
+                                    className="text-sm text-gray-700 dark:text-gray-200 cursor-pointer"
+                                  >
+                                    {label}
+                                  </label>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      }
+                    )
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end mt-6 space-x-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 border border-gray-300/20 dark:border-gray-600/20 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  disabled={isLoading || localLoading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSavePermissions}
+                  className="px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center justify-center gap-2"
+                  disabled={isLoading || localLoading || savingPerms}
+                >
+                  {savingPerms && (
+                    <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
+                  )}
+                  Salvar permissões
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
