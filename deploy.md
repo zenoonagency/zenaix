@@ -2,7 +2,7 @@
 
 ## Pré-requisitos
 
-1. **Node.js** versão 18+ instalado
+1. **Node.js** versão 20+ instalado
 2. **npm** ou **yarn** instalado
 3. **Acesso ao servidor de produção**
 
