@@ -148,30 +148,7 @@ export function EventDetailModal({
               </p>
             </div>
           )}
-
-          {event.categories && event.categories.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                <Hash className="w-4 h-4" />
-                Categorias
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {event.categories.map((category) => (
-                  <span
-                    key={category.id}
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                    style={{
-                      backgroundColor: `${category.color}20`,
-                      color: category.color,
-                    }}
-                  >
-                    {category.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
+          
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"

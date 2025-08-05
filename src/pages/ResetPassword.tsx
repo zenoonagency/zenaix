@@ -88,7 +88,6 @@ export function ResetPassword() {
       if (updateError) throw updateError;
 
       setSuccess(true);
-      showToast("Senha redefinida com sucesso!", "success");
     } catch (error: any) {
       const message = handleSupabaseError(
         error,

@@ -122,12 +122,9 @@ export function Clients() {
           activeBoardId,
           dto
         );
-        // Atualizar o store com o quadro atualizado
         updateBoard(updatedBoard);
-        showToast("Quadro atualizado com sucesso!", "success");
       } else {
         await boardService.createBoard(token, organization.id, dto);
-        showToast("Quadro criado com sucesso!", "success");
       }
 
       setNewBoardTitle("");
@@ -154,7 +151,6 @@ export function Clients() {
 
         await boardService.deleteBoard(token, organization.id, boardToDelete);
 
-        showToast("Quadro excluído com sucesso!", "success");
         setShowDeleteModal(false);
         setBoardToDelete(null);
       } catch (err: any) {
@@ -993,7 +989,6 @@ export function Clients() {
                         organization.id,
                         activeBoardId
                       );
-                      showToast("Quadro duplicado com sucesso!", "success");
                       setShowCreateModal(false);
                     } catch (err: any) {
                       showToast(

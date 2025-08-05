@@ -155,10 +155,6 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
             : s
         )
       );
-      showToast(
-        updated.is_completed ? "Subtarefa concluída!" : "Subtarefa desmarcada",
-        "success"
-      );
       if (onEdit) onEdit();
     } catch (error: any) {
       showToast(error.message || "Erro ao atualizar subtarefa", "error");

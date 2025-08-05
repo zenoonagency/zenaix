@@ -98,7 +98,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
       updateUser({ avatar_url: "" });
 
-      showToast("Avatar removido com sucesso!", "success");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Erro ao remover avatar.";
@@ -131,7 +130,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
       updateUser(updatedUserFromApi);
 
-      showToast("Perfil atualizado com sucesso!", "success");
       onClose();
     } catch (error) {
       const message =

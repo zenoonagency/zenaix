@@ -51,11 +51,9 @@ export function TagList({
           editingTag.id,
           dto
         );
-        showToast("Marcador atualizado com sucesso!", "success");
       } else {
         const dto: InputCreateTagDTO = tagData;
         const newTag = await tagService.create(token, organizationId, dto);
-        showToast("Marcador criado com sucesso!", "success");
       }
       setShowModal(false);
       setEditingTag(null);
@@ -78,7 +76,6 @@ export function TagList({
     setDeletingTagId(tagId);
     try {
       await tagService.delete(token, organizationId, tagId);
-      showToast("Marcador apagado com sucesso!", "success");
     } catch (error: any) {
       showToast(error.message || "Falha ao apagar o marcador.", "error");
     } finally {

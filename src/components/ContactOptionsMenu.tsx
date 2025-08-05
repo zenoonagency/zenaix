@@ -74,19 +74,11 @@ export function ContactOptionsMenu({
         }
       );
 
-      // Atualizar o contato na store
       updateContactInStore(instanceId, contact.id, {
         is_pinned: !contact.is_pinned,
       });
 
-      showToast(
-        contact.is_pinned
-          ? "Contato desafixado com sucesso!"
-          : "Contato fixado com sucesso!",
-        "success"
-      );
 
-      // Fechar o menu após a ação
       onToggle();
     } catch (error: any) {
       console.error("Erro ao fixar/desafixar contato:", error);

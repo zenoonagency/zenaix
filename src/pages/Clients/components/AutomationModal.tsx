@@ -1,23 +1,16 @@
-import React, { useState, useEffect } from "react";
+import  { useState, useEffect } from "react";
 import {
   X,
   Webhook,
-  ArrowRight,
   Plus,
   Trash2,
   Tag as TagIcon,
 } from "lucide-react";
-import { Modal } from "../../../components/Modal";
 import { useBoardStore } from "../../../store/boardStore";
 import { useThemeStore } from "../../../store/themeStore";
-import { useToast } from "../../../hooks/useToast";
-import { Board } from "../../types/board";
-import { List } from "../../types/list";
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { useTeamMembersStore } from "../../../store/teamMembersStore";
-import { useTagStore } from "../../../store/tagStore";
 
 interface AutomationModalProps {
   isOpen: boolean;
@@ -44,9 +37,6 @@ export function AutomationModal({
 }: AutomationModalProps) {
   const { boards } = useBoardStore();
   const { theme } = useThemeStore();
-  const { showToast } = useToast();
-  const { members } = useTeamMembersStore();
-  const { tags } = useTagStore();
   const isDark = theme === "dark";
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [currentAutomation, setCurrentAutomation] = useState<Automation>({
@@ -79,7 +69,6 @@ export function AutomationModal({
       a.id === id ? { ...a, active: !a.active } : a
     );
     saveAutomations(updatedAutomations);
-    showToast("Status da automação atualizado!", "success");
   };
   const resetForm = () => {
     setCurrentAutomation({
@@ -102,7 +91,7 @@ export function AutomationModal({
     const getListName = (listId?: string) => {
       if (!listId) return "qualquer lista";
       const list = currentBoard?.lists?.find((l) => l.id === listId);
-      return list ? list.title : "lista removida";
+      return list ? list.name : "lista removida";
     };
     switch (automation.triggerType) {
       case "card_moved":
@@ -271,9 +260,9 @@ export function AutomationModal({
                                   </div>
                                 </button>
                                 <button
-                                  onClick={() =>
-                                    handleEditAutomation(automation)
-                                  }
+                                  // onClick={() =>
+                                  //   // handleEditAutomation(automation)
+                                  // }
                                   className={`p-1.5 rounded-md ${
                                     isDark
                                       ? "hover:bg-dark-600 text-gray-400 hover:text-gray-300"
@@ -297,9 +286,9 @@ export function AutomationModal({
                                   </svg>
                                 </button>
                                 <button
-                                  onClick={() =>
-                                    handleDeleteAutomation(automation.id)
-                                  }
+                                  // onClick={() =>
+                                  //   // handleDeleteAutomation(automation.id)
+                                  // }
                                   className={`p-1.5 rounded-md ${
                                     isDark
                                       ? "hover:bg-dark-600 text-red-400 hover:text-red-300"
@@ -439,7 +428,7 @@ export function AutomationModal({
                               <option value="">Selecione uma lista</option>
                               {currentBoard?.lists?.map((list) => (
                                 <option key={list.id} value={list.id}>
-                                  {list.title}
+                                  {list.name}
                                 </option>
                               ))}
                             </select>
@@ -469,7 +458,7 @@ export function AutomationModal({
                               <option value="">Selecione uma lista</option>
                               {currentBoard?.lists?.map((list) => (
                                 <option key={list.id} value={list.id}>
-                                  {list.title}
+                                  {list.name}
                                 </option>
                               ))}
                             </select>
@@ -501,7 +490,7 @@ export function AutomationModal({
                             <option value="">Selecione uma lista</option>
                             {currentBoard?.lists?.map((list) => (
                               <option key={list.id} value={list.id}>
-                                {list.title}
+                                {list.name}
                               </option>
                             ))}
                           </select>
@@ -578,7 +567,7 @@ export function AutomationModal({
                         Cancelar
                       </button>
                       <button
-                        onClick={handleCreateAutomation}
+                        // onClick={handleCreateAutomation}
                         className="px-4 py-2 bg-[#7f00ff] hover:bg-[#7f00ff]/90 text-white rounded-lg"
                       >
                         {isEditing ? "Atualizar" : "Criar"} Automação

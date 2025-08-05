@@ -151,7 +151,6 @@ export function ManageResourcesForm({
           quantity_to_remove: currentWhatsappInstances - whatsappInstances,
         });
       }
-      showToast("Recursos atualizados com sucesso!", "success");
       onClose();
     } catch (error) {
       const message =
