@@ -1,8 +1,9 @@
+import { ENV_CONFIG } from "./environment";
+
 export const API_CONFIG = {
-  baseUrl: "/api",
-  supabaseUrl: "https://samiqqeumkhpfgwdkjvb.supabase.co",
-  supabaseAnonKey:
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhbWlxcWV1bWtocGZnd2RranZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4MTM3NTYsImV4cCI6MjA2NzM4OTc1Nn0.tKy_PaZetxDfHqLH626SWPk6fWu8HQvhZCQG-4zXbUM",
+  baseUrl: ENV_CONFIG.api.baseUrl,
+  supabaseUrl: ENV_CONFIG.api.supabaseUrl,
+  supabaseAnonKey: ENV_CONFIG.api.supabaseAnonKey,
   endpoints: {
     startAI: "/liga",
     stopAI: "/desliga",

@@ -13,69 +13,78 @@ const crossOriginIsolationMiddleware = () => ({
   },
 });
 
-export default defineConfig({
-  plugins: [react(), crossOriginIsolationMiddleware()],
-  server: {
-    port: 3000,
-    host: true,
-    strictPort: true,
-    cors: true,
-    hmr: {
-      host: "localhost",
-      protocol: "ws",
-      timeout: 30000,
-    },
-    watch: {
-      usePolling: true,
-    },
-    open: true,
-    proxy: {
-      "/webhook": {
-        target: "https://fluxos-n8n.mgmxhs.easypanel.host",
-        changeOrigin: true,
-        secure: false,
-      },
-      "/api": {
-        target: "https://codigo-zenaix-backend.w9rr1k.easypanel.host/",
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path,
-        cookieDomainRewrite: {
-          "codigo-zenaix-backend.w9rr1k.easypanel.host": "localhost",
+export default defineConfig(({ mode }) => {
+  const isProduction = mode === "production";
+
+  return {
+    plugins: [react(), crossOriginIsolationMiddleware()],
+    server: isProduction
+      ? {}
+      : {
+          port: 3000,
+          host: true,
+          strictPort: true,
+          cors: true,
+          hmr: {
+            host: "localhost",
+            protocol: "ws",
+            timeout: 30000,
+          },
+          watch: {
+            usePolling: true,
+          },
+          open: true,
+          proxy: {
+            "/webhook": {
+              target: "https://fluxos-n8n.mgmxhs.easypanel.host",
+              changeOrigin: true,
+              secure: false,
+            },
+            "/api": {
+              target: "https://codigo-zenaix-backend.w9rr1k.easypanel.host/",
+              changeOrigin: true,
+              secure: false,
+              rewrite: (path) => path,
+              cookieDomainRewrite: {
+                "codigo-zenaix-backend.w9rr1k.easypanel.host": "localhost",
+              },
+              configure: (proxy, _options) => {
+                proxy.on("error", (err, _req, _res) => {
+                  console.error("Proxy error:", err);
+                });
+              },
+            },
+            "/storage": {
+              target: "https://samiqqeumkhpfgwdkjvb.supabase.co",
+              changeOrigin: true,
+              secure: false,
+            },
+          },
         },
-        configure: (proxy, _options) => {
-          proxy.on("error", (err, _req, _res) => {
-            console.error("Proxy error:", err);
-          });
-        },
-      },
-      "/storage": {
-        target: "https://samiqqeumkhpfgwdkjvb.supabase.co",
-        changeOrigin: true,
-        secure: false,
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
       },
     },
-  },
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
-  build: {
-    outDir: "dist",
-    emptyOutDir: true,
-    minify: true,
-    chunkSizeWarningLimit: 1500,
-    sourcemap: false,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"],
+    build: {
+      outDir: "dist",
+      emptyOutDir: true,
+      minify: true,
+      chunkSizeWarningLimit: 1500,
+      sourcemap: false,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ["react", "react-dom", "react-router-dom"],
+          },
         },
       },
     },
-  },
-  esbuild: {
-    logOverride: { "this-is-undefined-in-esm": "silent" },
-  },
+    esbuild: {
+      logOverride: { "this-is-undefined-in-esm": "silent" },
+    },
+    define: {
+      __DEV__: !isProduction,
+    },
+  };
 });
