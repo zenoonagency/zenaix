@@ -1,11 +1,5 @@
-import  { useState, useEffect } from "react";
-import {
-  X,
-  Webhook,
-  Plus,
-  Trash2,
-  Tag as TagIcon,
-} from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Webhook, Plus, Trash2, Tag as TagIcon } from "lucide-react";
 import { useBoardStore } from "../../../store/boardStore";
 import { useThemeStore } from "../../../store/themeStore";
 import { Dialog, Transition } from "@headlessui/react";

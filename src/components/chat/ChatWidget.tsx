@@ -222,7 +222,7 @@ export const ChatWidget = () => {
     <>
       {/* Minimized Chat - positioned at top */}
       {chatState === "minimized" && (
-        <div className={cn("fixed z-50 top-4 right-4")}>
+        <div className={cn("fixed z-50 bottom-[20%] right-4")}>
           <Button
             onClick={handleOpenChat}
             className={cn(
