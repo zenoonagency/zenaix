@@ -24,8 +24,8 @@ export class WebSocketService extends EventEmitter {
     } = {}
   ) {
     super();
-    this.maxReconnectAttempts = options.maxReconnectAttempts || 5;
-    this.reconnectDelay = options.reconnectDelay || 3000;
+    // this.maxReconnectAttempts = options.maxReconnectAttempts || 5;
+    // this.reconnectDelay = options.reconnectDelay || 3000;
     this.debug = options.debug || false;
     this.mockMode = options.mockMode || false;
   }

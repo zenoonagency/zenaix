@@ -1,4 +1,4 @@
-import { WEBHOOK_API_CONFIG } from '../config/webhook.config';
+import { WEBHOOK_API_CONFIG } from "../config/webhook.config";
 
 interface RequestOptions extends RequestInit {
   payload?: unknown;
@@ -9,16 +9,16 @@ class HttpError extends Error {
   constructor(
     message: string,
     public status: number,
-    public statusText: string,
+    public statusText: string
   ) {
     super(message);
-    this.name = 'HttpError';
+    this.name = "HttpError";
   }
 }
 
 async function handleResponse(response: Response) {
   if (!response.ok) {
-    let errorMessage = 'Erro no servidor. Por favor, tente novamente.';
+    let errorMessage = "Erro no servidor. Por favor, tente novamente.";
     try {
       const errorData = await response.json();
       errorMessage = errorData.message || errorMessage;
@@ -29,11 +29,7 @@ async function handleResponse(response: Response) {
         // Keep default error message if both JSON and text parsing fail
       }
     }
-    throw new HttpError(
-      errorMessage,
-      response.status,
-      response.statusText
-    );
+    throw new HttpError(errorMessage, response.status, response.statusText);
   }
 
   if (response.status === 204) {
@@ -50,7 +46,7 @@ async function handleResponse(response: Response) {
 function timeout(ms: number) {
   return new Promise((_, reject) => {
     setTimeout(() => {
-      reject(new Error('Tempo limite da requisição excedido'));
+      reject(new Error("Tempo limite da requisição excedido"));
     }, ms);
   });
 }
@@ -59,13 +55,17 @@ export async function makeRequest(
   endpoint: string,
   options: RequestOptions = {}
 ) {
-  const { payload, timeout: customTimeout = WEBHOOK_API_CONFIG.requestTimeout, ...requestOptions } = options;
+  const {
+    payload,
+    timeout: customTimeout = WEBHOOK_API_CONFIG.requestTimeout,
+    ...requestOptions
+  } = options;
   const url = `${WEBHOOK_API_CONFIG.baseUrl}${endpoint}`;
 
   const fetchOptions: RequestInit = {
     ...requestOptions,
-    mode: 'cors',
-    credentials: 'omit',
+    mode: "cors",
+    credentials: "omit",
     headers: {
       ...WEBHOOK_API_CONFIG.headers.json,
       ...requestOptions.headers,
@@ -74,7 +74,7 @@ export async function makeRequest(
 
   if (payload) {
     if (payload instanceof FormData) {
-      delete fetchOptions.headers['Content-Type'];
+      delete fetchOptions.headers["Content-Type"];
       fetchOptions.headers = {
         ...WEBHOOK_API_CONFIG.headers.formData,
         ...requestOptions.headers,
@@ -86,10 +86,10 @@ export async function makeRequest(
   }
 
   try {
-    const response = await Promise.race([
+    const response = (await Promise.race([
       fetch(url, fetchOptions),
       timeout(customTimeout),
-    ]);
+    ])) as Response;
     return await handleResponse(response);
   } catch (error) {
     if (error instanceof HttpError) {
@@ -97,11 +97,11 @@ export async function makeRequest(
     }
     if (error instanceof Error) {
       throw new Error(
-        error.message === 'Tempo limite da requisição excedido'
+        error.message === "Tempo limite da requisição excedido"
           ? error.message
-          : 'Erro de conexão. Verifique sua internet e tente novamente.'
+          : "Erro de conexão. Verifique sua internet e tente novamente."
       );
     }
-    throw new Error('Ocorreu um erro inesperado. Por favor, tente novamente.');
+    throw new Error("Ocorreu um erro inesperado. Por favor, tente novamente.");
   }
 }

@@ -2,7 +2,6 @@ import { API_CONFIG } from "../../config/api.config";
 import {
   PlanInput,
   PlanOutput,
-  ApiResponse,
   PlanUpdate,
 } from "../../types/plan";
 import { getAuthHeaders } from "../../utils/authHeaders";

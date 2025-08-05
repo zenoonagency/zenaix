@@ -10,7 +10,6 @@ import { Plans } from "../pages/Plans";
 import { Calendar } from "../pages/Calendar";
 import { EmbedPages } from "../pages/EmbedPages";
 import { Settings } from "../pages/Settings";
-import { DataTables } from "../pages/DataTables";
 import { Help } from "../pages/Help";
 import { Tags } from "../pages/Tags";
 import { Connections } from "../pages/Connections";
@@ -97,7 +96,7 @@ export const router = createBrowserRouter([
                   </OrganizationProtectedRoute>
                 ),
               },
-            
+
               {
                 path: "financial",
                 element: (
@@ -172,16 +171,6 @@ export const router = createBrowserRouter([
                   <PageTransition>
                     <Settings />
                   </PageTransition>
-                ),
-              },
-              {
-                path: "data-tables",
-                element: (
-                  <OrganizationProtectedRoute>
-                    <PageTransition>
-                      <DataTables />
-                    </PageTransition>
-                  </OrganizationProtectedRoute>
                 ),
               },
               {

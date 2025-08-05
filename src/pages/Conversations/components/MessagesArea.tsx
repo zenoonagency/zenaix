@@ -138,7 +138,6 @@ export function MessagesArea({
   setShowImageModal,
   messagesContainerRef,
   handleScroll,
-  onEmojiSelect,
 }) {
   const { user } = useAuthStore();
   const [openDocUrl, setOpenDocUrl] = React.useState<string | null>(null);

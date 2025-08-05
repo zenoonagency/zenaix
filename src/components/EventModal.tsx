@@ -45,6 +45,9 @@ export function EventModal({
       color: "#7f00ff",
       organization_id: "",
       creator_id: "",
+      start: "",
+      end: "",
+      responsible: "",
       creator: {
         id: "",
         email: "",
